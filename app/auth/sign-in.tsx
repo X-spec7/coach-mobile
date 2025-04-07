@@ -4,6 +4,7 @@ import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Lock, Mail } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { API_ENDPOINTS } from '@/constants/api';
 
 export default function LoginScreen() {
     const router = useRouter();
@@ -18,7 +19,7 @@ export default function LoginScreen() {
             setLoading(true);
             setError(null);
 
-            const response = await fetch('http://localhost:8000/api/authentication/login/', {
+            const response = await fetch(API_ENDPOINTS.AUTH.LOGIN, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
