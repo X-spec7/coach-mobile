@@ -1,74 +1,154 @@
-import { Image, StyleSheet, Platform } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity } from 'react-native';
+import { Play } from 'lucide-react-native';
 
-import { HelloWave } from '@/components/HelloWave';
-import ParallaxScrollView from '@/components/ParallaxScrollView';
-import { ThemedText } from '@/components/ThemedText';
-import { ThemedView } from '@/components/ThemedView';
+const workouts = [
+    {
+        id: 1,
+        title: 'Full Body Workout',
+        duration: '45 min',
+        image: 'https://images.unsplash.com/photo-1517836357463-d25dfeac3438?w=500',
+    },
+    {
+        id: 2,
+        title: 'HIIT Training',
+        duration: '30 min',
+        image: 'https://images.unsplash.com/photo-1599058945522-28d584b6f0ff?w=500',
+    },
+];
 
 export default function HomeScreen() {
-  return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12'
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-        <ThemedText>
-          Tap the Explore tab to learn more about what's included in this starter app.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          When you're ready, run{' '}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
-  );
+    return (
+        <View style={styles.container}>
+            <ScrollView style={styles.scrollView}>
+                <View style={styles.header}>
+                    <Text style={styles.greeting}>Welcome back, Alex!</Text>
+                    <Text style={styles.stats}>Today's Goal: 500 calories</Text>
+                </View>
+
+                <View style={styles.featuredWorkout}>
+                    <Image
+                        source={{ uri: 'https://images.unsplash.com/photo-1549060279-7e168fcee0c2?w=500' }}
+                        style={styles.featuredImage}
+                    />
+                    <View style={styles.featuredContent}>
+                        <Text style={styles.featuredTitle}>Featured Workout</Text>
+                        <Text style={styles.featuredSubtitle}>Core Strength</Text>
+                        <TouchableOpacity style={styles.startButton}>
+                            <Play size={20} color="#fff" />
+                            <Text style={styles.buttonText}>Start Workout</Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+
+                <Text style={styles.sectionTitle}>Recent Workouts</Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.workoutList}>
+                    {workouts.map((workout) => (
+                        <TouchableOpacity key={workout.id} style={styles.workoutCard}>
+                            <Image source={{ uri: workout.image }} style={styles.workoutImage} />
+                            <View style={styles.workoutInfo}>
+                                <Text style={styles.workoutTitle}>{workout.title}</Text>
+                                <Text style={styles.workoutDuration}>{workout.duration}</Text>
+                            </View>
+                        </TouchableOpacity>
+                    ))}
+                </ScrollView>
+            </ScrollView>
+        </View>
+    );
 }
 
 const styles = StyleSheet.create({
-  titleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
-  },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
-  },
+    container: {
+        flex: 1,
+        backgroundColor: '#1a1a1a',
+    },
+    scrollView: {
+        flex: 1,
+    },
+    header: {
+        padding: 20,
+        paddingTop: 40,
+    },
+    greeting: {
+        fontSize: 28,
+        fontWeight: 'bold',
+        color: '#fff',
+        marginBottom: 8,
+    },
+    stats: {
+        fontSize: 16,
+        color: '#666',
+    },
+    featuredWorkout: {
+        margin: 20,
+        backgroundColor: '#2a2a2a',
+        borderRadius: 16,
+        overflow: 'hidden',
+    },
+    featuredImage: {
+        width: '100%',
+        height: 200,
+    },
+    featuredContent: {
+        padding: 20,
+    },
+    featuredTitle: {
+        fontSize: 14,
+        color: '#8B5CF6',
+        marginBottom: 8,
+    },
+    featuredSubtitle: {
+        fontSize: 24,
+        fontWeight: 'bold',
+        color: '#fff',
+        marginBottom: 16,
+    },
+    startButton: {
+        backgroundColor: '#8B5CF6',
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: 16,
+        borderRadius: 12,
+    },
+    buttonText: {
+        color: '#fff',
+        fontSize: 16,
+        fontWeight: 'bold',
+        marginLeft: 8,
+    },
+    sectionTitle: {
+        fontSize: 20,
+        fontWeight: 'bold',
+        color: '#fff',
+        marginHorizontal: 20,
+        marginBottom: 16,
+    },
+    workoutList: {
+        paddingHorizontal: 20,
+    },
+    workoutCard: {
+        width: 280,
+        backgroundColor: '#2a2a2a',
+        borderRadius: 16,
+        marginRight: 16,
+        overflow: 'hidden',
+    },
+    workoutImage: {
+        width: '100%',
+        height: 160,
+    },
+    workoutInfo: {
+        padding: 16,
+    },
+    workoutTitle: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        color: '#fff',
+        marginBottom: 4,
+    },
+    workoutDuration: {
+        fontSize: 14,
+        color: '#666',
+    },
 });
