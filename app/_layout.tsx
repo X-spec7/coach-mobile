@@ -1,10 +1,10 @@
-import { useEffect, useState } from 'react';
-import { Stack } from 'expo-router';
-import { StatusBar } from 'expo-status-bar';
-import { useFrameworkReady } from '@/hooks/useFrameworkReady';
-import { useAuth } from '@/hooks/useAuth';
-import React from 'react';
-import { LoadingScreen } from './loading';
+import { useEffect, useState } from "react";
+import { Stack } from "expo-router";
+import { StatusBar } from "expo-status-bar";
+import { useFrameworkReady } from "@/hooks/useFrameworkReady";
+import { useAuth } from "@/hooks/useAuth";
+import React from "react";
+import LoadingScreen from "./loading";
 
 export default function RootLayout() {
   useFrameworkReady();
