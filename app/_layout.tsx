@@ -1,27 +1,43 @@
+import { Stack, Slot } from "expo-router";
 import { useEffect, useState } from "react";
-import { Stack } from "expo-router";
-import { StatusBar } from "expo-status-bar";
-import { useFrameworkReady } from "@/hooks/useFrameworkReady";
-import { useAuth } from "@/hooks/useAuth";
-import React from "react";
-import LoadingScreen from "./loading";
+import SplashScreen from "./splash";
 
 export default function RootLayout() {
-  useFrameworkReady();
-  const { loading } = useAuth();
+  const [isSplashComplete, setIsSplashComplete] = useState(false);
 
-  if (loading) {
-    return <LoadingScreen />;
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsSplashComplete(true);
+    }, 1000);
+
+    return () => clearTimeout(timer);
+  }, []);
+
+  if (!isSplashComplete) {
+    return <SplashScreen />;
   }
 
   return (
-    <>
-      <Stack screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="(tabs)" />
-        <Stack.Screen name="auth" />
-        <Stack.Screen name="+not-found" />
-      </Stack>
-      <StatusBar style="light" backgroundColor="#1a1a1a" />
-    </>
+    <Stack>
+      <Stack.Screen
+        name="(onboarding)/welcome"
+        options={{
+          headerShown: false,
+        }}
+      />
+      <Stack.Screen
+        name="auth/sign-in"
+        options={{
+          headerShown: false,
+        }}
+      />
+      <Stack.Screen
+        name="auth/sign-up"
+        options={{
+          headerShown: false,
+        }}
+      />
+      <Slot />
+    </Stack>
   );
 }
