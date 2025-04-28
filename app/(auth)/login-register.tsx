@@ -1,19 +1,13 @@
-import React, { useState, useRef } from "react";
+import React, { useState } from "react";
 import {
   View,
   Text,
   StyleSheet,
-  Image,
   TouchableOpacity,
   SafeAreaView,
   Dimensions,
-  ScrollView,
-  NativeSyntheticEvent,
-  NativeScrollEvent,
 } from "react-native";
 import { router } from "expo-router";
-import { colors, spacing, typography } from "@/constants/theme";
-import { useAuth } from "@/hooks/useAuth";
 import Carousel from "react-native-reanimated-carousel";
 
 const { width: screenWidth } = Dimensions.get("window");
@@ -25,8 +19,9 @@ interface Slide {
 
 const slides: Slide[] = [
   {
-    title: "Welcome to Coach",
-    description: "Your personal fitness journey starts here",
+    title: "Fit with us and Stay healthy",
+    description:
+      "We'll help you stay healthy and fit by exercising and monitoring your diet",
   },
   {
     title: "Track Your Progress",
@@ -38,11 +33,10 @@ const slides: Slide[] = [
   },
 ];
 
-export default function WelcomeScreen() {
-  const { completeOnboarding } = useAuth();
+export default function LoginRegisterScreen() {
   const [activeSlide, setActiveSlide] = useState(0);
 
-  const renderItem = ({ item, index }: { item: Slide; index: number }) => {
+  const renderItem = ({ item }: { item: Slide }) => {
     return (
       <View style={styles.slide}>
         <Text style={styles.title}>{item.title}</Text>
@@ -51,15 +45,12 @@ export default function WelcomeScreen() {
     );
   };
 
-  const handleGetStarted = async () => {
-    console.log("Getting started");
-    await completeOnboarding();
-    router.replace("/auth/sign-in");
-  };
-
   return (
     <SafeAreaView style={styles.container}>
-      <TouchableOpacity style={styles.skipButton} onPress={handleGetStarted}>
+      <TouchableOpacity
+        style={styles.skipButton}
+        onPress={() => router.push("/(auth)/sign-in")}
+      >
         <Text style={styles.skipText}>Skip</Text>
       </TouchableOpacity>
 
@@ -68,7 +59,7 @@ export default function WelcomeScreen() {
           loop
           width={screenWidth}
           height={300}
-          autoPlay={false}
+          autoPlay={true}
           data={slides}
           scrollAnimationDuration={1000}
           onSnapToItem={(index) => setActiveSlide(index)}
@@ -88,25 +79,34 @@ export default function WelcomeScreen() {
       </View>
 
       <View style={styles.bottomContainer}>
-        <TouchableOpacity
-          style={styles.signUpButton}
-          onPress={() => router.push("/auth/sign-up")}
-        >
-          <Text style={styles.signUpText}>Sign Up</Text>
-        </TouchableOpacity>
+        <View style={styles.buttonContainer}>
+          <TouchableOpacity
+            style={[styles.button, styles.signUpButton]}
+            onPress={() => router.push("/(auth)/sign-up")}
+          >
+            <Text style={styles.signUpText}>Sign Up</Text>
+          </TouchableOpacity>
 
-        <TouchableOpacity
-          style={styles.signInButton}
-          onPress={() => router.push("/auth/sign-in")}
-        >
-          <Text style={styles.signInText}>Sign In</Text>
-        </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.button, styles.signInButton]}
+            onPress={() => router.push("/(auth)/sign-in")}
+          >
+            <Text style={styles.signInText}>Sign In</Text>
+          </TouchableOpacity>
+        </View>
 
-        <Text style={styles.privacyText}>
-          By continuing, you agree to our{" "}
-          <Text style={styles.linkText}>Terms of Service</Text> and{" "}
-          <Text style={styles.linkText}>Privacy Policy</Text>
-        </Text>
+        <View style={styles.privacyContainer}>
+          <Text style={styles.privacyText}>
+            By continuing, you agree to our{" "}
+            <Text style={styles.linkText} onPress={() => {}}>
+              Terms of Service
+            </Text>{" "}
+            and{" "}
+            <Text style={styles.linkText} onPress={() => {}}>
+              Privacy Policy
+            </Text>
+          </Text>
+        </View>
       </View>
     </SafeAreaView>
   );
@@ -115,33 +115,35 @@ export default function WelcomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#fff",
+    backgroundColor: "#FFFFFF",
   },
   skipButton: {
     position: "absolute",
-    top: 16,
-    right: 16,
+    top: 20,
+    right: 20,
     zIndex: 1,
   },
   skipText: {
-    color: "#666666",
+    color: "#A26FFD",
     fontSize: 16,
+    fontWeight: "500",
   },
   carouselContainer: {
     flex: 1,
     justifyContent: "center",
   },
   slide: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
+    width: screenWidth,
     paddingHorizontal: 20,
+    alignItems: "center",
+    justifyContent: "center",
   },
   title: {
     fontSize: 24,
-    fontWeight: "bold",
-    marginBottom: 16,
+    fontWeight: "700",
+    color: "#000000",
     textAlign: "center",
+    marginBottom: 10,
   },
   description: {
     fontSize: 16,
@@ -157,48 +159,59 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: "#CCCCCC",
+    backgroundColor: "#E0E0E0",
     marginHorizontal: 4,
   },
   paginationDotActive: {
-    backgroundColor: "#000000",
+    backgroundColor: "#A26FFD",
   },
   bottomContainer: {
+    display: "flex",
     padding: 20,
+    paddingBottom: 40,
+  },
+  buttonContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    paddingHorizontal: 20,
+    marginTop: 20,
+    gap: 12,
+  },
+  button: {
+    flex: 1,
+    height: 50,
+    borderRadius: 25,
+    justifyContent: "center",
+    alignItems: "center",
   },
   signUpButton: {
-    backgroundColor: "#000000",
-    padding: 16,
-    borderRadius: 8,
-    marginBottom: 12,
+    backgroundColor: "#A26FFD",
+  },
+  signInButton: {
+    backgroundColor: "#FFFFFF",
+    borderWidth: 1,
+    borderColor: "#A26FFD",
   },
   signUpText: {
     color: "#FFFFFF",
     fontSize: 16,
-    fontWeight: "bold",
-    textAlign: "center",
-  },
-  signInButton: {
-    backgroundColor: "#FFFFFF",
-    padding: 16,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: "#000000",
-    marginBottom: 16,
+    fontWeight: "600",
   },
   signInText: {
-    color: "#000000",
+    color: "#A26FFD",
     fontSize: 16,
-    fontWeight: "bold",
-    textAlign: "center",
+    fontWeight: "600",
+  },
+  privacyContainer: {
+    alignItems: "center",
   },
   privacyText: {
-    fontSize: 12,
     color: "#666666",
+    fontSize: 12,
     textAlign: "center",
   },
   linkText: {
-    color: "#000000",
+    color: "#A26FFD",
     textDecorationLine: "underline",
   },
 });
