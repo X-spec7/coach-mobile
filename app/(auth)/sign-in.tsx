@@ -12,6 +12,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Lock, Mail } from "lucide-react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { API_ENDPOINTS } from "@/constants/api";
+import Logo from "../components/Logo";
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -66,8 +67,10 @@ export default function LoginScreen() {
 
   return (
     <LinearGradient colors={["#FFFFFF", "#EDE2FF"]} style={styles.container}>
+      <View style={styles.logoContainer}>
+        <Logo size="small" />
+      </View>
       <View style={styles.formContainer}>
-        <Text style={styles.title}>Welcome Back</Text>
         <Text style={styles.subtitle}>Sign in to continue</Text>
 
         {error && (
@@ -130,14 +133,14 @@ export default function LoginScreen() {
 
         <TouchableOpacity
           style={styles.forgotPassword}
-          onPress={() => router.push("/auth/forgot-password")}
+          onPress={() => router.push("/(auth)/forgot-password")}
         >
           <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
         </TouchableOpacity>
 
         <View style={styles.registerContainer}>
           <Text style={styles.registerText}>Don't have an account? </Text>
-          <TouchableOpacity onPress={() => router.push("/auth/sign-up")}>
+          <TouchableOpacity onPress={() => router.push("/(auth)/sign-up")}>
             <Text style={styles.registerLink}>Sign Up</Text>
           </TouchableOpacity>
         </View>
@@ -151,6 +154,10 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     padding: 20,
+  },
+  logoContainer: {
+    alignItems: "center",
+    marginBottom: 20,
   },
   formContainer: {
     backgroundColor: "#fff",

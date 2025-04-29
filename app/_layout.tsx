@@ -1,6 +1,7 @@
 import { Stack, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
-import { View, StyleSheet, Text } from "react-native";
+import { View, StyleSheet } from "react-native";
+import Logo from "./components/Logo";
 
 export default function RootLayout() {
   const [isSplashComplete, setIsSplashComplete] = useState(false);
@@ -24,10 +25,7 @@ export default function RootLayout() {
   if (!isSplashComplete) {
     return (
       <View style={styles.container}>
-        <View style={styles.textContainer}>
-          <Text style={styles.preTitle}>COA-</Text>
-          <Text style={styles.title}>CH</Text>
-        </View>
+        <Logo size="large" />
       </View>
     );
   }
@@ -49,25 +47,5 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFFFFF",
     alignItems: "center",
     justifyContent: "center",
-  },
-  textContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  preTitle: {
-    fontFamily: "Roboto",
-    fontWeight: "700",
-    fontSize: 40,
-    lineHeight: 40,
-    letterSpacing: 0,
-    color: "#A26FFD",
-  },
-  title: {
-    fontFamily: "Roboto",
-    fontWeight: "700",
-    fontSize: 40,
-    lineHeight: 40,
-    letterSpacing: 0,
-    color: "#000000",
   },
 });

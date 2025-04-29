@@ -6,30 +6,35 @@ import {
   TouchableOpacity,
   SafeAreaView,
   Dimensions,
+  Image,
 } from "react-native";
 import { router } from "expo-router";
 import Carousel from "react-native-reanimated-carousel";
+import Logo from "../components/Logo";
 
 const { width: screenWidth } = Dimensions.get("window");
 
 interface Slide {
   title: string;
   description: string;
+  image: any;
 }
 
 const slides: Slide[] = [
   {
-    title: "Fit with us and Stay healthy",
-    description:
-      "We'll help you stay healthy and fit by exercising and monitoring your diet",
+    title: "Welcome to Coach",
+    description: "Your personal fitness journey starts here",
+    image: require("@/assets/images/welcome.jpg"),
   },
   {
     title: "Track Your Progress",
     description: "Monitor your workouts and achievements",
+    image: require("@/assets/images/welcome1.jpg"),
   },
   {
     title: "Get Expert Guidance",
     description: "Access professional coaching anytime",
+    image: require("@/assets/images/welcome2.jpg"),
   },
 ];
 
@@ -39,8 +44,15 @@ export default function LoginRegisterScreen() {
   const renderItem = ({ item }: { item: Slide }) => {
     return (
       <View style={styles.slide}>
-        <Text style={styles.title}>{item.title}</Text>
-        <Text style={styles.description}>{item.description}</Text>
+        <Image
+          source={item.image}
+          style={styles.backgroundImage}
+          resizeMode="cover"
+        />
+        <View style={styles.overlay}>
+          <Text style={styles.title}>{item.title}</Text>
+          <Text style={styles.description}>{item.description}</Text>
+        </View>
       </View>
     );
   };
@@ -58,7 +70,7 @@ export default function LoginRegisterScreen() {
         <Carousel
           loop
           width={screenWidth}
-          height={300}
+          height={400}
           autoPlay={true}
           data={slides}
           scrollAnimationDuration={1000}
@@ -134,21 +146,33 @@ const styles = StyleSheet.create({
   },
   slide: {
     width: screenWidth,
-    paddingHorizontal: 20,
-    alignItems: "center",
+    height: 400,
+    position: "relative",
+  },
+  backgroundImage: {
+    width: "100%",
+    height: "100%",
+    position: "absolute",
+  },
+  overlay: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.4)",
     justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 20,
   },
   title: {
-    fontSize: 24,
+    fontSize: 28,
     fontWeight: "700",
-    color: "#000000",
+    color: "#FFFFFF",
     textAlign: "center",
     marginBottom: 10,
   },
   description: {
     fontSize: 16,
-    color: "#666666",
+    color: "#FFFFFF",
     textAlign: "center",
+    opacity: 0.9,
   },
   pagination: {
     flexDirection: "row",
@@ -166,15 +190,12 @@ const styles = StyleSheet.create({
     backgroundColor: "#A26FFD",
   },
   bottomContainer: {
-    display: "flex",
     padding: 20,
     paddingBottom: 40,
   },
   buttonContainer: {
     flexDirection: "row",
     justifyContent: "space-between",
-    paddingHorizontal: 20,
-    marginTop: 20,
     gap: 12,
   },
   button: {
@@ -204,6 +225,7 @@ const styles = StyleSheet.create({
   },
   privacyContainer: {
     alignItems: "center",
+    marginTop: 20,
   },
   privacyText: {
     color: "#666666",
