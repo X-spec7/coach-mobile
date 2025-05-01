@@ -57,7 +57,7 @@ export default function LoginScreen() {
         await AsyncStorage.removeItem("rememberedEmail");
       }
       console.log("inLoginScreen");
-      router.replace("/(onboarding)/welcome");
+      router.replace("/(onboarding)/personalize");
     } catch (err) {
       console.log(err);
       setError(err instanceof Error ? err.message : "An error occurred");
