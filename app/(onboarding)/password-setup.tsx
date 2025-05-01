@@ -7,18 +7,40 @@ import {
   SafeAreaView,
   TextInput,
   Pressable,
+  ViewStyle,
 } from "react-native";
 import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import { saveProgress } from "../../utils/storage";
+import analytics from "@/utils/analytics";
 
 interface PasswordRequirement {
   label: string;
   isValid: boolean;
 }
 
+interface OnboardingScreenProps {
+  step: number;
+  totalSteps: number;
+  onContinue: () => void;
+  onSkip: () => void;
+  onBack: () => void;
+}
+
+interface OnboardingStyles {
+  container: ViewStyle;
+  header: ViewStyle;
+  content: ViewStyle;
+  bottomContainer: ViewStyle;
+  // ... other common styles
+}
+
 export default function PasswordSetupScreen() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const currentStep = 1;
+  const nextScreen = "/(onboarding)/notifications";
 
   const passwordRequirements: PasswordRequirement[] = [
     { label: "8+ characters", isValid: password.length >= 8 },
@@ -31,9 +53,15 @@ export default function PasswordSetupScreen() {
     return passwordRequirements.filter((req) => req.isValid).length;
   }, [password]);
 
-  const handleContinue = () => {
-    if (getPasswordStrength() === passwordRequirements.length) {
-      router.push("/(onboarding)/notifications");
+  const handleContinue = async () => {
+    setIsLoading(true);
+    try {
+      await saveProgress(currentStep);
+      router.push(nextScreen);
+    } catch (error) {
+      // Handle error
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -43,6 +71,13 @@ export default function PasswordSetupScreen() {
 
   const handleBack = () => {
     router.back();
+  };
+
+  const trackScreen = (screenName: string) => {
+    analytics.logEvent("screen_view", {
+      screen_name: screenName,
+      screen_class: "Onboarding",
+    });
   };
 
   return (
@@ -119,6 +154,9 @@ export default function PasswordSetupScreen() {
       {/* Bottom Button */}
       <View style={styles.bottomContainer}>
         <TouchableOpacity
+          accessible={true}
+          accessibilityLabel="Continue to next step"
+          accessibilityHint="Double tap to proceed to the next onboarding step"
           style={[
             styles.continueButton,
             getPasswordStrength() === passwordRequirements.length &&
