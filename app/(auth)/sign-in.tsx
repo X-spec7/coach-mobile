@@ -57,8 +57,9 @@ export default function LoginScreen() {
         await AsyncStorage.removeItem("rememberedEmail");
       }
       console.log("inLoginScreen");
-      router.replace("/(auth)/sign-in");
+      router.replace("/(onboarding)/welcome");
     } catch (err) {
+      console.log(err);
       setError(err instanceof Error ? err.message : "An error occurred");
     } finally {
       setLoading(false);
@@ -198,7 +199,7 @@ const styles = StyleSheet.create({
   },
   input: {
     flex: 1,
-    color: "#fff",
+    color: "#666",
     fontSize: 16,
     backgroundColor: "#fff",
     borderColor: "transparent",
