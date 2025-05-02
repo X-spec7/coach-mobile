@@ -46,6 +46,7 @@ export default function PasswordSetupScreen() {
     { label: "8+ characters", isValid: password.length >= 8 },
     { label: "1 symbols", isValid: /[!@#$%^&*(),.?":{}|<>]/.test(password) },
     { label: "1 uppercase", isValid: /[A-Z]/.test(password) },
+    { label: "1 lowercase", isValid: /[a-z]/.test(password) },
     { label: "1 number", isValid: /[0-9]/.test(password) },
   ];
 
