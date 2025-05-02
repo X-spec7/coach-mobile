@@ -25,11 +25,11 @@ export default function HeightScreen() {
   const [cm, setCm] = useState(170);
 
   const handleContinue = () => {
-    router.push("/(onboarding)/goals");
+    router.push("/(onboarding)/interests");
   };
 
   const handleSkip = () => {
-    router.push("/(onboarding)/goals");
+    router.push("/(onboarding)/interests");
   };
 
   const handleBack = () => {
