@@ -143,15 +143,17 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     marginBottom: 40,
+    borderWidth: 1,
+    borderColor: "#A26FFD",
   },
   notificationList: {
     width: "100%",
-    gap: 24,
+    gap: 12,
   },
   notificationItem: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 16,
+    gap: 12,
   },
   iconContainer: {
     width: 40,
@@ -164,6 +166,9 @@ const styles = StyleSheet.create({
   notificationText: {
     fontSize: 16,
     color: "#000",
+    borderBottomWidth: 1,
+    borderColor: "#EFEFF4",
+    paddingBottom: 4,
   },
   bottomContainer: {
     padding: 24,

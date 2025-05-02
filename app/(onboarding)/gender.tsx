@@ -106,7 +106,10 @@ export default function GenderScreen() {
         <Text style={styles.descriptionText}>
           To give you a customize experience we need to need to know your gender
         </Text>
+      </View>
 
+      {/* Bottom Button */}
+      <View style={styles.bottomContainer}>
         {/* Prefer not to choose button */}
         <TouchableOpacity
           style={styles.preferNotButton}
@@ -114,10 +117,6 @@ export default function GenderScreen() {
         >
           <Text style={styles.preferNotText}>Prefer not to choose</Text>
         </TouchableOpacity>
-      </View>
-
-      {/* Bottom Button */}
-      <View style={styles.bottomContainer}>
         <TouchableOpacity
           style={[
             styles.continueButton,
@@ -238,6 +237,7 @@ const styles = StyleSheet.create({
   preferNotButton: {
     alignItems: "center",
     paddingVertical: 12,
+    marginBottom: 12,
   },
   preferNotText: {
     color: "#A26FFD",

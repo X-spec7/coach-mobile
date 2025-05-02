@@ -46,7 +46,6 @@ export default function PasswordSetupScreen() {
     { label: "8+ characters", isValid: password.length >= 8 },
     { label: "1 symbols", isValid: /[!@#$%^&*(),.?":{}|<>]/.test(password) },
     { label: "1 uppercase", isValid: /[A-Z]/.test(password) },
-    { label: "1 lowercase", isValid: /[a-z]/.test(password) },
     { label: "1 number", isValid: /[0-9]/.test(password) },
   ];
 
@@ -137,17 +136,18 @@ export default function PasswordSetupScreen() {
         </View>
 
         {/* Requirements List */}
-        <View style={styles.requirementsList}>
+        <View style={styles.requirementsListGrid}>
           {passwordRequirements.map((requirement, index) => (
-            <Text
-              key={index}
-              style={[
-                styles.requirementText,
-                requirement.isValid && styles.requirementMet,
-              ]}
-            >
-              • {requirement.label}
-            </Text>
+            <View key={index} style={styles.requirementCol}>
+              <Text
+                style={[
+                  styles.requirementText,
+                  requirement.isValid && styles.requirementMet,
+                ]}
+              >
+                • {requirement.label}
+              </Text>
+            </View>
           ))}
         </View>
       </View>
@@ -254,8 +254,17 @@ const styles = StyleSheet.create({
   strengthSegmentFilled: {
     backgroundColor: "#A26FFD",
   },
-  requirementsList: {
-    gap: 12,
+  requirementsListGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "center",
+    marginBottom: 16,
+  },
+  requirementCol: {
+    width: "50%",
+    marginBottom: 8,
+    alignItems: "flex-start",
+    paddingHorizontal: 4,
   },
   requirementText: {
     fontSize: 14,
