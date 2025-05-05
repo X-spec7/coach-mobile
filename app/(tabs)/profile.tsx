@@ -1,13 +1,20 @@
-import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView } from 'react-native';
-import { Settings, ChevronRight } from 'lucide-react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  Image,
+  TouchableOpacity,
+  ScrollView,
+} from "react-native";
+import { Settings, ChevronRight } from "lucide-react-native";
 
 const menuItems = [
-  { id: 1, title: 'Personal Information', icon: 'user' },
-  { id: 2, title: 'Workout History', icon: 'activity' },
-  { id: 3, title: 'Goals', icon: 'target' },
-  { id: 4, title: 'Notifications', icon: 'bell' },
-  { id: 5, title: 'Privacy', icon: 'lock' },
-  { id: 6, title: 'Help & Support', icon: 'help-circle' },
+  { id: 1, title: "Personal Information", icon: "user" },
+  { id: 2, title: "Workout History", icon: "activity" },
+  { id: 3, title: "Goals", icon: "target" },
+  { id: 4, title: "Notifications", icon: "bell" },
+  { id: 5, title: "Privacy", icon: "lock" },
+  { id: 6, title: "Help & Support", icon: "help-circle" },
 ];
 
 export default function ProfileScreen() {
@@ -17,7 +24,9 @@ export default function ProfileScreen() {
         <View style={styles.header}>
           <View style={styles.profileInfo}>
             <Image
-              source={{ uri: 'https://images.unsplash.com/photo-1633332755192-727a05c4013d?w=500' }}
+              source={{
+                uri: "https://images.unsplash.com/photo-1633332755192-727a05c4013d?w=500",
+              }}
               style={styles.avatar}
             />
             <View style={styles.userInfo}>
@@ -51,7 +60,7 @@ export default function ProfileScreen() {
           {menuItems.map((item) => (
             <TouchableOpacity key={item.id} style={styles.menuItem}>
               <Text style={styles.menuTitle}>{item.title}</Text>
-              <ChevronRight size={20} color="#666" />
+              {/* <ChevronRight size={20} color="#666" /> */}
             </TouchableOpacity>
           ))}
         </View>
@@ -67,21 +76,21 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#1a1a1a',
+    backgroundColor: "#1a1a1a",
   },
   scrollView: {
     flex: 1,
   },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     padding: 20,
     paddingTop: 40,
   },
   profileInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
   },
   avatar: {
     width: 80,
@@ -93,74 +102,74 @@ const styles = StyleSheet.create({
   },
   name: {
     fontSize: 24,
-    fontWeight: 'bold',
-    color: '#fff',
+    fontWeight: "bold",
+    color: "#fff",
     marginBottom: 4,
   },
   email: {
     fontSize: 14,
-    color: '#666',
+    color: "#666",
   },
   settingsButton: {
     width: 48,
     height: 48,
-    backgroundColor: '#2a2a2a',
+    backgroundColor: "#2a2a2a",
     borderRadius: 24,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   statsContainer: {
-    flexDirection: 'row',
-    backgroundColor: '#2a2a2a',
+    flexDirection: "row",
+    backgroundColor: "#2a2a2a",
     margin: 20,
     padding: 20,
     borderRadius: 16,
-    justifyContent: 'space-between',
+    justifyContent: "space-between",
   },
   statItem: {
-    alignItems: 'center',
+    alignItems: "center",
     flex: 1,
   },
   statValue: {
     fontSize: 24,
-    fontWeight: 'bold',
-    color: '#fff',
+    fontWeight: "bold",
+    color: "#fff",
     marginBottom: 4,
   },
   statLabel: {
     fontSize: 14,
-    color: '#666',
+    color: "#666",
   },
   statDivider: {
     width: 1,
-    height: '100%',
-    backgroundColor: '#333',
+    height: "100%",
+    backgroundColor: "#333",
   },
   menuContainer: {
     margin: 20,
   },
   menuItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#2a2a2a',
+    borderBottomColor: "#2a2a2a",
   },
   menuTitle: {
     fontSize: 16,
-    color: '#fff',
+    color: "#fff",
   },
   logoutButton: {
     margin: 20,
     padding: 16,
-    backgroundColor: '#2a2a2a',
+    backgroundColor: "#2a2a2a",
     borderRadius: 12,
-    alignItems: 'center',
+    alignItems: "center",
   },
   logoutText: {
     fontSize: 16,
-    color: '#FF4444',
-    fontWeight: 'bold',
+    color: "#FF4444",
+    fontWeight: "bold",
   },
 });
