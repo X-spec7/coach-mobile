@@ -9,6 +9,7 @@ import {
 } from "react-native";
 import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import { Picker } from "@react-native-picker/picker";
 
 const { width: screenWidth } = Dimensions.get("window");
 
@@ -102,47 +103,54 @@ export default function HeightScreen() {
           {unit === "ft" ? (
             <>
               <View style={styles.pickerColumn}>
-                {feetOptions.map((f) => (
-                  <Text
-                    key={f}
-                    style={
-                      f === feet ? styles.pickerValueActive : styles.pickerValue
-                    }
-                    onPress={() => setFeet(f)}
-                  >
-                    {f} ft
-                  </Text>
-                ))}
+                <Picker
+                  selectedValue={feet.toString()}
+                  style={styles.picker}
+                  itemStyle={styles.pickerItem}
+                  onValueChange={(itemValue: string) =>
+                    setFeet(Number(itemValue))
+                  }
+                >
+                  {feetOptions.map((f) => (
+                    <Picker.Item
+                      key={f}
+                      label={`${f} ft`}
+                      value={f.toString()}
+                    />
+                  ))}
+                </Picker>
               </View>
               <View style={styles.pickerColumn}>
-                {inchOptions.map((inch) => (
-                  <Text
-                    key={inch}
-                    style={
-                      inch === inches
-                        ? styles.pickerValueActive
-                        : styles.pickerValue
-                    }
-                    onPress={() => setInches(inch)}
-                  >
-                    {inch} in
-                  </Text>
-                ))}
+                <Picker
+                  selectedValue={inches.toString()}
+                  style={styles.picker}
+                  itemStyle={styles.pickerItem}
+                  onValueChange={(itemValue: string) =>
+                    setInches(Number(itemValue))
+                  }
+                >
+                  {inchOptions.map((inch) => (
+                    <Picker.Item
+                      key={inch}
+                      label={`${inch} in`}
+                      value={inch.toString()}
+                    />
+                  ))}
+                </Picker>
               </View>
             </>
           ) : (
-            <View style={styles.pickerColumn}>
-              {cmOptions.map((c) => (
-                <Text
-                  key={c}
-                  style={
-                    c === cm ? styles.pickerValueActive : styles.pickerValue
-                  }
-                  onPress={() => setCm(c)}
-                >
-                  {c} cm
-                </Text>
-              ))}
+            <View style={styles.pickerColumnFull}>
+              <Picker
+                selectedValue={cm.toString()}
+                style={styles.picker}
+                itemStyle={styles.pickerItem}
+                onValueChange={(itemValue: string) => setCm(Number(itemValue))}
+              >
+                {cmOptions.map((c) => (
+                  <Picker.Item key={c} label={`${c} cm`} value={c.toString()} />
+                ))}
+              </Picker>
             </View>
           )}
         </View>
@@ -258,21 +266,28 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 32,
     gap: 32,
+    width: "100%",
   },
   pickerColumn: {
+    flex: 1,
     alignItems: "center",
     marginHorizontal: 8,
+    minWidth: 100,
   },
-  pickerValue: {
-    fontSize: 20,
-    color: "#888",
-    paddingVertical: 2,
+  pickerColumnFull: {
+    flex: 1,
+    alignItems: "center",
+    minWidth: 200,
   },
-  pickerValueActive: {
-    fontSize: 24,
+  picker: {
+    width: "100%",
+    height: 180,
+    backgroundColor: "transparent",
+  },
+  pickerItem: {
+    fontSize: 22,
     color: "#A26FFD",
-    fontWeight: "700",
-    paddingVertical: 2,
+    fontWeight: "600",
   },
   bottomContainer: {
     padding: 24,
