@@ -54,7 +54,7 @@ export default function WelcomeScreen() {
   const handleGetStarted = async () => {
     console.log("Getting started");
     await completeOnboarding();
-    router.replace("/auth/sign-in");
+    router.replace("/(auth)/sign-in");
   };
 
   return (
@@ -90,14 +90,14 @@ export default function WelcomeScreen() {
       <View style={styles.bottomContainer}>
         <TouchableOpacity
           style={styles.signUpButton}
-          onPress={() => router.push("/auth/sign-up")}
+          onPress={() => router.push("/(auth)/sign-up")}
         >
           <Text style={styles.signUpText}>Sign Up</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
           style={styles.signInButton}
-          onPress={() => router.push("/auth/sign-in")}
+          onPress={() => router.push("/(auth)/sign-in")}
         >
           <Text style={styles.signInText}>Sign In</Text>
         </TouchableOpacity>

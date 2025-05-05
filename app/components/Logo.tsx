@@ -47,13 +47,13 @@ const styles = StyleSheet.create({
   preTitle: {
     fontFamily: "Roboto",
     fontWeight: "700",
-    lineHeight: 40,
+    lineHeight: 50,
     letterSpacing: 0,
   },
   title: {
     fontFamily: "Roboto",
     fontWeight: "700",
-    lineHeight: 40,
+    lineHeight: 50,
     letterSpacing: 0,
   },
 });
