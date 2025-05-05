@@ -11,6 +11,7 @@ import {
 } from "react-native";
 import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import { useOnboarding } from "./onboarding-context";
 
 const INTERESTS = [
   { key: "vegan", label: "Vegan", image: require("@/assets/images/vegan.png") },
@@ -53,7 +54,8 @@ const INTERESTS = [
 ];
 
 export default function InterestsScreen() {
-  const [selected, setSelected] = useState<string[]>([]);
+  const { data, setInterests } = useOnboarding();
+  const [selected, setSelected] = useState<string[]>(data.interests);
 
   const handleToggle = (key: string) => {
     setSelected((prev) =>
@@ -62,6 +64,7 @@ export default function InterestsScreen() {
   };
 
   const handleContinue = () => {
+    setInterests(selected);
     router.push("/(onboarding)/experience");
   };
 
