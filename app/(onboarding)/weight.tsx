@@ -12,9 +12,29 @@ import { Ionicons } from "@expo/vector-icons";
 
 type WeightUnit = "kg" | "lbs";
 
+const getScaleRange = (unit: WeightUnit) => {
+  if (unit === "kg") {
+    return { min: 45, max: 90, step: 1 };
+  }
+  return { min: 100, max: 200, step: 1 };
+};
+
 export default function WeightScreen() {
   const [weight, setWeight] = useState("145");
   const [unit, setUnit] = useState<WeightUnit>("lbs");
+
+  const scaleRange = getScaleRange(unit);
+  const scaleValues = Array.from(
+    {
+      length:
+        Math.floor((scaleRange.max - scaleRange.min) / scaleRange.step) + 1,
+    },
+    (_, i) => scaleRange.min + i * scaleRange.step
+  );
+
+  const handleScalePress = (val: number) => {
+    setWeight(val.toString());
+  };
 
   const handleContinue = () => {
     router.push("/(onboarding)/height");
@@ -113,29 +133,42 @@ export default function WeightScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* Weight Display */}
-        <View style={styles.weightDisplay}>
-          <Text style={styles.weightText}>{weight}</Text>
+        {/* Weight Input */}
+        <View style={styles.weightInputRow}>
+          <TextInput
+            style={styles.weightInput}
+            keyboardType="numeric"
+            value={weight}
+            onChangeText={handleWeightChange}
+            maxLength={3}
+          />
           <Text style={styles.weightUnit}>{unit}</Text>
         </View>
 
         {/* Weight Scale */}
         <View style={styles.scaleContainer}>
           <View style={styles.scaleLines}>
-            {[...Array(21)].map((_, index) => (
-              <View
-                key={index}
-                style={[
-                  styles.scaleLine,
-                  index % 5 === 0 && styles.scaleLineLarge,
-                ]}
-              />
+            {scaleValues.map((val, index) => (
+              <TouchableOpacity
+                key={val}
+                style={styles.scaleTouch}
+                onPress={() => handleScalePress(val)}
+                activeOpacity={0.7}
+              >
+                <View
+                  style={[
+                    styles.scaleLine,
+                    parseInt(weight) === val && styles.scaleLineSelected,
+                    index % 5 === 0 && styles.scaleLineLarge,
+                  ]}
+                />
+              </TouchableOpacity>
             ))}
           </View>
           <View style={styles.scaleMarkers}>
-            <Text style={styles.scaleNumber}>140</Text>
+            <Text style={styles.scaleNumber}>{scaleRange.min}</Text>
             <View style={styles.scaleIndicator} />
-            <Text style={styles.scaleNumber}>150</Text>
+            <Text style={styles.scaleNumber}>{scaleRange.max}</Text>
           </View>
         </View>
       </View>
@@ -239,15 +272,24 @@ const styles = StyleSheet.create({
   unitButtonTextActive: {
     color: "white",
   },
-  weightDisplay: {
+  weightInputRow: {
     flexDirection: "row",
-    alignItems: "baseline",
-    marginBottom: 40,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 24,
   },
-  weightText: {
-    fontSize: 48,
+  weightInput: {
+    fontSize: 40,
     fontWeight: "700",
     color: "#000",
+    width: 80,
+    textAlign: "right",
+    backgroundColor: "transparent",
+    borderBottomWidth: 1,
+    borderBottomColor: "#E0E0E0",
+    marginRight: 8,
+    paddingVertical: 0,
+    paddingHorizontal: 0,
   },
   weightUnit: {
     fontSize: 20,
@@ -324,5 +366,15 @@ const styles = StyleSheet.create({
     height: 8,
     borderRadius: 4,
     backgroundColor: "#000",
+  },
+  scaleTouch: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "flex-end",
+    height: "100%",
+  },
+  scaleLineSelected: {
+    backgroundColor: "#A26FFD",
+    height: 28,
   },
 });
