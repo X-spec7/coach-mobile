@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React from "react";
 import {
   View,
   Text,
@@ -10,6 +10,7 @@ import {
 } from "react-native";
 import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import { useOnboarding } from "./onboarding-context";
 
 type Gender = "male" | "female" | null;
 
@@ -36,7 +37,7 @@ const genderOptions: GenderOption[] = [
 ];
 
 export default function GenderScreen() {
-  const [selectedGender, setSelectedGender] = useState<Gender>(null);
+  const { data, setGender } = useOnboarding();
 
   const handleContinue = () => {
     router.push("/(onboarding)/weight");
@@ -76,7 +77,7 @@ export default function GenderScreen() {
             <TouchableOpacity
               key={option.type}
               style={styles.genderOption}
-              onPress={() => setSelectedGender(option.type)}
+              onPress={() => setGender(option.type)}
             >
               <ImageBackground
                 source={option.image}
@@ -84,7 +85,7 @@ export default function GenderScreen() {
                 imageStyle={styles.genderImageStyle}
               >
                 <View style={styles.genderOverlay}>
-                  {selectedGender === option.type && (
+                  {data.gender === option.type && (
                     <View style={styles.checkmarkContainer}>
                       <Ionicons
                         name="checkmark-circle"
@@ -113,17 +114,17 @@ export default function GenderScreen() {
         {/* Prefer not to choose button */}
         <TouchableOpacity
           style={styles.preferNotButton}
-          onPress={() => setSelectedGender(null)}
+          onPress={() => setGender(null)}
         >
           <Text style={styles.preferNotText}>Prefer not to choose</Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={[
             styles.continueButton,
-            selectedGender && styles.continueButtonActive,
+            data.gender && styles.continueButtonActive,
           ]}
           onPress={handleContinue}
-          disabled={!selectedGender}
+          disabled={!data.gender}
         >
           <Text style={styles.continueButtonText}>Continue</Text>
         </TouchableOpacity>

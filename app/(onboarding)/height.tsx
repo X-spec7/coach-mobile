@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -10,6 +10,7 @@ import {
 import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { Picker } from "@react-native-picker/picker";
+import { useOnboarding } from "./onboarding-context";
 
 const { width: screenWidth } = Dimensions.get("window");
 
@@ -20,12 +21,24 @@ const inchOptions = Array.from({ length: 12 }, (_, i) => i); // 0-11 in
 const cmOptions = Array.from({ length: 61 }, (_, i) => 120 + i); // 120-180 cm
 
 export default function HeightScreen() {
-  const [unit, setUnit] = useState<HeightUnit>("ft");
-  const [feet, setFeet] = useState(5);
-  const [inches, setInches] = useState(3);
-  const [cm, setCm] = useState(170);
+  const { data, setHeight } = useOnboarding();
+  const [unit, setUnit] = useState<HeightUnit>(data.height.unit);
+  const [feet, setFeet] = useState<number>(data.height.feet ?? 5);
+  const [inches, setInches] = useState<number>(data.height.inches ?? 0);
+  const [cm, setCm] = useState<number>(data.height.cm ?? 170);
+
+  // Keep context in sync if user changes unit/values
+  useEffect(() => {
+    if (unit === "ft") {
+      setHeight({ unit, feet, inches });
+    } else {
+      setHeight({ unit, cm });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [unit, feet, inches, cm]);
 
   const handleContinue = () => {
+    setHeight(unit === "ft" ? { unit, feet, inches } : { unit, cm });
     router.push("/(onboarding)/interests");
   };
 

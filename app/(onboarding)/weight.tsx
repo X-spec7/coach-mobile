@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React from "react";
 import {
   View,
   Text,
@@ -9,6 +9,7 @@ import {
 } from "react-native";
 import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import { useOnboarding } from "./onboarding-context";
 
 type WeightUnit = "kg" | "lbs";
 
@@ -20,8 +21,9 @@ const getScaleRange = (unit: WeightUnit) => {
 };
 
 export default function WeightScreen() {
-  const [weight, setWeight] = useState("145");
-  const [unit, setUnit] = useState<WeightUnit>("lbs");
+  const { data, setWeight } = useOnboarding();
+  const weight = data.weight;
+  const unit = data.weightUnit;
 
   const scaleRange = getScaleRange(unit);
   const scaleValues = Array.from(
@@ -33,7 +35,7 @@ export default function WeightScreen() {
   );
 
   const handleScalePress = (val: number) => {
-    setWeight(val.toString());
+    setWeight(val.toString(), unit);
   };
 
   const handleContinue = () => {
@@ -50,7 +52,6 @@ export default function WeightScreen() {
 
   const toggleUnit = (newUnit: WeightUnit) => {
     if (newUnit !== unit) {
-      setUnit(newUnit);
       if (weight) {
         // Convert weight when changing units
         const numWeight = parseFloat(weight);
@@ -59,8 +60,12 @@ export default function WeightScreen() {
             unit === "kg"
               ? (numWeight * 2.20462).toFixed(0) // kg to lbs
               : (numWeight / 2.20462).toFixed(0); // lbs to kg
-          setWeight(convertedWeight);
+          setWeight(convertedWeight, newUnit);
+        } else {
+          setWeight("", newUnit);
         }
+      } else {
+        setWeight("", newUnit);
       }
     }
   };
@@ -68,7 +73,7 @@ export default function WeightScreen() {
   const handleWeightChange = (value: string) => {
     // Only allow numbers
     if (/^\d*$/.test(value)) {
-      setWeight(value);
+      setWeight(value, unit);
     }
   };
 

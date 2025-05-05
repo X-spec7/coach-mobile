@@ -8,6 +8,7 @@ import {
 } from "react-native";
 import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import { useOnboarding } from "./onboarding-context";
 
 interface NotificationType {
   icon: keyof typeof Ionicons.glyphMap;
@@ -21,11 +22,15 @@ const notificationTypes: NotificationType[] = [
 ];
 
 export default function NotificationsScreen() {
+  const { setNotificationsEnabled } = useOnboarding();
+
   const handleAllow = () => {
+    setNotificationsEnabled(true);
     router.push("/(onboarding)/gender");
   };
 
   const handleSkip = () => {
+    setNotificationsEnabled(false);
     router.push("/(onboarding)/gender");
   };
 

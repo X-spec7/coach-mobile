@@ -13,6 +13,7 @@ import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { saveProgress } from "../../utils/storage";
 import analytics from "@/utils/analytics";
+import { useOnboarding } from "./onboarding-context";
 
 interface PasswordRequirement {
   label: string;
@@ -36,7 +37,8 @@ interface OnboardingStyles {
 }
 
 export default function PasswordSetupScreen() {
-  const [password, setPassword] = useState("");
+  const { data, setPassword } = useOnboarding();
+  const password = data.password;
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const currentStep = 1;
