@@ -9,6 +9,7 @@ export default function OnboardingLayout() {
         <Stack.Screen name="goals" />
         <Stack.Screen name="height" />
         <Stack.Screen name="interests" />
+        <Stack.Screen name="select-help" />
         <Stack.Screen name="experience" />
       </Stack>
     </OnboardingProvider>

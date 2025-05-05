@@ -65,11 +65,11 @@ export default function InterestsScreen() {
 
   const handleContinue = () => {
     setInterests(selected);
-    router.push("/(onboarding)/experience");
+    router.push("/(onboarding)/select-help");
   };
 
   const handleSkip = () => {
-    router.push("/(onboarding)/experience");
+    router.push("/(onboarding)/select-help");
   };
 
   const handleBack = () => {

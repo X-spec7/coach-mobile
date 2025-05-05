@@ -13,6 +13,7 @@ export interface OnboardingData {
   height: { unit: HeightUnit; feet?: number; inches?: number; cm?: number };
   interests: string[];
   experience: number; // 1-5 stars
+  helpOption: string;
 }
 
 interface OnboardingContextProps {
@@ -29,6 +30,7 @@ interface OnboardingContextProps {
   }) => void;
   setInterests: (interests: string[]) => void;
   setExperience: (stars: number) => void;
+  setHelpOption: (option: string) => void;
   reset: () => void;
 }
 
@@ -41,6 +43,7 @@ const defaultData: OnboardingData = {
   height: { unit: "ft", feet: 5, inches: 0 },
   interests: [],
   experience: 0,
+  helpOption: "",
 };
 
 const OnboardingContext = createContext<OnboardingContextProps | undefined>(
@@ -69,6 +72,8 @@ export const OnboardingProvider: React.FC<{ children: ReactNode }> = ({
     setData((d) => ({ ...d, interests }));
   const setExperience = (experience: number) =>
     setData((d) => ({ ...d, experience }));
+  const setHelpOption = (helpOption: string) =>
+    setData((d) => ({ ...d, helpOption }));
   const reset = () => setData(defaultData);
 
   return (
@@ -82,6 +87,7 @@ export const OnboardingProvider: React.FC<{ children: ReactNode }> = ({
         setHeight,
         setInterests,
         setExperience,
+        setHelpOption,
         reset,
       }}
     >
