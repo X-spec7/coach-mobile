@@ -108,7 +108,7 @@ export default function InterestsScreen() {
               <Image source={item.image} style={styles.gridImage} />
               {selected.includes(item.key) ? (
                 <View style={styles.checkCircle}>
-                  <Ionicons name="checkmark" size={20} color="#fff" />
+                  <Ionicons name="checkmark-circle" size={24} color="#4ADE80" />
                 </View>
               ) : (
                 <View style={styles.uncheckedCircle} />
@@ -219,24 +219,24 @@ const styles = StyleSheet.create({
   },
   checkCircle: {
     position: "absolute",
-    top: 8,
-    right: 8,
-    width: 28,
-    height: 28,
+    top: 6,
+    right: 6,
+    width: 24,
+    height: 24,
     borderRadius: 14,
-    backgroundColor: "#7C3AED",
+    backgroundColor: "#FFF",
     alignItems: "center",
     justifyContent: "center",
     zIndex: 2,
-    borderWidth: 2,
+    borderWidth: 0,
     borderColor: "#fff",
   },
   uncheckedCircle: {
     position: "absolute",
-    top: 8,
-    right: 8,
-    width: 28,
-    height: 28,
+    top: 6,
+    right: 6,
+    width: 24,
+    height: 24,
     borderRadius: 14,
     backgroundColor: "#fff",
     borderWidth: 2,
