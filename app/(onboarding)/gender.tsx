@@ -90,7 +90,7 @@ export default function GenderScreen() {
                       <Ionicons
                         name="checkmark-circle"
                         size={24}
-                        color="#A26FFD"
+                        color="#4ADE80"
                       />
                     </View>
                   )}
