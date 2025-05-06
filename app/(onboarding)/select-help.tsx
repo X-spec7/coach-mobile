@@ -13,24 +13,28 @@ import { useOnboarding } from "./onboarding-context";
 
 const HELP_OPTIONS = [
   {
+    id: 1,
     key: "nutrition",
     icon: <Ionicons name="restaurant" size={28} color="#A26FFD" />,
     label: "Option 1 – es. Nutrition",
     description: "Description section",
   },
   {
+    id: 2,
     key: "weight",
     icon: <FontAwesome5 name="weight" size={28} color="#A26FFD" />,
     label: "Option 2 – es. Weight",
     description: "Description section",
   },
   {
+    id: 3,
     key: "sleep",
     icon: <Ionicons name="bed-outline" size={28} color="#A26FFD" />,
     label: "Option 3 – es. Sleep",
     description: "Sleep section",
   },
   {
+    id: 4,
     key: "workout",
     icon: <FontAwesome5 name="dumbbell" size={28} color="#A26FFD" />,
     label: "Option 4 – es. Workout",
@@ -40,7 +44,7 @@ const HELP_OPTIONS = [
 
 export default function SelectHelpScreen() {
   const { data, setHelpOption } = useOnboarding();
-  const [selected, setSelected] = useState<string>(data.helpOption);
+  const [selected, setSelected] = useState<number>(data.helpOption);
 
   const handleContinue = () => {
     setHelpOption(selected);
@@ -82,7 +86,7 @@ export default function SelectHelpScreen() {
 
         <View style={styles.optionsList}>
           {HELP_OPTIONS.map((option) => {
-            const isSelected = selected === option.key;
+            const isSelected = selected === option.id;
             return (
               <TouchableOpacity
                 key={option.key}
@@ -90,7 +94,7 @@ export default function SelectHelpScreen() {
                   styles.optionItem,
                   isSelected && styles.optionItemSelected,
                 ]}
-                onPress={() => setSelected(option.key)}
+                onPress={() => setSelected(option.id)}
                 activeOpacity={0.8}
               >
                 <View style={styles.optionIcon}>{option.icon}</View>
@@ -133,10 +137,10 @@ export default function SelectHelpScreen() {
         <TouchableOpacity
           style={[
             styles.continueButton,
-            selected && styles.continueButtonActive,
+            selected !== 0 && styles.continueButtonActive,
           ]}
           onPress={handleContinue}
-          disabled={!selected}
+          disabled={selected === 0}
         >
           <Text style={styles.continueButtonText}>Continue</Text>
         </TouchableOpacity>
