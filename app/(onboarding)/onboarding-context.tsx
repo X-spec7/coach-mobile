@@ -11,7 +11,7 @@ export interface OnboardingData {
   weight: string;
   weightUnit: WeightUnit;
   height: { unit: HeightUnit; feet?: number; inches?: number; cm?: number };
-  interests: string[];
+  interests: number[];
   experience: number; // 1-5 stars
   helpOption: string;
 }
@@ -28,7 +28,7 @@ interface OnboardingContextProps {
     inches?: number;
     cm?: number;
   }) => void;
-  setInterests: (interests: string[]) => void;
+  setInterests: (interests: number[]) => void;
   setExperience: (stars: number) => void;
   setHelpOption: (option: string) => void;
   reset: () => void;
@@ -68,7 +68,7 @@ export const OnboardingProvider: React.FC<{ children: ReactNode }> = ({
     inches?: number;
     cm?: number;
   }) => setData((d) => ({ ...d, height }));
-  const setInterests = (interests: string[]) =>
+  const setInterests = (interests: number[]) =>
     setData((d) => ({ ...d, interests }));
   const setExperience = (experience: number) =>
     setData((d) => ({ ...d, experience }));

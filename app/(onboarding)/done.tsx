@@ -8,8 +8,11 @@ import {
 } from "react-native";
 import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import { useOnboarding } from "./onboarding-context";
 
 export default function DoneScreen() {
+  const { data } = useOnboarding();
+  console.log(data);
   const handleGetStarted = () => {
     router.replace("/(tabs)"); // Or your main app entry point
   };

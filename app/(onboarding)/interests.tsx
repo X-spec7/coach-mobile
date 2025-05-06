@@ -14,39 +14,56 @@ import { Ionicons } from "@expo/vector-icons";
 import { useOnboarding } from "./onboarding-context";
 
 const INTERESTS = [
-  { key: "vegan", label: "Vegan", image: require("@/assets/images/vegan.png") },
   {
+    id: 1,
+    key: "vegan",
+    label: "Vegan",
+    image: require("@/assets/images/vegan.png"),
+  },
+  {
+    id: 2,
     key: "sports",
     label: "Sports",
     image: require("@/assets/images/sports.png"),
   },
   {
+    id: 3,
     key: "running",
     label: "Running",
     image: require("@/assets/images/running.png"),
   },
   {
+    id: 4,
     key: "nurition",
     label: "Nutrition",
     image: require("@/assets/images/nurition.png"),
   },
   {
+    id: 5,
     key: "meditation",
     label: "Meditation",
     image: require("@/assets/images/meditation.png"),
   },
   {
+    id: 6,
     key: "organic",
     label: "Organic",
     image: require("@/assets/images/organic.png"),
   },
-  { key: "dance", label: "Dance", image: require("@/assets/images/dance.png") },
   {
+    id: 7,
+    key: "dance",
+    label: "Dance",
+    image: require("@/assets/images/dance.png"),
+  },
+  {
+    id: 8,
     key: "workout",
     label: "Workout",
     image: require("@/assets/images/workout.png"),
   },
   {
+    id: 9,
     key: "bodybuilding",
     label: "Bodybuilding",
     image: require("@/assets/images/bodybuilding.png"),
@@ -55,11 +72,11 @@ const INTERESTS = [
 
 export default function InterestsScreen() {
   const { data, setInterests } = useOnboarding();
-  const [selected, setSelected] = useState<string[]>(data.interests);
+  const [selected, setSelected] = useState<number[]>(data.interests);
 
-  const handleToggle = (key: string) => {
+  const handleToggle = (id: number) => {
     setSelected((prev) =>
-      prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key]
+      prev.includes(id) ? prev.filter((k) => k !== id) : [...prev, id]
     );
   };
 
@@ -102,11 +119,11 @@ export default function InterestsScreen() {
             <TouchableOpacity
               key={item.key}
               style={styles.gridItem}
-              onPress={() => handleToggle(item.key)}
+              onPress={() => handleToggle(item.id)}
               activeOpacity={0.8}
             >
               <Image source={item.image} style={styles.gridImage} />
-              {selected.includes(item.key) ? (
+              {selected.includes(item.id) ? (
                 <View style={styles.checkCircle}>
                   <Ionicons name="checkmark-circle" size={24} color="#4ADE80" />
                 </View>
