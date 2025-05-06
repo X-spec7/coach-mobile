@@ -8,8 +8,10 @@ export interface OnboardingData {
   password: string;
   notificationsEnabled: boolean;
   gender: Gender;
-  weight: string;
-  weightUnit: WeightUnit;
+  weight: {
+    value: string;
+    unit: WeightUnit;
+  };
   height: { unit: HeightUnit; feet?: number; inches?: number; cm?: number };
   interests: number[];
   experience: number; // 1-5 stars
@@ -38,8 +40,10 @@ const defaultData: OnboardingData = {
   password: "",
   notificationsEnabled: false,
   gender: null,
-  weight: "",
-  weightUnit: "lbs",
+  weight: {
+    value: "",
+    unit: "lbs",
+  },
   height: { unit: "ft", feet: 5, inches: 0 },
   interests: [],
   experience: 0,
@@ -60,8 +64,8 @@ export const OnboardingProvider: React.FC<{ children: ReactNode }> = ({
   const setNotificationsEnabled = (notificationsEnabled: boolean) =>
     setData((d) => ({ ...d, notificationsEnabled }));
   const setGender = (gender: Gender) => setData((d) => ({ ...d, gender }));
-  const setWeight = (weight: string, weightUnit: WeightUnit) =>
-    setData((d) => ({ ...d, weight, weightUnit }));
+  const setWeight = (value: string, unit: WeightUnit) =>
+    setData((d) => ({ ...d, weight: { value, unit } }));
   const setHeight = (height: {
     unit: HeightUnit;
     feet?: number;

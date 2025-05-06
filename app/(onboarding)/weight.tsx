@@ -22,8 +22,8 @@ const getScaleRange = (unit: WeightUnit) => {
 
 export default function WeightScreen() {
   const { data, setWeight } = useOnboarding();
-  const weight = data.weight;
-  const unit = data.weightUnit;
+  const weight = data.weight.value;
+  const unit = data.weight.unit;
 
   const scaleRange = getScaleRange(unit);
   const scaleValues = Array.from(
