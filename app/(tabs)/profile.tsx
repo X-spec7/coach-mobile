@@ -1,3 +1,4 @@
+import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -5,8 +6,11 @@ import {
   Image,
   TouchableOpacity,
   ScrollView,
+  ActivityIndicator,
 } from "react-native";
-import { Settings, ChevronRight } from "lucide-react-native";
+import { Settings, User as UserIcon } from "lucide-react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { API_ENDPOINTS } from "@/constants/api";
 
 const menuItems = [
   { id: 1, title: "Personal Information", icon: "user" },
@@ -17,21 +21,85 @@ const menuItems = [
   { id: 6, title: "Help & Support", icon: "help-circle" },
 ];
 
+interface UserProfile {
+  id: number;
+  firstName: string;
+  lastName: string;
+  fullName: string;
+  userType: string;
+  email: string;
+  avatarImageUrl?: string | null;
+  // ...other fields as needed, but not used in UI yet
+}
+
 export default function ProfileScreen() {
+  const [user, setUser] = useState<UserProfile | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        const token = await AsyncStorage.getItem("token");
+        if (!token) throw new Error("No token found");
+        const response = await fetch(API_ENDPOINTS.USER.GET_USER_INFO, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!response.ok) throw new Error("Failed to fetch user");
+        const data = await response.json();
+        setUser(data.user);
+      } catch (err) {
+        setError("Could not load user info");
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchUser();
+  }, []);
+
+  if (loading) {
+    return (
+      <View
+        style={[
+          styles.container,
+          { justifyContent: "center", alignItems: "center" },
+        ]}
+      >
+        <ActivityIndicator size="large" color="#A26FFD" />
+      </View>
+    );
+  }
+  if (error) {
+    return (
+      <View
+        style={[
+          styles.container,
+          { justifyContent: "center", alignItems: "center" },
+        ]}
+      >
+        <Text style={{ color: "#fff" }}>{error}</Text>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
       <ScrollView style={styles.scrollView}>
         <View style={styles.header}>
           <View style={styles.profileInfo}>
-            <Image
-              source={{
-                uri: "https://images.unsplash.com/photo-1633332755192-727a05c4013d?w=500",
-              }}
-              style={styles.avatar}
-            />
+            {user?.avatarImageUrl ? (
+              <Image
+                source={{ uri: user.avatarImageUrl }}
+                style={styles.avatar}
+              />
+            ) : (
+              <View style={[styles.avatar, styles.defaultAvatar]}>
+                <UserIcon size={40} color="#A26FFD" />
+              </View>
+            )}
             <View style={styles.userInfo}>
-              <Text style={styles.name}>Alex Johnson</Text>
-              <Text style={styles.email}>alex.johnson@example.com</Text>
+              <Text style={styles.name}>{user?.fullName || "-"}</Text>
+              <Text style={styles.email}>{user?.email || "-"}</Text>
             </View>
           </View>
           <TouchableOpacity style={styles.settingsButton}>
@@ -171,5 +239,10 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: "#FF4444",
     fontWeight: "bold",
+  },
+  defaultAvatar: {
+    backgroundColor: "#ede2ff",
+    alignItems: "center",
+    justifyContent: "center",
   },
 });
