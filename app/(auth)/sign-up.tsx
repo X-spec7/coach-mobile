@@ -20,7 +20,8 @@ export default function RegisterScreen() {
     firstName: "",
     lastName: "",
     email: "",
-    phoneNumber: "",
+    password: "",
+    confirmPassword: "",
     userType: "client",
   });
   const [loading, setLoading] = useState(false);
@@ -30,6 +31,13 @@ export default function RegisterScreen() {
     try {
       setLoading(true);
       setError(null);
+
+      if (!formData.password || !formData.confirmPassword) {
+        throw new Error("Password and confirm password are required");
+      }
+      if (formData.password !== formData.confirmPassword) {
+        throw new Error("Passwords do not match");
+      }
 
       console.log("formData:", formData);
 
@@ -113,17 +121,30 @@ export default function RegisterScreen() {
           </View>
 
           <View style={styles.inputContainer}>
-            <Mail size={20} color="#666" />
+            <Lock size={20} color="#666" />
             <TextInput
               style={styles.input}
-              placeholder="Phone Number"
+              placeholder="Password"
               placeholderTextColor="#666"
-              value={formData.phoneNumber}
+              value={formData.password}
               onChangeText={(text) =>
-                setFormData({ ...formData, phoneNumber: text })
+                setFormData({ ...formData, password: text })
               }
-              keyboardType="phone-pad"
-              autoCapitalize="none"
+              secureTextEntry
+            />
+          </View>
+
+          <View style={styles.inputContainer}>
+            <Lock size={20} color="#666" />
+            <TextInput
+              style={styles.input}
+              placeholder="Confirm Password"
+              placeholderTextColor="#666"
+              value={formData.confirmPassword}
+              onChangeText={(text) =>
+                setFormData({ ...formData, confirmPassword: text })
+              }
+              secureTextEntry
             />
           </View>
 
