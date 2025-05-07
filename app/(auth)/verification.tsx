@@ -38,10 +38,10 @@ const Verification: React.FC = () => {
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch("/authentication/verify-code/", {
+      const response = await fetch(API_ENDPOINTS.AUTH.VERIFY_CODE, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, code }),
+        body: JSON.stringify({ email, verificationCode: code }),
       });
       if (!response.ok) {
         const data = await response.json();
@@ -50,6 +50,7 @@ const Verification: React.FC = () => {
       // On success, go to onboarding
       router.replace("/(onboarding)/personalize");
     } catch (err) {
+      console.error("err:", err);
       setError(err instanceof Error ? err.message : "Verification failed");
     } finally {
       setLoading(false);

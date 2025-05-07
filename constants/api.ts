@@ -6,6 +6,7 @@ export const API_ENDPOINTS = {
     LOGIN: `${API_BASE_URL}/authentication/login/`,
     LOGOUT: `${API_BASE_URL}/auth/logout`,
     REGISTER: `${API_BASE_URL}/authentication/register/`,
+    VERIFY_CODE: `${API_BASE_URL}/authentication/verify-code/`,
   },
   ONBOARDING: {
     GET_INTERESTS: `${API_BASE_URL}/onboarding/interests/`,
