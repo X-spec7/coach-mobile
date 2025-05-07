@@ -7,10 +7,13 @@ import {
   TouchableOpacity,
   ScrollView,
   ActivityIndicator,
+  Modal,
+  Pressable,
 } from "react-native";
 import { Settings, User as UserIcon } from "lucide-react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { API_ENDPOINTS } from "@/constants/api";
+import { useRouter } from "expo-router";
 
 const menuItems = [
   { id: 1, title: "Personal Information", icon: "user" },
@@ -36,6 +39,8 @@ export default function ProfileScreen() {
   const [user, setUser] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [menuVisible, setMenuVisible] = useState(false);
+  const router = useRouter();
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -56,6 +61,13 @@ export default function ProfileScreen() {
     };
     fetchUser();
   }, []);
+
+  const handleLogout = async () => {
+    await AsyncStorage.removeItem("token");
+    await AsyncStorage.removeItem("user");
+    setMenuVisible(false);
+    router.replace("/(auth)/login-register");
+  };
 
   if (loading) {
     return (
@@ -84,6 +96,37 @@ export default function ProfileScreen() {
 
   return (
     <View style={styles.container}>
+      <Modal
+        visible={menuVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setMenuVisible(false)}
+      >
+        <Pressable
+          style={styles.modalOverlay}
+          onPress={() => setMenuVisible(false)}
+        >
+          <View style={styles.menuModal}>
+            <TouchableOpacity
+              style={styles.menuModalItem}
+              onPress={() => {
+                setMenuVisible(false);
+                // Navigate to settings page if you have one
+              }}
+            >
+              <Text style={styles.menuModalText}>Settings</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.menuModalItem}
+              onPress={handleLogout}
+            >
+              <Text style={[styles.menuModalText, { color: "#FF4444" }]}>
+                Log Out
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </Pressable>
+      </Modal>
       <ScrollView style={styles.scrollView}>
         <View style={styles.header}>
           <View style={styles.profileInfo}>
@@ -102,7 +145,10 @@ export default function ProfileScreen() {
               <Text style={styles.email}>{user?.email || "-"}</Text>
             </View>
           </View>
-          <TouchableOpacity style={styles.settingsButton}>
+          <TouchableOpacity
+            style={styles.settingsButton}
+            onPress={() => setMenuVisible(true)}
+          >
             <Settings size={24} color="#fff" />
           </TouchableOpacity>
         </View>
@@ -132,10 +178,6 @@ export default function ProfileScreen() {
             </TouchableOpacity>
           ))}
         </View>
-
-        <TouchableOpacity style={styles.logoutButton}>
-          <Text style={styles.logoutText}>Log Out</Text>
-        </TouchableOpacity>
       </ScrollView>
     </View>
   );
@@ -244,5 +286,28 @@ const styles = StyleSheet.create({
     backgroundColor: "#ede2ff",
     alignItems: "center",
     justifyContent: "center",
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.3)",
+    justifyContent: "flex-end",
+  },
+  menuModal: {
+    backgroundColor: "#222",
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+    paddingBottom: 32,
+    paddingTop: 8,
+    paddingHorizontal: 24,
+  },
+  menuModalItem: {
+    paddingVertical: 18,
+    borderBottomWidth: 1,
+    borderBottomColor: "#333",
+  },
+  menuModalText: {
+    color: "#fff",
+    fontSize: 18,
+    fontWeight: "500",
   },
 });
