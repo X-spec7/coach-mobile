@@ -20,8 +20,7 @@ export default function RegisterScreen() {
     firstName: "",
     lastName: "",
     email: "",
-    password: "",
-    confirmPassword: "",
+    phoneNumber: "",
     userType: "client",
   });
   const [loading, setLoading] = useState(false);
@@ -32,9 +31,7 @@ export default function RegisterScreen() {
       setLoading(true);
       setError(null);
 
-      if (formData.password !== formData.confirmPassword) {
-        throw new Error("Passwords do not match");
-      }
+      console.log("formData:", formData);
 
       const response = await fetch(API_ENDPOINTS.AUTH.REGISTER, {
         method: "POST",
@@ -43,15 +40,18 @@ export default function RegisterScreen() {
         },
         body: JSON.stringify(formData),
       });
-
+      console.log("response:", response);
       const data = await response.json();
 
       if (!response.ok) {
         throw new Error(data.message || "Registration failed");
       }
 
-      router.replace("/(auth)/sign-in");
+      router.replace(
+        `/(auth)/verification?email=${encodeURIComponent(formData.email)}`
+      );
     } catch (err) {
+      console.error("err:", err);
       setError(err instanceof Error ? err.message : "An error occurred");
     } finally {
       setLoading(false);
@@ -113,30 +113,17 @@ export default function RegisterScreen() {
           </View>
 
           <View style={styles.inputContainer}>
-            <Lock size={20} color="#666" />
+            <Mail size={20} color="#666" />
             <TextInput
               style={styles.input}
-              placeholder="Password"
+              placeholder="Phone Number"
               placeholderTextColor="#666"
-              value={formData.password}
+              value={formData.phoneNumber}
               onChangeText={(text) =>
-                setFormData({ ...formData, password: text })
+                setFormData({ ...formData, phoneNumber: text })
               }
-              secureTextEntry
-            />
-          </View>
-
-          <View style={styles.inputContainer}>
-            <Lock size={20} color="#666" />
-            <TextInput
-              style={styles.input}
-              placeholder="Confirm Password"
-              placeholderTextColor="#666"
-              value={formData.confirmPassword}
-              onChangeText={(text) =>
-                setFormData({ ...formData, confirmPassword: text })
-              }
-              secureTextEntry
+              keyboardType="phone-pad"
+              autoCapitalize="none"
             />
           </View>
 
