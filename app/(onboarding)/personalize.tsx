@@ -16,7 +16,7 @@ const { width: screenWidth } = Dimensions.get("window");
 export default function PersonalizeScreen() {
   const handlePersonalize = () => {
     // Navigate to the first step of personalization
-    router.push("/(onboarding)/password-setup");
+    router.push("/(onboarding)/notifications");
   };
 
   const handleSetupLater = () => {
