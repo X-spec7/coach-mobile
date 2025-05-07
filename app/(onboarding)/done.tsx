@@ -9,12 +9,85 @@ import {
 import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useOnboarding } from "./onboarding-context";
+import { API_ENDPOINTS } from "@/constants/api";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export default function DoneScreen() {
   const { data } = useOnboarding();
   console.log(data);
-  const handleGetStarted = () => {
-    router.replace("/(tabs)"); // Or your main app entry point
+
+  const handleUpdateUserInfo = async () => {
+    try {
+      const heightValue =
+        data.height.unit === "cm"
+          ? parseFloat(String(data.height.cm))
+          : data.height.feet !== undefined && data.height.inches !== undefined
+          ? parseFloat(
+              (data.height.feet * 30.48 + data.height.inches * 2.54).toFixed(1)
+            )
+          : null;
+
+      const userData = {
+        notificationsEnabled: data.notificationsEnabled,
+        height: {
+          value: heightValue,
+          unit: data.height.unit,
+          feet: data.height.unit === "ft" ? data.height.feet ?? null : null,
+          inches: data.height.unit === "ft" ? data.height.inches ?? null : null,
+        },
+        weight: {
+          value: parseFloat(data.weight.value),
+          unit: data.weight.unit,
+        },
+        gender: data.gender,
+        interests: data.interests,
+        helpCategories: Array.isArray(data.helpOption)
+          ? data.helpOption
+          : [data.helpOption].filter(Boolean),
+      };
+
+      const token = await AsyncStorage.getItem("token");
+      if (!token) {
+        console.error("No authentication token found");
+        return;
+      }
+
+      const response = await fetch(API_ENDPOINTS.CLIENT_USER.UPDATE_USER_INFO, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(userData),
+      });
+
+      console.log("Response status:", response.status);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("API Error:", {
+          status: response.status,
+          statusText: response.statusText,
+          body: errorText,
+        });
+        return;
+      }
+
+      const contentType = response.headers.get("content-type");
+      if (contentType && contentType.includes("application/json")) {
+        const responseData = await response.json();
+        console.log("Success response:", responseData);
+        router.replace("/(tabs)");
+      } else {
+        const text = await response.text();
+        console.error("Unexpected response format:", {
+          contentType,
+          body: text,
+        });
+      }
+    } catch (error) {
+      console.error("Error updating user info:", error);
+    }
   };
 
   return (
@@ -39,7 +112,7 @@ export default function DoneScreen() {
       <View style={styles.bottomContainer}>
         <TouchableOpacity
           style={styles.getStartedButton}
-          onPress={handleGetStarted}
+          onPress={handleUpdateUserInfo}
         >
           <Text style={styles.getStartedButtonText}>Get Started</Text>
         </TouchableOpacity>
