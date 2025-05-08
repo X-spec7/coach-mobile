@@ -1,27 +1,51 @@
+import { Stack, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
-import { Stack } from "expo-router";
-import { StatusBar } from "expo-status-bar";
-import { useFrameworkReady } from "@/hooks/useFrameworkReady";
-import { useAuth } from "@/hooks/useAuth";
-import React from "react";
-import LoadingScreen from "./loading";
+import { View, StyleSheet } from "react-native";
+import Logo from "./components/Logo";
 
 export default function RootLayout() {
-  useFrameworkReady();
-  const { loading } = useAuth();
+  const [isSplashComplete, setIsSplashComplete] = useState(false);
+  const router = useRouter();
 
-  if (loading) {
-    return <LoadingScreen />;
+  useEffect(() => {
+    if (isSplashComplete) {
+      // After splash, navigate directly to login-register
+      router.replace("/(auth)/login-register");
+    }
+  }, [isSplashComplete]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsSplashComplete(true);
+    }, 1000);
+
+    return () => clearTimeout(timer);
+  }, []);
+
+  if (!isSplashComplete) {
+    return (
+      <View style={styles.container}>
+        <Logo size="large" />
+      </View>
+    );
   }
 
   return (
-    <>
-      <Stack screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="(tabs)" />
-        <Stack.Screen name="auth" />
-        <Stack.Screen name="+not-found" />
-      </Stack>
-      <StatusBar style="light" backgroundColor="#1a1a1a" />
-    </>
+    <Stack
+      screenOptions={{
+        headerShown: false,
+      }}
+    >
+      <Stack.Screen name="(auth)" />
+    </Stack>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: "#FFFFFF",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+});
