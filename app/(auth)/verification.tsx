@@ -11,6 +11,8 @@ import {
 } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { API_ENDPOINTS } from "@/constants/api";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useAuthTemp } from "./auth-temp-context";
 
 interface VerificationParams {
   email: string;
@@ -22,6 +24,7 @@ const Verification: React.FC = () => {
   const router = useRouter();
   const params = useLocalSearchParams();
   const email = typeof params.email === "string" ? params.email : "";
+  const { password, clearTempAuth } = useAuthTemp();
   const [code, setCode] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -43,19 +46,53 @@ const Verification: React.FC = () => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, verificationCode: code }),
       });
-      if (!response.ok) {
+      const contentType = response.headers.get("content-type");
+      if (contentType && contentType.includes("application/json")) {
         const data = await response.json();
-        throw new Error(data.message || "Verification failed");
+        if (!response.ok) {
+          throw new Error(data.message || "Verification failed");
+        }
+        console.log("Login data:", {
+          email: email,
+          password: password,
+        });
+        // After verification, log in the user automatically
+        const loginRes = await fetch(API_ENDPOINTS.AUTH.LOGIN, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            email: email,
+            password: password,
+          }),
+        });
+        console.log("loginRes:", loginRes);
+        if (!loginRes.ok) {
+          const loginData = await loginRes.json();
+          throw new Error(
+            loginData.message || "Login failed after verification"
+          );
+        }
+
+        const loginData = await loginRes.json();
+        // Store token (assume loginData.token or loginData.accessToken)
+        await AsyncStorage.setItem(
+          "token",
+          loginData.token || loginData.accessToken || ""
+        );
+        clearTempAuth();
+        // On success, go to onboarding
+        router.replace("/(onboarding)/personalize");
+      } else {
+        const text = await response.text();
+        throw new Error(text || "Verification failed");
       }
-      // On success, go to onboarding
-      router.replace("/(onboarding)/personalize");
     } catch (err) {
       console.error("err:", err);
       setError(err instanceof Error ? err.message : "Verification failed");
     } finally {
       setLoading(false);
     }
-  }, [email, code, router]);
+  }, [email, code, password, router, clearTempAuth]);
 
   const handleResend = useCallback(async () => {
     setResending(true);

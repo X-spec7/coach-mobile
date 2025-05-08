@@ -13,9 +13,11 @@ import { Mail, User, Lock } from "lucide-react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { API_ENDPOINTS } from "@/constants/api";
 import Logo from "../components/Logo";
+import { useAuthTemp } from "./auth-temp-context";
 
 export default function RegisterScreen() {
   const router = useRouter();
+  const { setTempAuth } = useAuthTemp();
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
@@ -55,6 +57,7 @@ export default function RegisterScreen() {
         throw new Error(data.message || "Registration failed");
       }
 
+      setTempAuth(formData.email, formData.password);
       router.replace(
         `/(auth)/verification?email=${encodeURIComponent(formData.email)}`
       );
