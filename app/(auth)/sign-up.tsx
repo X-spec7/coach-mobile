@@ -9,116 +9,151 @@ import {
   Image,
 } from "react-native";
 import { useRouter } from "expo-router";
-import { Feather, MaterialCommunityIcons, Ionicons } from "@expo/vector-icons";
+import { Feather, Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { Colors } from "@/constants/Colors";
+import Logo from "../components/Logo";
 
 const AVATAR_PLACEHOLDER = "https://randomuser.me/api/portraits/women/44.jpg";
 
 export const SignUpScreen: React.FC = () => {
   const router = useRouter();
   const [user, setUser] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [phone, setPhone] = useState("");
+  const [address, setAddress] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // Only user field is enabled for now
   return (
-    <LinearGradient colors={["#FFFFFF", "#EDE2FF"]} style={styles.container}>
-      <ScrollView contentContainerStyle={styles.contentContainer}>
-        {/* Header */}
-        <View style={styles.headerRow}>
-          <View>
-            <Text style={styles.logoText}>
-              <Text style={styles.logoPurple}>COA</Text>
-              <Text style={styles.logoBlack}>-CH</Text>
-            </Text>
-            <Text style={styles.headerSubtitle}>Sign up to join</Text>
-          </View>
-          <View style={styles.avatarWrap}>
-            <Image
-              source={{ uri: AVATAR_PLACEHOLDER }}
-              style={styles.avatarImg}
-            />
-            <View style={styles.avatarPlus}>
-              <Ionicons name="add" size={18} color="#fff" />
-            </View>
+    <ScrollView contentContainerStyle={styles.contentContainer}>
+      {/* Header */}
+      <View style={styles.headerRow}>
+        <View>
+          <Text style={styles.logoText}>
+            <Logo size="small" />
+          </Text>
+          <Text style={styles.headerSubtitle}>Sign up to join</Text>
+        </View>
+        <View style={styles.avatarWrap}>
+          <Image
+            source={{ uri: AVATAR_PLACEHOLDER }}
+            style={styles.avatarImg}
+          />
+          <View style={styles.avatarPlus}>
+            <Ionicons name="add" size={18} color="#fff" />
           </View>
         </View>
+      </View>
 
-        {/* Form Fields */}
-        <View style={styles.formFields}>
-          <View style={styles.inputRow}>
-            <Feather name="user" size={20} color="#A3A3A3" />
-            <TextInput
-              style={styles.input}
-              placeholder="User"
-              placeholderTextColor="#A3A3A3"
-              value={user}
-              onChangeText={setUser}
-              autoCapitalize="words"
-            />
-          </View>
-          <View style={styles.inputRowDisabled}>
-            <Feather name="mail" size={20} color="#C7C7C7" />
-            <Text style={styles.inputDisabled}>Email</Text>
-          </View>
-          <View style={styles.inputRowDisabled}>
-            <Feather name="lock" size={20} color="#C7C7C7" />
-            <Text style={styles.inputDisabled}>Password</Text>
-          </View>
-          <View style={styles.inputRowDisabled}>
-            <Feather name="phone" size={20} color="#C7C7C7" />
-            <Text style={styles.inputDisabled}>Phone</Text>
-          </View>
-          <View style={styles.inputRowDisabled}>
-            <Feather name="map-pin" size={20} color="#C7C7C7" />
-            <Text style={styles.inputDisabled}>Address</Text>
-          </View>
+      {/* Form Fields */}
+      <View style={styles.formFields}>
+        <View style={styles.inputRow}>
+          <Feather name="user" size={20} color="#A3A3A3" />
+          <TextInput
+            style={styles.input}
+            placeholder="User"
+            placeholderTextColor="#A3A3A3"
+            value={user}
+            onChangeText={setUser}
+            autoCapitalize="words"
+            returnKeyType="next"
+          />
         </View>
-
-        {/* Social Connect */}
-        <Text style={styles.orConnect}>or connect</Text>
-        <View style={styles.socialRow}>
-          <TouchableOpacity style={styles.socialBtn}>
-            <Feather
-              name="globe"
-              size={20}
-              color={Colors.light.text}
-              style={{ marginRight: 8 }}
-            />
-            <Text style={styles.socialBtnText}>Google</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.socialBtn}>
-            <Feather
-              name="facebook"
-              size={20}
-              color={Colors.light.text}
-              style={{ marginRight: 8 }}
-            />
-            <Text style={styles.socialBtnText}>Facebook</Text>
-          </TouchableOpacity>
+        <View style={styles.inputRow}>
+          <Feather name="mail" size={20} color="#A3A3A3" />
+          <TextInput
+            style={styles.input}
+            placeholder="Email"
+            placeholderTextColor="#A3A3A3"
+            value={email}
+            onChangeText={setEmail}
+            autoCapitalize="none"
+            keyboardType="email-address"
+            returnKeyType="next"
+          />
         </View>
+        <View style={styles.inputRow}>
+          <Feather name="lock" size={20} color="#A3A3A3" />
+          <TextInput
+            style={styles.input}
+            placeholder="Password"
+            placeholderTextColor="#A3A3A3"
+            value={password}
+            onChangeText={setPassword}
+            secureTextEntry
+            returnKeyType="next"
+          />
+        </View>
+        <View style={styles.inputRow}>
+          <Feather name="phone" size={20} color="#A3A3A3" />
+          <TextInput
+            style={styles.input}
+            placeholder="Phone"
+            placeholderTextColor="#A3A3A3"
+            value={phone}
+            onChangeText={setPhone}
+            keyboardType="phone-pad"
+            returnKeyType="next"
+          />
+        </View>
+        <View style={styles.inputRow}>
+          <Feather name="map-pin" size={20} color="#A3A3A3" />
+          <TextInput
+            style={styles.input}
+            placeholder="Address"
+            placeholderTextColor="#A3A3A3"
+            value={address}
+            onChangeText={setAddress}
+            autoCapitalize="words"
+            returnKeyType="done"
+          />
+        </View>
+      </View>
 
-        {/* Sign Up Button */}
-        <TouchableOpacity style={styles.signUpBtn} disabled={loading}>
-          <Text style={styles.signUpBtnText}>Sign up</Text>
+      {/* Social Connect */}
+      <Text style={styles.orConnect}>or connect</Text>
+      <View style={styles.socialRow}>
+        <TouchableOpacity style={styles.socialBtn}>
+          <Feather
+            name="globe"
+            size={20}
+            color={Colors.light.text}
+            style={{ marginRight: 8 }}
+          />
+          <Text style={styles.socialBtnText}>Google</Text>
         </TouchableOpacity>
+        <TouchableOpacity style={styles.socialBtn}>
+          <Feather
+            name="facebook"
+            size={20}
+            color={Colors.light.text}
+            style={{ marginRight: 8 }}
+          />
+          <Text style={styles.socialBtnText}>Facebook</Text>
+        </TouchableOpacity>
+      </View>
 
-        {/* Terms & Privacy */}
-        <Text style={styles.termsText}>
-          By clicking Sign up, you will create an account and agree to ours{" "}
-          <Text style={styles.link}>Terms of Service</Text> and{" "}
-          <Text style={styles.link}>Privacy Policy</Text>
-        </Text>
+      {/* Sign Up Button */}
+      <TouchableOpacity style={styles.signUpBtn} disabled={loading}>
+        <Text style={styles.signUpBtnText}>Sign up</Text>
+      </TouchableOpacity>
 
-        {/* Footer */}
-        <View style={styles.footerRow}>
-          <Text style={styles.footerText}>Have an account? </Text>
-          <TouchableOpacity onPress={() => router.push("/(auth)/sign-in")}>
-            <Text style={styles.footerSignIn}>Sign In</Text>
-          </TouchableOpacity>
-        </View>
-      </ScrollView>
-    </LinearGradient>
+      {/* Terms & Privacy */}
+      <Text style={styles.termsText}>
+        By clicking Sign up, you will create an account and agree to ours{" "}
+        <Text style={styles.link}>Terms of Service</Text> and{" "}
+        <Text style={styles.link}>Privacy Policy</Text>
+      </Text>
+
+      {/* Footer */}
+      <View style={styles.footerRow}>
+        <Text style={styles.footerText}>Have an account? </Text>
+        <TouchableOpacity onPress={() => router.push("/(auth)/sign-in")}>
+          <Text style={styles.footerSignIn}>Sign In</Text>
+        </TouchableOpacity>
+      </View>
+    </ScrollView>
   );
 };
 
@@ -157,21 +192,10 @@ const styles = StyleSheet.create({
     backgroundColor: "#F5F5F5",
     borderRadius: 8,
     paddingHorizontal: 12,
-    marginBottom: 16,
+    marginBottom: 8,
     height: 48,
   },
-  input: { flex: 1, color: "#222", fontSize: 16, marginLeft: 8 },
-  inputRowDisabled: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#F5F5F5",
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    marginBottom: 16,
-    height: 48,
-    opacity: 0.5,
-  },
-  inputDisabled: { flex: 1, color: "#A3A3A3", fontSize: 16, marginLeft: 8 },
+  input: { flex: 1, color: "#222", fontSize: 14, marginLeft: 8 },
   orConnect: {
     textAlign: "center",
     color: "#888",
@@ -195,7 +219,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     marginHorizontal: 4,
   },
-  socialBtnText: { color: Colors.light.text, fontWeight: "bold", fontSize: 15 },
+  socialBtnText: { color: Colors.light.text, fontWeight: "bold", fontSize: 12 },
   signUpBtn: {
     backgroundColor: Colors.light.text,
     borderRadius: 24,

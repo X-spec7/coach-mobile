@@ -145,6 +145,18 @@ export default function LoginScreen() {
             <Text style={styles.registerLink}>Sign Up</Text>
           </TouchableOpacity>
         </View>
+
+        <View style={styles.termsContainer}>
+          <Text style={styles.termsText}>
+            By using this app you agree with the
+          </Text>
+          <TouchableOpacity
+            onPress={() => router.push("/(tabs)/terms")}
+            style={{ alignItems: "center", marginTop: 2, marginBottom: 10 }}
+          >
+            <Text style={styles.termsLink}>Terms of Service</Text>
+          </TouchableOpacity>
+        </View>
       </View>
     </LinearGradient>
   );
@@ -265,5 +277,21 @@ const styles = StyleSheet.create({
   registerLink: {
     color: "#8B5CF6",
     fontSize: 14,
+  },
+  termsContainer: {
+    textAlign: "center",
+    color: "#666",
+    alignItems: "center",
+    marginTop: 24,
+  },
+  termsText: {
+    color: "#666",
+  },
+  termsLink: {
+    color: "#000000",
+    fontSize: 14,
+    display: "flex",
+    flexDirection: "row",
+    alignItems: "center",
   },
 });
