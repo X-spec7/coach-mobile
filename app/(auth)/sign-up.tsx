@@ -13,147 +13,209 @@ import { Feather, Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { Colors } from "@/constants/Colors";
 import Logo from "../components/Logo";
+import { API_ENDPOINTS } from "@/constants/api";
+import { useAuthTemp } from "./auth-temp-context";
 
 const AVATAR_PLACEHOLDER = "https://randomuser.me/api/portraits/women/44.jpg";
 
 export const SignUpScreen: React.FC = () => {
   const router = useRouter();
+  const { setTempAuth } = useAuthTemp();
   const [user, setUser] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [phone, setPhone] = useState("");
   const [address, setAddress] = useState("");
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleRegister = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      if (!user || !email || !password) {
+        throw new Error("User, email, and password are required");
+      }
+
+      const formData = {
+        firstName: user,
+        lastName: "Kadaini", // TODO: remove this
+        userType: "Client", // TODO: remove this
+        confirmPassword: password, // TODO: remove this
+        email,
+        password,
+        phone,
+        address,
+      };
+
+      const response = await fetch(API_ENDPOINTS.AUTH.REGISTER, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(formData),
+      });
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Registration failed");
+      }
+
+      setTempAuth(email, password);
+      router.replace(`/(auth)/verification?email=${encodeURIComponent(email)}`);
+    } catch (err) {
+      console.error("err:", err);
+      setError(err instanceof Error ? err.message : "An error occurred");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
-    <ScrollView contentContainerStyle={styles.contentContainer}>
-      {/* Header */}
-      <View style={styles.headerRow}>
-        <View>
-          <Text style={styles.logoText}>
-            <Logo size="small" />
-          </Text>
-          <Text style={styles.headerSubtitle}>Sign up to join</Text>
-        </View>
-        <View style={styles.avatarWrap}>
-          <Image
-            source={{ uri: AVATAR_PLACEHOLDER }}
-            style={styles.avatarImg}
-          />
-          <View style={styles.avatarPlus}>
-            <Ionicons name="add" size={18} color="#fff" />
+    <LinearGradient colors={["#FFFFFF", "#EDE2FF"]} style={styles.container}>
+      <ScrollView contentContainerStyle={styles.contentContainer}>
+        {/* Header */}
+        <View style={styles.headerRow}>
+          <View>
+            <Text style={styles.logoText}>
+              <Logo size="small" />
+            </Text>
+            <Text style={styles.headerSubtitle}>Sign up to join</Text>
+          </View>
+          <View style={styles.avatarWrap}>
+            <Image
+              source={{ uri: AVATAR_PLACEHOLDER }}
+              style={styles.avatarImg}
+            />
+            <View style={styles.avatarPlus}>
+              <Ionicons name="add" size={18} color="#fff" />
+            </View>
           </View>
         </View>
-      </View>
 
-      {/* Form Fields */}
-      <View style={styles.formFields}>
-        <View style={styles.inputRow}>
-          <Feather name="user" size={20} color="#A3A3A3" />
-          <TextInput
-            style={styles.input}
-            placeholder="User"
-            placeholderTextColor="#A3A3A3"
-            value={user}
-            onChangeText={setUser}
-            autoCapitalize="words"
-            returnKeyType="next"
-          />
-        </View>
-        <View style={styles.inputRow}>
-          <Feather name="mail" size={20} color="#A3A3A3" />
-          <TextInput
-            style={styles.input}
-            placeholder="Email"
-            placeholderTextColor="#A3A3A3"
-            value={email}
-            onChangeText={setEmail}
-            autoCapitalize="none"
-            keyboardType="email-address"
-            returnKeyType="next"
-          />
-        </View>
-        <View style={styles.inputRow}>
-          <Feather name="lock" size={20} color="#A3A3A3" />
-          <TextInput
-            style={styles.input}
-            placeholder="Password"
-            placeholderTextColor="#A3A3A3"
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry
-            returnKeyType="next"
-          />
-        </View>
-        <View style={styles.inputRow}>
-          <Feather name="phone" size={20} color="#A3A3A3" />
-          <TextInput
-            style={styles.input}
-            placeholder="Phone"
-            placeholderTextColor="#A3A3A3"
-            value={phone}
-            onChangeText={setPhone}
-            keyboardType="phone-pad"
-            returnKeyType="next"
-          />
-        </View>
-        <View style={styles.inputRow}>
-          <Feather name="map-pin" size={20} color="#A3A3A3" />
-          <TextInput
-            style={styles.input}
-            placeholder="Address"
-            placeholderTextColor="#A3A3A3"
-            value={address}
-            onChangeText={setAddress}
-            autoCapitalize="words"
-            returnKeyType="done"
-          />
-        </View>
-      </View>
+        {/* Error Message */}
+        {error && (
+          <View style={styles.errorContainer}>
+            <Text style={styles.errorText}>{error}</Text>
+          </View>
+        )}
 
-      {/* Social Connect */}
-      <Text style={styles.orConnect}>or connect</Text>
-      <View style={styles.socialRow}>
-        <TouchableOpacity style={styles.socialBtn}>
-          <Feather
-            name="globe"
-            size={20}
-            color={Colors.light.text}
-            style={{ marginRight: 8 }}
-          />
-          <Text style={styles.socialBtnText}>Google</Text>
+        {/* Form Fields */}
+        <View style={styles.formFields}>
+          <View style={styles.inputRow}>
+            <Feather name="user" size={20} color="#A3A3A3" />
+            <TextInput
+              style={styles.input}
+              placeholder="User"
+              placeholderTextColor="#A3A3A3"
+              value={user}
+              onChangeText={setUser}
+              autoCapitalize="words"
+              returnKeyType="next"
+            />
+          </View>
+          <View style={styles.inputRow}>
+            <Feather name="mail" size={20} color="#A3A3A3" />
+            <TextInput
+              style={styles.input}
+              placeholder="Email"
+              placeholderTextColor="#A3A3A3"
+              value={email}
+              onChangeText={setEmail}
+              autoCapitalize="none"
+              keyboardType="email-address"
+              returnKeyType="next"
+            />
+          </View>
+          <View style={styles.inputRow}>
+            <Feather name="lock" size={20} color="#A3A3A3" />
+            <TextInput
+              style={styles.input}
+              placeholder="Password"
+              placeholderTextColor="#A3A3A3"
+              value={password}
+              onChangeText={setPassword}
+              secureTextEntry
+              returnKeyType="next"
+            />
+          </View>
+          <View style={styles.inputRow}>
+            <Feather name="phone" size={20} color="#A3A3A3" />
+            <TextInput
+              style={styles.input}
+              placeholder="Phone"
+              placeholderTextColor="#A3A3A3"
+              value={phone}
+              onChangeText={setPhone}
+              keyboardType="phone-pad"
+              returnKeyType="next"
+            />
+          </View>
+          <View style={styles.inputRow}>
+            <Feather name="map-pin" size={20} color="#A3A3A3" />
+            <TextInput
+              style={styles.input}
+              placeholder="Address"
+              placeholderTextColor="#A3A3A3"
+              value={address}
+              onChangeText={setAddress}
+              autoCapitalize="words"
+              returnKeyType="done"
+            />
+          </View>
+        </View>
+
+        {/* Social Connect */}
+        <Text style={styles.orConnect}>or connect</Text>
+        <View style={styles.socialRow}>
+          <TouchableOpacity style={styles.socialBtn}>
+            <Feather
+              name="globe"
+              size={20}
+              color={Colors.light.text}
+              style={{ marginRight: 8 }}
+            />
+            <Text style={styles.socialBtnText}>Google</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.socialBtn}>
+            <Feather
+              name="facebook"
+              size={20}
+              color={Colors.light.text}
+              style={{ marginRight: 8 }}
+            />
+            <Text style={styles.socialBtnText}>Facebook</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Sign Up Button */}
+        <TouchableOpacity
+          style={styles.signUpBtn}
+          disabled={loading}
+          onPress={handleRegister}
+        >
+          <Text style={styles.signUpBtnText}>
+            {loading ? "Signing up..." : "Sign up"}
+          </Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.socialBtn}>
-          <Feather
-            name="facebook"
-            size={20}
-            color={Colors.light.text}
-            style={{ marginRight: 8 }}
-          />
-          <Text style={styles.socialBtnText}>Facebook</Text>
-        </TouchableOpacity>
-      </View>
 
-      {/* Sign Up Button */}
-      <TouchableOpacity style={styles.signUpBtn} disabled={loading}>
-        <Text style={styles.signUpBtnText}>Sign up</Text>
-      </TouchableOpacity>
+        {/* Terms & Privacy */}
+        <Text style={styles.termsText}>
+          By clicking Sign up, you will create an account and agree to ours{" "}
+          <Text style={styles.link}>Terms of Service</Text> and{" "}
+          <Text style={styles.link}>Privacy Policy</Text>
+        </Text>
 
-      {/* Terms & Privacy */}
-      <Text style={styles.termsText}>
-        By clicking Sign up, you will create an account and agree to ours{" "}
-        <Text style={styles.link}>Terms of Service</Text> and{" "}
-        <Text style={styles.link}>Privacy Policy</Text>
-      </Text>
-
-      {/* Footer */}
-      <View style={styles.footerRow}>
-        <Text style={styles.footerText}>Have an account? </Text>
-        <TouchableOpacity onPress={() => router.push("/(auth)/sign-in")}>
-          <Text style={styles.footerSignIn}>Sign In</Text>
-        </TouchableOpacity>
-      </View>
-    </ScrollView>
+        {/* Footer */}
+        <View style={styles.footerRow}>
+          <Text style={styles.footerText}>Have an account? </Text>
+          <TouchableOpacity onPress={() => router.push("/(auth)/sign-in")}>
+            <Text style={styles.footerSignIn}>Sign In</Text>
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
+    </LinearGradient>
   );
 };
 
@@ -242,6 +304,13 @@ const styles = StyleSheet.create({
   },
   footerText: { color: "#222", fontSize: 15 },
   footerSignIn: { color: "#222", fontWeight: "bold", fontSize: 15 },
+  errorContainer: {
+    backgroundColor: "#ff444422",
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 16,
+  },
+  errorText: { color: "#ff4444", fontSize: 14 },
 });
 
 export default SignUpScreen;
