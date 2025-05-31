@@ -9,6 +9,7 @@ import {
   ScrollView,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { FoodDislikesModal } from "./FoodDislikesModal";
 
 interface PreferenceModalProps {
   onClose: () => void;
@@ -37,6 +38,7 @@ export const PreferenceModal: React.FC<PreferenceModalProps> = ({
   });
   const [dislikes, setDislikes] = useState<string[]>(["Chicken", "Peanut"]);
   const [addInput, setAddInput] = useState("");
+  const [showFoodModal, setShowFoodModal] = useState(false);
 
   const handleToggleMeal = (meal: string) => {
     setMeals((prev) => ({ ...prev, [meal]: !prev[meal] }));
@@ -149,24 +151,25 @@ export const PreferenceModal: React.FC<PreferenceModalProps> = ({
               </TouchableOpacity>
             </View>
           ))}
-          <View style={styles.addTagWrap}>
-            <TextInput
-              value={addInput}
-              onChangeText={setAddInput}
-              placeholder="Add"
-              style={styles.addTagInput}
-              onSubmitEditing={handleAddDislike}
-              returnKeyType="done"
-            />
-            <TouchableOpacity
-              onPress={handleAddDislike}
-              style={styles.addTagBtn}
-            >
-              <Ionicons name="add" size={18} color="#7C3AED" />
-            </TouchableOpacity>
-          </View>
+          <TouchableOpacity
+            style={styles.addTagWrap}
+            onPress={() => setShowFoodModal(true)}
+          >
+            <Text style={styles.addTagInput}>Add</Text>
+            <Ionicons name="add" size={18} color="#7C3AED" />
+          </TouchableOpacity>
         </View>
       </ScrollView>
+      {/* Move FoodDislikesModal here, outside ScrollView */}
+      <FoodDislikesModal
+        visible={showFoodModal}
+        dislikes={dislikes}
+        onClose={() => setShowFoodModal(false)}
+        onSave={(newDislikes) => {
+          setDislikes(newDislikes);
+          setShowFoodModal(false);
+        }}
+      />
     </View>
   );
 };
