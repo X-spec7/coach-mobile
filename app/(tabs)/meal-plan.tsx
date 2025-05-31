@@ -17,6 +17,7 @@ import { MealPlanCard } from "./MealPlanCard";
 import { Ionicons } from "@expo/vector-icons";
 import { PreferenceModal } from "./PreferenceModal";
 import { SetMacrosModal } from "./SetMacrosModal";
+import { AboutPlanModal } from "./AboutPlanModal";
 
 const { width } = Dimensions.get("window");
 
@@ -90,6 +91,7 @@ export default function MealPlanScreen() {
     protein: 126,
     fat: 142,
   });
+  const [showAboutPlanModal, setShowAboutPlanModal] = useState(false);
 
   return (
     <SafeAreaView
@@ -146,6 +148,7 @@ export default function MealPlanScreen() {
               activeOpacity={0.7}
               onPress={() => {
                 if (item.key === "setMacros") setShowSetMacrosModal(true);
+                else if (item.key === "aboutPlan") setShowAboutPlanModal(true);
                 else setModal(item.key);
               }}
             >
@@ -195,6 +198,14 @@ export default function MealPlanScreen() {
         initialValues={macros}
         onClose={() => setShowSetMacrosModal(false)}
         onSave={(values) => setMacros(values)}
+      />
+      <AboutPlanModal
+        visible={showAboutPlanModal}
+        onClose={() => setShowAboutPlanModal(false)}
+        onChange={() => {
+          setShowAboutPlanModal(false);
+          // Optionally open change plan modal here
+        }}
       />
     </SafeAreaView>
   );
