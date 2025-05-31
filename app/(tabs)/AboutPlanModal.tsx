@@ -11,6 +11,7 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import Svg, { Circle } from "react-native-svg";
+import ChangePlanModal from "./ChangePlanModal";
 
 interface AboutPlanModalProps {
   visible: boolean;
@@ -72,6 +73,9 @@ export const AboutPlanModal: React.FC<AboutPlanModalProps> = ({
     return segment;
   });
 
+  // State for ChangePlanModal
+  const [showChangePlan, setShowChangePlan] = React.useState(false);
+
   return (
     <Modal
       visible={visible}
@@ -91,7 +95,7 @@ export const AboutPlanModal: React.FC<AboutPlanModalProps> = ({
             </TouchableOpacity>
             <Text style={styles.headerTitle}>About Your Plan</Text>
             <TouchableOpacity
-              onPress={onChange}
+              onPress={() => setShowChangePlan(true)}
               hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             >
               <Text style={styles.headerChange}>Change</Text>
@@ -142,6 +146,13 @@ export const AboutPlanModal: React.FC<AboutPlanModalProps> = ({
                       fill="none"
                     />
                   ))}
+                  {/* White center mask */}
+                  <Circle
+                    cx={CIRCLE_SIZE / 2}
+                    cy={CIRCLE_SIZE / 2}
+                    r={(CIRCLE_SIZE - STROKE_WIDTH * 1.7) / 2}
+                    fill="#fff"
+                  />
                 </Svg>
                 <View style={styles.chartCenter}>
                   <Text style={styles.chartCaloriesLabel}>Calories</Text>
@@ -216,6 +227,12 @@ export const AboutPlanModal: React.FC<AboutPlanModalProps> = ({
           </ScrollView>
         </View>
       </View>
+      {/* Change Plan Modal */}
+      <ChangePlanModal
+        visible={showChangePlan}
+        onClose={() => setShowChangePlan(false)}
+        onSave={() => setShowChangePlan(false)}
+      />
     </Modal>
   );
 };
@@ -322,6 +339,7 @@ const styles = StyleSheet.create({
     bottom: 0,
     alignItems: "center",
     justifyContent: "center",
+    alignSelf: "center",
   },
   chartCaloriesLabel: {
     color: "#A3A3A3",
