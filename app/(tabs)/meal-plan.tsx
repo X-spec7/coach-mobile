@@ -13,11 +13,14 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Colors } from "@/constants/Colors";
 import { useColorScheme } from "@/hooks/useColorScheme";
 import Carousel from "react-native-reanimated-carousel";
-import { MealPlanCard } from "./MealPlanCard";
+import { MealPlanCard } from "../components/MealPlanCard";
 import { Ionicons } from "@expo/vector-icons";
-import { PreferenceModal } from "./PreferenceModal";
-import { SetMacrosModal } from "./SetMacrosModal";
-import { AboutPlanModal } from "./AboutPlanModal";
+import { PreferenceModal } from "../modals/PreferenceModal";
+import { SetMacrosModal } from "../modals/SetMacrosModal";
+import { AboutPlanModal } from "../modals/AboutPlanModal";
+import ChangePlanModal from "../modals/ChangePlanModal";
+import { FoodDislikesModal } from "../modals/FoodDislikesModal";
+import MealPlanDetailsModal from "../modals/MealPlanDetailsModal";
 
 const { width } = Dimensions.get("window");
 
@@ -93,6 +96,34 @@ export default function MealPlanScreen() {
   });
   const [showAboutPlanModal, setShowAboutPlanModal] = useState(false);
 
+  // State for MealPlanDetailsModal
+  const [showPlanDetails, setShowPlanDetails] = useState(false);
+  const [planDetails, setPlanDetails] = useState<any>(null);
+
+  // Example plan data for modal (should be replaced with real data)
+  const getPlanDetailsFromMeal = (meal: any) => ({
+    category: "Vegetarian diets",
+    name: meal.title,
+    description:
+      "A balanced Classic Vegetarian plan is one that give your body the nutrients it needs to function properly. Enjoy the benefits of diet and don't forget to keep physically active.",
+    calories: 2500,
+    macros: [
+      {
+        key: "protein",
+        label: "Protein",
+        value: meal.protein,
+        color: "#7C3AED",
+      },
+      { key: "fat", label: "Fat", value: meal.fat, color: "#F87171" },
+      { key: "carbs", label: "Carbs", value: meal.carbs, color: "#FBBF24" },
+    ],
+    meals: [
+      { title: "Boiled Vegetables", protein: 250, fat: 20, carbs: 450 },
+      { title: "Vegetarian Sandwich", protein: 200, fat: 10, carbs: 300 },
+      { title: "Mushroom Dumplings", protein: 120, fat: 15, carbs: 450 },
+    ],
+  });
+
   return (
     <SafeAreaView
       style={[
@@ -119,6 +150,10 @@ export default function MealPlanScreen() {
                 fat={item.fat}
                 carbs={item.carbs}
                 selected={selectedId === item.id}
+                onTitlePress={() => {
+                  setPlanDetails(getPlanDetailsFromMeal(item));
+                  setShowPlanDetails(true);
+                }}
               />
             )}
             mode="parallax"
@@ -206,6 +241,12 @@ export default function MealPlanScreen() {
           setShowAboutPlanModal(false);
           // Optionally open change plan modal here
         }}
+      />
+      <MealPlanDetailsModal
+        visible={showPlanDetails}
+        onClose={() => setShowPlanDetails(false)}
+        plan={planDetails}
+        onChoose={() => setShowPlanDetails(false)}
       />
     </SafeAreaView>
   );

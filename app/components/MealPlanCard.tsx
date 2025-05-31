@@ -5,6 +5,7 @@ import {
   StyleSheet,
   Image,
   ImageSourcePropType,
+  TouchableOpacity,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
@@ -15,6 +16,7 @@ interface MealPlanCardProps {
   fat: number;
   carbs: number;
   selected?: boolean;
+  onTitlePress?: () => void;
 }
 
 const macroColors = {
@@ -30,6 +32,7 @@ export const MealPlanCard: React.FC<MealPlanCardProps> = ({
   fat,
   carbs,
   selected = false,
+  onTitlePress,
 }) => {
   return (
     <View style={styles.card}>
@@ -48,7 +51,13 @@ export const MealPlanCard: React.FC<MealPlanCardProps> = ({
         )}
       </View>
       <View style={styles.infoContainer}>
-        <Text style={styles.title}>{title}</Text>
+        {onTitlePress ? (
+          <TouchableOpacity onPress={onTitlePress}>
+            <Text style={styles.title}>{title}</Text>
+          </TouchableOpacity>
+        ) : (
+          <Text style={styles.title}>{title}</Text>
+        )}
         <View style={styles.macrosRow}>
           <View style={styles.macroItem}>
             <View
