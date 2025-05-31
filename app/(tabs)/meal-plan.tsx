@@ -1,10 +1,21 @@
 import React, { useState } from "react";
-import { View, StyleSheet, Dimensions, Text } from "react-native";
+import {
+  View,
+  StyleSheet,
+  Dimensions,
+  Text,
+  TouchableOpacity,
+  Modal,
+  Pressable,
+  ScrollView,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Colors } from "@/constants/Colors";
 import { useColorScheme } from "@/hooks/useColorScheme";
 import Carousel from "react-native-reanimated-carousel";
 import { MealPlanCard } from "./MealPlanCard";
+import { Ionicons } from "@expo/vector-icons";
+import { PreferenceModal } from "./PreferenceModal";
 
 const { width } = Dimensions.get("window");
 
@@ -59,9 +70,17 @@ const mockMeals = [
   },
 ];
 
+const menuItems = [
+  { key: "preference", label: "Preference" },
+  { key: "setMacros", label: "Set Macros" },
+  { key: "aboutPlan", label: "About Your Plan" },
+  { key: "changePlan", label: "Change Plan" },
+];
+
 export default function MealPlanScreen() {
   const colorScheme = useColorScheme();
   const [selectedId, setSelectedId] = useState<number | null>(mockMeals[0].id);
+  const [modal, setModal] = useState<string | null>(null);
   const selectedMeal = mockMeals.find((m) => m.id === selectedId)!;
 
   return (
@@ -71,42 +90,95 @@ export default function MealPlanScreen() {
         { backgroundColor: Colors[colorScheme ?? "light"].background },
       ]}
     >
-      <View style={styles.carouselWrap}>
-        <Carousel
-          width={260}
-          height={260}
-          data={mockMeals}
-          style={{ width: width, alignSelf: "center" }}
-          renderItem={({ item }) => (
-            <MealPlanCard
-              key={item.id}
-              image={item.image}
-              title={item.title}
-              protein={item.protein}
-              fat={item.fat}
-              carbs={item.carbs}
-              selected={selectedId === item.id}
-            />
-          )}
-          mode="parallax"
-          pagingEnabled
-          onSnapToItem={(index) => setSelectedId(mockMeals[index].id)}
-        />
-      </View>
-      {selectedMeal.foods && (
-        <View style={styles.foodListContainer}>
-          <Text style={styles.foodListTitle}>Food items of this meal</Text>
-          <View style={styles.foodList}>
-            {selectedMeal.foods.map((food, idx) => (
-              <View style={styles.foodRow} key={food.name + idx}>
-                <View style={styles.foodDot} />
-                <Text style={styles.foodName}>{food.name}</Text>
-                <Text style={styles.foodAmount}>{food.amount}</Text>
-              </View>
-            ))}
-          </View>
+      <ScrollView
+        contentContainerStyle={{ paddingBottom: 32 }}
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={styles.carouselWrap}>
+          <Carousel
+            width={260}
+            height={260}
+            data={mockMeals}
+            style={{ width: width, alignSelf: "center" }}
+            renderItem={({ item }) => (
+              <MealPlanCard
+                key={item.id}
+                image={item.image}
+                title={item.title}
+                protein={item.protein}
+                fat={item.fat}
+                carbs={item.carbs}
+                selected={selectedId === item.id}
+              />
+            )}
+            mode="parallax"
+            pagingEnabled
+            onSnapToItem={(index) => setSelectedId(mockMeals[index].id)}
+          />
         </View>
-      )}
+        {selectedMeal.foods && (
+          <View style={styles.foodListContainer}>
+            <Text style={styles.foodListTitle}>Food items of this meal</Text>
+            <View style={styles.foodList}>
+              {selectedMeal.foods.map((food, idx) => (
+                <View style={styles.foodRow} key={food.name + idx}>
+                  <View style={styles.foodDot} />
+                  <Text style={styles.foodName}>{food.name}</Text>
+                  <Text style={styles.foodAmount}>{food.amount}</Text>
+                </View>
+              ))}
+            </View>
+          </View>
+        )}
+        <View style={styles.menuSection}>
+          {menuItems.map((item, idx) => (
+            <TouchableOpacity
+              key={item.key}
+              style={styles.menuRow}
+              activeOpacity={0.7}
+              onPress={() => setModal(item.key)}
+            >
+              <Text style={styles.menuLabel}>{item.label}</Text>
+              <Ionicons name="chevron-forward" size={20} color="#94A3B8" />
+            </TouchableOpacity>
+          ))}
+        </View>
+      </ScrollView>
+      {/* Modals */}
+      {menuItems.map((item) => (
+        <Modal
+          key={item.key}
+          visible={modal === item.key}
+          animationType="slide"
+          transparent
+          onRequestClose={() => setModal(null)}
+        >
+          <View style={styles.modalOverlay}>
+            {item.key === "preference" ? (
+              <PreferenceModal
+                onClose={() => setModal(null)}
+                onSave={(prefs) => {
+                  // handle save logic here if needed
+                  setModal(null);
+                }}
+              />
+            ) : (
+              <View style={styles.modalContent}>
+                <Text style={styles.modalTitle}>{item.label}</Text>
+                <Text style={styles.modalBody}>
+                  This is the {item.label} modal.
+                </Text>
+                <Pressable
+                  style={styles.closeButton}
+                  onPress={() => setModal(null)}
+                >
+                  <Text style={styles.closeButtonText}>Close</Text>
+                </Pressable>
+              </View>
+            )}
+          </View>
+        </Modal>
+      ))}
     </SafeAreaView>
   );
 }
@@ -131,7 +203,6 @@ const styles = StyleSheet.create({
   },
   foodList: {
     marginTop: 16,
-    paddingHorizontal: 24,
   },
   foodRow: {
     flexDirection: "row",
@@ -156,5 +227,65 @@ const styles = StyleSheet.create({
     color: "#94A3B8",
     fontSize: 16,
     fontWeight: "500",
+  },
+  menuSection: {
+    backgroundColor: "#fff",
+    borderRadius: 12,
+    margin: 20,
+    marginTop: 28,
+    overflow: "hidden",
+    shadowColor: "#000",
+    shadowOpacity: 0.03,
+    shadowRadius: 4,
+    elevation: 1,
+  },
+  menuRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: 18,
+    paddingHorizontal: 18,
+    borderBottomWidth: 1,
+    borderBottomColor: "#F1F5F9",
+  },
+  menuLabel: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#1E293B",
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.18)",
+    justifyContent: "flex-end",
+  },
+  modalContent: {
+    backgroundColor: "#fff",
+    borderTopLeftRadius: 18,
+    borderTopRightRadius: 18,
+    padding: 24,
+    minHeight: 220,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: "bold",
+    marginBottom: 12,
+    color: "#1E293B",
+  },
+  modalBody: {
+    fontSize: 16,
+    color: "#64748B",
+    marginBottom: 24,
+  },
+  closeButton: {
+    alignSelf: "flex-end",
+    backgroundColor: "#7C3AED",
+    borderRadius: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 18,
+  },
+  closeButtonText: {
+    color: "#fff",
+    fontWeight: "bold",
+    fontSize: 16,
   },
 });
