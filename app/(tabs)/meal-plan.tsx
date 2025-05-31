@@ -16,6 +16,7 @@ import Carousel from "react-native-reanimated-carousel";
 import { MealPlanCard } from "./MealPlanCard";
 import { Ionicons } from "@expo/vector-icons";
 import { PreferenceModal } from "./PreferenceModal";
+import { SetMacrosModal } from "./SetMacrosModal";
 
 const { width } = Dimensions.get("window");
 
@@ -82,6 +83,13 @@ export default function MealPlanScreen() {
   const [selectedId, setSelectedId] = useState<number | null>(mockMeals[0].id);
   const [modal, setModal] = useState<string | null>(null);
   const selectedMeal = mockMeals.find((m) => m.id === selectedId)!;
+  const [showSetMacrosModal, setShowSetMacrosModal] = useState(false);
+  const [macros, setMacros] = useState({
+    calories: 2904,
+    carbs: 276,
+    protein: 126,
+    fat: 142,
+  });
 
   return (
     <SafeAreaView
@@ -136,7 +144,10 @@ export default function MealPlanScreen() {
               key={item.key}
               style={styles.menuRow}
               activeOpacity={0.7}
-              onPress={() => setModal(item.key)}
+              onPress={() => {
+                if (item.key === "setMacros") setShowSetMacrosModal(true);
+                else setModal(item.key);
+              }}
             >
               <Text style={styles.menuLabel}>{item.label}</Text>
               <Ionicons name="chevron-forward" size={20} color="#94A3B8" />
@@ -179,6 +190,12 @@ export default function MealPlanScreen() {
           </View>
         </Modal>
       ))}
+      <SetMacrosModal
+        visible={showSetMacrosModal}
+        initialValues={macros}
+        onClose={() => setShowSetMacrosModal(false)}
+        onSave={(values) => setMacros(values)}
+      />
     </SafeAreaView>
   );
 }
