@@ -6,28 +6,40 @@ import {
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
 } from "react-native";
 import { useRouter } from "expo-router";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import { Lock, Mail } from "lucide-react-native";
-import { LinearGradient } from "expo-linear-gradient";
-import { API_ENDPOINTS } from "@/constants/api";
-import Logo from "../components/Logo";
+import { useAuth } from "../contexts/AuthContext";
+import { storeToken } from "../services/auth";
 
-export default function LoginScreen() {
-  const router = useRouter();
+const API_BASE_URL = "http://0.0.0.0:8888/api";
+
+export default function SignInScreen() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
+  const router = useRouter();
+  const { signIn } = useAuth();
 
   const handleLogin = async () => {
-    try {
-      setLoading(true);
-      setError(null);
+    if (!email || !password) {
+      setError("Please fill in all fields");
+      return;
+    }
 
-      const response = await fetch(API_ENDPOINTS.AUTH.LOGIN, {
+    setIsLoading(true);
+    setError("");
+
+    try {
+      console.log(
+        "Attempting login to:",
+        `${API_BASE_URL}/authentication/login/`
+      );
+      const response = await fetch(`${API_BASE_URL}/authentication/login/`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -38,198 +50,168 @@ export default function LoginScreen() {
         }),
       });
 
+      console.log("Login response status:", response.status);
       const data = await response.json();
+      console.log("Login response data:", data);
 
       if (!response.ok) {
         throw new Error(data.message || "Login failed");
       }
 
-      // Store the token
-      await AsyncStorage.setItem("token", data.token);
+      // Store the token using the auth context
+      const token = {
+        accessToken: data.token,
+        refreshToken: data.refreshToken,
+        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).getTime(), // 24 hours from now
+      };
 
-      // Store user data
-      await AsyncStorage.setItem("user", JSON.stringify(data.user));
+      console.log("Storing token:", token);
+      await signIn(token);
 
-      // Store email if remember me is checked
-      if (rememberMe) {
-        await AsyncStorage.setItem("rememberedEmail", email);
-      } else {
-        await AsyncStorage.removeItem("rememberedEmail");
-      }
-      console.log("inLoginScreen");
+      // Navigate to personalization page
       router.replace("/(onboarding)/personalize");
     } catch (err) {
-      console.log(err);
+      console.error("Login error:", err);
       setError(err instanceof Error ? err.message : "An error occurred");
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
 
   return (
-    <LinearGradient colors={["#FFFFFF", "#EDE2FF"]} style={styles.container}>
-      <View style={styles.logoContainer}>
-        <Logo size="small" />
-      </View>
-      <View style={styles.formContainer}>
-        <Text style={styles.subtitle}>Sign in to continue</Text>
+    <KeyboardAvoidingView
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      style={styles.container}
+    >
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        keyboardShouldPersistTaps="handled"
+      >
+        <View style={styles.content}>
+          <Text style={styles.title}>Welcome Back!</Text>
+          <Text style={styles.subtitle}>Sign in to continue</Text>
 
-        {error && (
-          <View style={styles.errorContainer}>
-            <Text style={styles.errorText}>{error}</Text>
-          </View>
-        )}
+          {error ? <Text style={styles.error}>{error}</Text> : null}
 
-        <View style={styles.inputContainer}>
-          <Mail size={20} color="#666" />
-          <TextInput
-            style={styles.input}
-            placeholder="Email"
-            placeholderTextColor="#666"
-            value={email}
-            onChangeText={setEmail}
-            autoCapitalize="none"
-            keyboardType="email-address"
-          />
-        </View>
-
-        <View style={styles.inputContainer}>
-          <Lock size={20} color="#666" />
-          <TextInput
-            style={styles.input}
-            placeholder="Password"
-            placeholderTextColor="#666"
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry
-          />
-        </View>
-
-        <View style={styles.rememberContainer}>
-          <TouchableOpacity
-            style={styles.checkbox}
-            onPress={() => setRememberMe(!rememberMe)}
-          >
-            <View
-              style={[
-                styles.checkboxInner,
-                rememberMe && styles.checkboxChecked,
-              ]}
+          <View style={styles.inputContainer}>
+            <TextInput
+              style={styles.input}
+              placeholder="Email"
+              value={email}
+              onChangeText={setEmail}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              autoComplete="email"
             />
-          </TouchableOpacity>
-          <Text style={styles.rememberText}>Remember me</Text>
-        </View>
+            <TextInput
+              style={styles.input}
+              placeholder="Password"
+              value={password}
+              onChangeText={setPassword}
+              secureTextEntry
+              autoComplete="password"
+            />
+          </View>
 
-        <TouchableOpacity
-          style={styles.loginButton}
-          onPress={handleLogin}
-          disabled={loading}
-        >
-          {loading ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
-            <Text style={styles.loginButtonText}>Sign In</Text>
-          )}
-        </TouchableOpacity>
+          <View style={styles.rememberMeContainer}>
+            <TouchableOpacity
+              style={styles.checkbox}
+              onPress={() => setRememberMe(!rememberMe)}
+            >
+              <View
+                style={[
+                  styles.checkboxInner,
+                  rememberMe && styles.checkboxChecked,
+                ]}
+              />
+            </TouchableOpacity>
+            <Text style={styles.rememberMeText}>Remember me</Text>
+          </View>
 
-        <TouchableOpacity
-          style={styles.forgotPassword}
-          onPress={() => router.push("/(auth)/forgot-password")}
-        >
-          <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
-        </TouchableOpacity>
-
-        <View style={styles.registerContainer}>
-          <Text style={styles.registerText}>Don't have an account? </Text>
-          <TouchableOpacity onPress={() => router.push("/(auth)/sign-up")}>
-            <Text style={styles.registerLink}>Sign Up</Text>
-          </TouchableOpacity>
-        </View>
-
-        <View style={styles.termsContainer}>
-          <Text style={styles.termsText}>
-            By using this app you agree with the
-          </Text>
           <TouchableOpacity
-            onPress={() => router.push("/(tabs)/terms")}
-            style={{ alignItems: "center", marginTop: 2, marginBottom: 10 }}
+            style={styles.forgotPassword}
+            onPress={() => router.push("/(auth)/forgot-password")}
           >
-            <Text style={styles.termsLink}>Terms of Service</Text>
+            <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
           </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.button, isLoading && styles.buttonDisabled]}
+            onPress={handleLogin}
+            disabled={isLoading}
+          >
+            {isLoading ? (
+              <ActivityIndicator color="#FFFFFF" />
+            ) : (
+              <Text style={styles.buttonText}>Sign In</Text>
+            )}
+          </TouchableOpacity>
+
+          <View style={styles.signUpContainer}>
+            <Text style={styles.signUpText}>Don't have an account? </Text>
+            <TouchableOpacity onPress={() => router.push("/(auth)/sign-up")}>
+              <Text style={styles.signUpLink}>Sign Up</Text>
+            </TouchableOpacity>
+          </View>
         </View>
-      </View>
-    </LinearGradient>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: "#FFFFFF",
+  },
+  scrollContent: {
+    flexGrow: 1,
+  },
+  content: {
+    flex: 1,
+    padding: 24,
     justifyContent: "center",
-    padding: 20,
-  },
-  logoContainer: {
-    alignItems: "center",
-    marginBottom: 20,
-  },
-  formContainer: {
-    backgroundColor: "#fff",
-    padding: 20,
-    borderRadius: 16,
   },
   title: {
-    fontSize: 24,
+    fontSize: 32,
     fontWeight: "bold",
-    color: "#A26FFD",
+    color: "#1A1A1A",
     marginBottom: 8,
   },
   subtitle: {
     fontSize: 16,
-    color: "#666",
-    marginBottom: 24,
+    color: "#666666",
+    marginBottom: 32,
   },
-  errorContainer: {
-    backgroundColor: "#ff444422",
-    padding: 12,
-    borderRadius: 8,
+  error: {
+    color: "#FF3B30",
     marginBottom: 16,
-  },
-  errorText: {
-    color: "#ff4444",
-    fontSize: 14,
+    textAlign: "center",
   },
   inputContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#fff",
-    borderWidth: 1,
-    borderColor: "#ccc",
-    shadowColor: "#000",
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    marginBottom: 16,
+    gap: 16,
+    marginBottom: 24,
   },
   input: {
-    flex: 1,
-    color: "#666",
+    height: 56,
+    borderWidth: 1,
+    borderColor: "#E5E5E5",
+    borderRadius: 12,
+    paddingHorizontal: 16,
     fontSize: 16,
-    backgroundColor: "#fff",
-    borderColor: "transparent",
-    borderWidth: 0,
-    padding: 12,
-    marginLeft: 8,
+    backgroundColor: "#F8F8F8",
   },
-  rememberContainer: {
+  rememberMeContainer: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 24,
+    marginBottom: 16,
   },
   checkbox: {
     width: 20,
     height: 20,
-    borderRadius: 4,
     borderWidth: 2,
-    borderColor: "#8B5CF6",
+    borderColor: "#007AFF",
+    borderRadius: 4,
     marginRight: 8,
     justifyContent: "center",
     alignItems: "center",
@@ -240,58 +222,48 @@ const styles = StyleSheet.create({
     borderRadius: 2,
   },
   checkboxChecked: {
-    backgroundColor: "#8B5CF6",
+    backgroundColor: "#007AFF",
   },
-  rememberText: {
-    color: "#000",
+  rememberMeText: {
     fontSize: 14,
-  },
-  loginButton: {
-    backgroundColor: "#8B5CF6",
-    padding: 16,
-    borderRadius: 8,
-    alignItems: "center",
-    marginBottom: 16,
-  },
-  loginButtonText: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "bold",
+    color: "#666666",
   },
   forgotPassword: {
+    alignSelf: "flex-end",
+    marginBottom: 32,
+  },
+  forgotPasswordText: {
+    color: "#007AFF",
+    fontSize: 14,
+  },
+  button: {
+    height: 56,
+    backgroundColor: "#007AFF",
+    borderRadius: 12,
+    justifyContent: "center",
     alignItems: "center",
     marginBottom: 24,
   },
-  forgotPasswordText: {
-    color: "#8B5CF6",
-    fontSize: 14,
+  buttonDisabled: {
+    opacity: 0.7,
   },
-  registerContainer: {
+  buttonText: {
+    color: "#FFFFFF",
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  signUpContainer: {
     flexDirection: "row",
     justifyContent: "center",
-  },
-  registerText: {
-    color: "#666",
-    fontSize: 14,
-  },
-  registerLink: {
-    color: "#8B5CF6",
-    fontSize: 14,
-  },
-  termsContainer: {
-    textAlign: "center",
-    color: "#666",
     alignItems: "center",
-    marginTop: 24,
   },
-  termsText: {
-    color: "#666",
-  },
-  termsLink: {
-    color: "#000000",
+  signUpText: {
     fontSize: 14,
-    display: "flex",
-    flexDirection: "row",
-    alignItems: "center",
+    color: "#666666",
+  },
+  signUpLink: {
+    fontSize: 14,
+    color: "#007AFF",
+    fontWeight: "600",
   },
 });

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   StyleSheet,
@@ -8,8 +8,10 @@ import {
   Modal,
   Pressable,
   ScrollView,
+  ActivityIndicator,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useRouter } from "expo-router";
 import { Colors } from "@/constants/Colors";
 import { useColorScheme } from "@/hooks/useColorScheme";
 import Carousel from "react-native-reanimated-carousel";
@@ -21,59 +23,14 @@ import { AboutPlanModal } from "../modals/AboutPlanModal";
 import ChangePlanModal from "../modals/ChangePlanModal";
 import { FoodDislikesModal } from "../modals/FoodDislikesModal";
 import MealPlanDetailsModal from "../modals/MealPlanDetailsModal";
+import {
+  fetchMealPlans,
+  fetchMealPlanDetails,
+  MealPlan,
+  MealPlanDetails,
+} from "../services/api";
 
 const { width } = Dimensions.get("window");
-
-const mockMeals = [
-  {
-    id: 1,
-    image: require("../../assets/images/nurition.png"), // local image
-    title: "Egg and Fresh Fruit",
-    protein: 530,
-    fat: 103,
-    carbs: 250,
-    foods: [
-      { name: "Balsamic vinegar", amount: "10 g" },
-      { name: "Vegetables fresh", amount: "35 g" },
-      { name: "Banana", amount: "75 g" },
-      { name: "Beef", amount: "100 g" },
-      { name: "Bitter chocolate", amount: "20 g" },
-      { name: "Coconut milk", amount: "11 g" },
-    ],
-  },
-  {
-    id: 2,
-    image: {
-      uri: "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=400&q=80",
-    }, // remote image
-    title: "Chicken Salad",
-    protein: 420,
-    fat: 80,
-    carbs: 180,
-    foods: [
-      { name: "Chicken breast", amount: "120 g" },
-      { name: "Lettuce", amount: "40 g" },
-      { name: "Tomato", amount: "30 g" },
-      { name: "Olive oil", amount: "10 g" },
-      { name: "Feta cheese", amount: "25 g" },
-    ],
-  },
-  {
-    id: 3,
-    image: require("../../assets/images/organic.png"), // local image
-    title: "Oatmeal Bowl",
-    protein: 320,
-    fat: 60,
-    carbs: 210,
-    foods: [
-      { name: "Oats", amount: "50 g" },
-      { name: "Milk", amount: "100 ml" },
-      { name: "Honey", amount: "10 g" },
-      { name: "Blueberries", amount: "30 g" },
-      { name: "Almonds", amount: "15 g" },
-    ],
-  },
-];
 
 const menuItems = [
   { key: "preference", label: "Preference" },
@@ -83,10 +40,14 @@ const menuItems = [
 ];
 
 export default function MealPlanScreen() {
+  const router = useRouter();
   const colorScheme = useColorScheme();
-  const [selectedId, setSelectedId] = useState<number | null>(mockMeals[0].id);
+  const [meals, setMeals] = useState<MealPlan[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = useState<number | null>(null);
   const [modal, setModal] = useState<string | null>(null);
-  const selectedMeal = mockMeals.find((m) => m.id === selectedId)!;
+  const selectedMeal = meals.find((m) => m.id === selectedId);
   const [showSetMacrosModal, setShowSetMacrosModal] = useState(false);
   const [macros, setMacros] = useState({
     calories: 2904,
@@ -95,34 +56,103 @@ export default function MealPlanScreen() {
     fat: 142,
   });
   const [showAboutPlanModal, setShowAboutPlanModal] = useState(false);
-
-  // State for MealPlanDetailsModal
   const [showPlanDetails, setShowPlanDetails] = useState(false);
-  const [planDetails, setPlanDetails] = useState<any>(null);
+  const [planDetails, setPlanDetails] = useState<MealPlanDetails | null>(null);
 
-  // Example plan data for modal (should be replaced with real data)
-  const getPlanDetailsFromMeal = (meal: any) => ({
-    category: "Vegetarian diets",
-    name: meal.title,
-    description:
-      "A balanced Classic Vegetarian plan is one that give your body the nutrients it needs to function properly. Enjoy the benefits of diet and don't forget to keep physically active.",
-    calories: 2500,
-    macros: [
-      {
-        key: "protein",
-        label: "Protein",
-        value: meal.protein,
-        color: "#7C3AED",
-      },
-      { key: "fat", label: "Fat", value: meal.fat, color: "#F87171" },
-      { key: "carbs", label: "Carbs", value: meal.carbs, color: "#FBBF24" },
-    ],
-    meals: [
-      { title: "Boiled Vegetables", protein: 250, fat: 20, carbs: 450 },
-      { title: "Vegetarian Sandwich", protein: 200, fat: 10, carbs: 300 },
-      { title: "Mushroom Dumplings", protein: 120, fat: 15, carbs: 450 },
-    ],
-  });
+  useEffect(() => {
+    loadMealPlans();
+  }, []);
+
+  const loadMealPlans = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      const data = await fetchMealPlans();
+      setMeals(data);
+      if (data.length > 0) {
+        setSelectedId(data[0].id);
+      }
+    } catch (err) {
+      const errorMessage =
+        err instanceof Error
+          ? err.message
+          : "Failed to load meal plans. Please try again later.";
+      if (errorMessage === "Authentication required") {
+        setError("Please sign in to view meal plans");
+        router.replace("/(auth)/login-register");
+      } else {
+        setError(errorMessage);
+      }
+      console.error("Error loading meal plans:", err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleMealSelect = async (meal: MealPlan) => {
+    try {
+      const details = await fetchMealPlanDetails(meal.id);
+      setPlanDetails(details);
+      setShowPlanDetails(true);
+    } catch (err) {
+      const errorMessage =
+        err instanceof Error ? err.message : "Failed to load meal details";
+      if (errorMessage === "Authentication required") {
+        router.replace("/(auth)/login-register");
+      } else {
+        console.error("Error loading meal details:", err);
+      }
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <SafeAreaView
+        style={[
+          styles.container,
+          { backgroundColor: Colors[colorScheme ?? "light"].background },
+        ]}
+      >
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#7C3AED" />
+          <Text style={styles.loadingText}>Loading meal plans...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (error) {
+    return (
+      <SafeAreaView
+        style={[
+          styles.container,
+          { backgroundColor: Colors[colorScheme ?? "light"].background },
+        ]}
+      >
+        <View style={styles.errorContainer}>
+          <Text style={styles.errorText}>{error}</Text>
+          <TouchableOpacity style={styles.retryButton} onPress={loadMealPlans}>
+            <Text style={styles.retryButtonText}>Retry</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (!selectedMeal) {
+    return (
+      <SafeAreaView
+        style={[
+          styles.container,
+          { backgroundColor: Colors[colorScheme ?? "light"].background },
+        ]}
+      >
+        <View style={styles.errorContainer}>
+          <Text style={styles.errorText}>No meal plans available</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView
@@ -139,7 +169,7 @@ export default function MealPlanScreen() {
           <Carousel
             width={260}
             height={260}
-            data={mockMeals}
+            data={meals}
             style={{ width: width, alignSelf: "center" }}
             renderItem={({ item }) => (
               <MealPlanCard
@@ -150,15 +180,12 @@ export default function MealPlanScreen() {
                 fat={item.fat}
                 carbs={item.carbs}
                 selected={selectedId === item.id}
-                onTitlePress={() => {
-                  setPlanDetails(getPlanDetailsFromMeal(item));
-                  setShowPlanDetails(true);
-                }}
+                onTitlePress={() => handleMealSelect(item)}
               />
             )}
             mode="parallax"
             pagingEnabled
-            onSnapToItem={(index) => setSelectedId(mockMeals[index].id)}
+            onSnapToItem={(index) => setSelectedId(meals[index].id)}
           />
         </View>
         {selectedMeal.foods && (
@@ -256,6 +283,39 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     justifyContent: "center",
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 16,
+    color: "#64748B",
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 20,
+  },
+  errorText: {
+    fontSize: 16,
+    color: "#EF4444",
+    textAlign: "center",
+    marginBottom: 16,
+  },
+  retryButton: {
+    backgroundColor: "#7C3AED",
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 8,
+  },
+  retryButtonText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "600",
   },
   carouselWrap: {
     flex: 1,
