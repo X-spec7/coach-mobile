@@ -167,7 +167,7 @@ export default function MealPlanScreen() {
       >
         <View style={styles.carouselWrap}>
           <Carousel
-            width={260}
+            width={320}
             height={260}
             data={meals}
             style={{ width: width, alignSelf: "center" }}

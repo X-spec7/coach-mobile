@@ -60,22 +60,30 @@ export const MealPlanCard: React.FC<MealPlanCardProps> = ({
         )}
         <View style={styles.macrosRow}>
           <View style={styles.macroItem}>
-            <View
-              style={[styles.dot, { backgroundColor: macroColors.protein }]}
-            />
-            <Text style={styles.macroLabel}>Protein</Text>
+            <View style={styles.macroItemLabel}>
+              <View
+                style={[styles.dot, { backgroundColor: macroColors.protein }]}
+              />
+              <Text style={styles.macroLabel}>Protein</Text>
+            </View>
             <Text style={styles.macroValue}>{protein}</Text>
           </View>
           <View style={styles.macroItem}>
-            <View style={[styles.dot, { backgroundColor: macroColors.fat }]} />
-            <Text style={styles.macroLabel}>Fat</Text>
+            <View style={styles.macroItemLabel}>
+              <View
+                style={[styles.dot, { backgroundColor: macroColors.fat }]}
+              />
+              <Text style={styles.macroLabel}>Fat</Text>
+            </View>
             <Text style={styles.macroValue}>{fat}</Text>
           </View>
           <View style={styles.macroItem}>
-            <View
-              style={[styles.dot, { backgroundColor: macroColors.carbs }]}
-            />
-            <Text style={styles.macroLabel}>Carbs</Text>
+            <View style={styles.macroItemLabel}>
+              <View
+                style={[styles.dot, { backgroundColor: macroColors.carbs }]}
+              />
+              <Text style={styles.macroLabel}>Carbs</Text>
+            </View>
             <Text style={styles.macroValue}>{carbs}</Text>
           </View>
         </View>
@@ -86,7 +94,7 @@ export const MealPlanCard: React.FC<MealPlanCardProps> = ({
 
 const styles = StyleSheet.create({
   card: {
-    width: 240,
+    width: 280,
     borderRadius: 16,
     backgroundColor: "#fff",
     shadowColor: "#000",
@@ -97,7 +105,7 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
   imageContainer: {
-    height: 120,
+    height: 200,
     backgroundColor: "#E5E7EB",
     justifyContent: "center",
     alignItems: "center",
@@ -145,6 +153,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
     flex: 1,
   },
+  macroItemLabel: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
   dot: {
     width: 7,
     height: 7,
@@ -156,7 +169,7 @@ const styles = StyleSheet.create({
     color: "#64748B",
   },
   macroValue: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: "bold",
     color: "#1E293B",
     marginTop: 2,
