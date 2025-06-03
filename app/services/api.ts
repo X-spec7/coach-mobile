@@ -6,16 +6,37 @@ const API_BASE_URL = "http://0.0.0.0:8888/api";
 export interface Food {
   name: string;
   amount: string;
+  protein?: number;
+  fat?: number;
+  carbs?: number;
+}
+
+export interface MealPlanFoodItem {
+  name: string;
+  amount: string;
+  protein?: number;
+  fat?: number;
+  carbs?: number;
+}
+
+export interface MealTime {
+  id: number;
+  day: string;
+  time: string;
+  mealplan_food_items: MealPlanFoodItem[];
 }
 
 export interface MealPlan {
   id: number;
-  image: ImageSourcePropType | { uri: string };
-  title: string;
-  protein: number;
-  fat: number;
-  carbs: number;
-  foods: Food[];
+  image: ImageSourcePropType | { uri: string } | null;
+  title?: string;
+  name?: string;
+  protein?: number;
+  fat?: number;
+  carbs?: number;
+  calories?: number;
+  description?: string;
+  meal_times: MealTime[];
 }
 
 export interface MealPlanDetails {

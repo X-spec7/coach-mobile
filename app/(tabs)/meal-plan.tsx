@@ -23,6 +23,7 @@ import { AboutPlanModal } from "../modals/AboutPlanModal";
 import ChangePlanModal from "../modals/ChangePlanModal";
 import { FoodDislikesModal } from "../modals/FoodDislikesModal";
 import MealPlanDetailsModal from "../modals/MealPlanDetailsModal";
+import ChangeFoodModal from "../modals/ChangeFoodModal";
 import {
   fetchMealPlans,
   fetchMealPlanDetails,
@@ -58,7 +59,10 @@ export default function MealPlanScreen() {
   const [showAboutPlanModal, setShowAboutPlanModal] = useState(false);
   const [showPlanDetails, setShowPlanDetails] = useState(false);
   const [planDetails, setPlanDetails] = useState<MealPlanDetails | null>(null);
+  const [showChangeFoodModal, setShowChangeFoodModal] = useState(false);
 
+  console.log("showChangeFoodModal:", showChangeFoodModal);
+  console.log("selectedMeal:", selectedMeal);
   useEffect(() => {
     loadMealPlans();
   }, []);
@@ -154,6 +158,11 @@ export default function MealPlanScreen() {
     );
   }
 
+  const foods =
+    selectedMeal && selectedMeal.meal_times
+      ? selectedMeal.meal_times.flatMap((mt) => mt.mealplan_food_items)
+      : [];
+
   return (
     <SafeAreaView
       style={[
@@ -174,11 +183,11 @@ export default function MealPlanScreen() {
             renderItem={({ item }) => (
               <MealPlanCard
                 key={item.id}
-                image={item.image}
-                title={item.title}
-                protein={item.protein}
-                fat={item.fat}
-                carbs={item.carbs}
+                image={item.image ?? { uri: "" }}
+                title={item.title ?? item.name ?? ""}
+                protein={item.protein ?? 0}
+                fat={item.fat ?? 0}
+                carbs={item.carbs ?? 0}
                 selected={selectedId === item.id}
                 onTitlePress={() => handleMealSelect(item)}
               />
@@ -188,11 +197,11 @@ export default function MealPlanScreen() {
             onSnapToItem={(index) => setSelectedId(meals[index].id)}
           />
         </View>
-        {selectedMeal.foods && (
+        {foods.length > 0 && (
           <View style={styles.foodListContainer}>
             <Text style={styles.foodListTitle}>Food items of this meal</Text>
             <View style={styles.foodList}>
-              {selectedMeal.foods.map((food, idx) => (
+              {foods.map((food: any, idx: number) => (
                 <View style={styles.foodRow} key={food.name + idx}>
                   <View style={styles.foodDot} />
                   <Text style={styles.foodName}>{food.name}</Text>
@@ -211,6 +220,8 @@ export default function MealPlanScreen() {
               onPress={() => {
                 if (item.key === "setMacros") setShowSetMacrosModal(true);
                 else if (item.key === "aboutPlan") setShowAboutPlanModal(true);
+                else if (item.key === "changePlan")
+                  setShowChangeFoodModal(true);
                 else setModal(item.key);
               }}
             >
@@ -221,40 +232,42 @@ export default function MealPlanScreen() {
         </View>
       </ScrollView>
       {/* Modals */}
-      {menuItems.map((item) => (
-        <Modal
-          key={item.key}
-          visible={modal === item.key}
-          animationType="slide"
-          transparent
-          onRequestClose={() => setModal(null)}
-        >
-          <View style={styles.modalOverlay}>
-            {item.key === "preference" ? (
-              <PreferenceModal
-                onClose={() => setModal(null)}
-                onSave={(prefs) => {
-                  // handle save logic here if needed
-                  setModal(null);
-                }}
-              />
-            ) : (
-              <View style={styles.modalContent}>
-                <Text style={styles.modalTitle}>{item.label}</Text>
-                <Text style={styles.modalBody}>
-                  This is the {item.label} modal.
-                </Text>
-                <Pressable
-                  style={styles.closeButton}
-                  onPress={() => setModal(null)}
-                >
-                  <Text style={styles.closeButtonText}>Close</Text>
-                </Pressable>
-              </View>
-            )}
-          </View>
-        </Modal>
-      ))}
+      {menuItems
+        .filter((item) => item.key !== "changePlan")
+        .map((item) => (
+          <Modal
+            key={item.key}
+            visible={modal === item.key}
+            animationType="slide"
+            transparent
+            onRequestClose={() => setModal(null)}
+          >
+            <View style={styles.modalOverlay}>
+              {item.key === "preference" ? (
+                <PreferenceModal
+                  onClose={() => setModal(null)}
+                  onSave={(prefs) => {
+                    // handle save logic here if needed
+                    setModal(null);
+                  }}
+                />
+              ) : (
+                <View style={styles.modalContent}>
+                  <Text style={styles.modalTitle}>{item.label}</Text>
+                  <Text style={styles.modalBody}>
+                    This is the {item.label} modal.
+                  </Text>
+                  <Pressable
+                    style={styles.closeButton}
+                    onPress={() => setModal(null)}
+                  >
+                    <Text style={styles.closeButtonText}>Close</Text>
+                  </Pressable>
+                </View>
+              )}
+            </View>
+          </Modal>
+        ))}
       <SetMacrosModal
         visible={showSetMacrosModal}
         initialValues={macros}
@@ -274,6 +287,37 @@ export default function MealPlanScreen() {
         onClose={() => setShowPlanDetails(false)}
         plan={planDetails}
         onChoose={() => setShowPlanDetails(false)}
+      />
+      <ChangeFoodModal
+        visible={showChangeFoodModal && !!selectedMeal}
+        foods={foods}
+        onClose={() => setShowChangeFoodModal(false)}
+        onSave={(newFood) => {
+          if (!selectedMeal) return;
+          setMeals((prevMeals) =>
+            prevMeals.map((meal) => {
+              if (meal.id !== selectedMeal.id) return meal;
+              // Update the first food in the first meal_time
+              const updatedMealTimes = meal.meal_times.map((mt, idx) => {
+                if (idx === 0 && mt.mealplan_food_items.length > 0) {
+                  return {
+                    ...mt,
+                    mealplan_food_items: [
+                      newFood,
+                      ...mt.mealplan_food_items.slice(1),
+                    ],
+                  };
+                }
+                return mt;
+              });
+              return {
+                ...meal,
+                meal_times: updatedMealTimes,
+              };
+            })
+          );
+          setShowChangeFoodModal(false);
+        }}
       />
     </SafeAreaView>
   );
