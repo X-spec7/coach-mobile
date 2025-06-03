@@ -18,6 +18,7 @@ interface AboutPlanModalProps {
   visible: boolean;
   onClose: () => void;
   onChange?: () => void;
+  mealPlans: MealPlan[];
   selectedMeal: MealPlan;
 }
 
@@ -50,6 +51,7 @@ const MEALS = [
 
 export const AboutPlanModal: React.FC<AboutPlanModalProps> = ({
   visible,
+  mealPlans,
   selectedMeal,
   onClose,
   onChange,
@@ -255,6 +257,8 @@ export const AboutPlanModal: React.FC<AboutPlanModalProps> = ({
       {/* Change Plan Modal */}
       <ChangePlanModal
         visible={showChangePlan}
+        mealPlans={mealPlans}
+        selectedMealPlan={selectedMeal}
         onClose={() => setShowChangePlan(false)}
         onSave={() => setShowChangePlan(false)}
       />

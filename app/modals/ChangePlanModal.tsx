@@ -8,27 +8,19 @@ import {
   ScrollView,
   Dimensions,
 } from "react-native";
+import { MealPlan } from "../services/api";
 
 interface ChangePlanModalProps {
   visible: boolean;
   onClose: () => void;
   onSave: () => void;
+  mealPlans: MealPlan[];
+  selectedMealPlan?: MealPlan;
 }
 
 const PLAN_CATEGORIES = [
-  { key: "vegetarian", label: "Vegetarian diets" },
-  { key: "muscle", label: "Muscle building" },
-  { key: "traditional", label: "Traditional" },
-];
-
-const PLANS = [
-  {
-    category: "vegetarian",
-    title: "Classic Vegetarian",
-    desc: "A balanced classic plan is one that gives your body the nutrients it needs to function properly.",
-    info: "A balanced meal plan that gives your body adequate amounts of all macros and nutrients necessary to maintain health.",
-  },
-  // Add more plans as needed
+  { key: "private", label: "Private" },
+  { key: "public", label: "Public" },
 ];
 
 const { width } = Dimensions.get("window");
@@ -38,11 +30,15 @@ export const ChangePlanModal: React.FC<ChangePlanModalProps> = ({
   visible,
   onClose,
   onSave,
+  mealPlans,
+  selectedMealPlan,
 }) => {
   const [selectedCategory, setSelectedCategory] = useState(
     PLAN_CATEGORIES[0].key
   );
-  const filteredPlans = PLANS.filter((p) => p.category === selectedCategory);
+  const filteredPlans = mealPlans.filter(
+    (p) => p.visibility === selectedCategory
+  );
   const [activeIndex, setActiveIndex] = useState(0);
 
   return (
@@ -107,10 +103,10 @@ export const ChangePlanModal: React.FC<ChangePlanModalProps> = ({
             scrollEventThrottle={16}
           >
             {filteredPlans.map((plan, idx) => (
-              <View key={plan.title} style={styles.planCard}>
+              <View key={plan.id} style={styles.planCard}>
                 <View style={styles.planImagePlaceholder} />
-                <Text style={styles.planTitle}>{plan.title}</Text>
-                <Text style={styles.planDesc}>{plan.desc}</Text>
+                <Text style={styles.planTitle}>{plan.name}</Text>
+                <Text style={styles.planDesc}>{plan.description}</Text>
               </View>
             ))}
           </ScrollView>

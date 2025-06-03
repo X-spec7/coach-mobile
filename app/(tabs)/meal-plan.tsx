@@ -197,20 +197,6 @@ export default function MealPlanScreen() {
             onSnapToItem={(index) => setSelectedId(meals[index].id)}
           />
         </View>
-        {/*         {foods.length > 0 && (
-          <View style={styles.foodListContainer}>
-            <Text style={styles.foodListTitle}>Food items of this meal</Text>
-            <View style={styles.foodList}>
-              {foods.map((food: any, idx: number) => (
-                <View style={styles.foodRow} key={food.name + idx}>
-                  <View style={styles.foodDot} />
-                  <Text style={styles.foodName}>{food.name}</Text>
-                  <Text style={styles.foodAmount}>{food.amount}</Text>
-                </View>
-              ))}
-            </View>
-          </View>
-        )} */}
         <View style={styles.menuSection}>
           {menuItems.map((item, idx) => (
             <TouchableOpacity
@@ -276,6 +262,7 @@ export default function MealPlanScreen() {
       />
       <AboutPlanModal
         visible={showAboutPlanModal}
+        mealPlans={meals}
         selectedMeal={selectedMeal}
         onClose={() => setShowAboutPlanModal(false)}
         onChange={() => {
