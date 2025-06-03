@@ -195,52 +195,60 @@ export const AboutPlanModal: React.FC<AboutPlanModalProps> = ({
               Our dietitian specialists prepared for you balanced meal plan for
               every day of your diet.
             </Text>
-            {MEALS.map((meal, idx) => (
-              <View style={styles.mealCard} key={meal.title + idx}>
-                <View style={styles.mealImagePlaceholder} />
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.mealTitle}>{meal.title}</Text>
-                  <View style={styles.mealMacrosRow}>
-                    <View style={styles.mealMacroItem}>
-                      <View style={styles.mealMacroItemLabel}>
-                        <View
-                          style={[
-                            styles.macroDot,
-                            { backgroundColor: MACROS[0].color },
-                          ]}
-                        />
-                        <Text style={styles.mealMacroLabel}>Protein</Text>
+            {selectedMeal?.meal_times?.map((mealTime, mtIdx) =>
+              mealTime.mealplan_food_items.map((food, idx) => (
+                <View style={styles.mealCard} key={food.name + mtIdx + idx}>
+                  <View style={styles.mealImagePlaceholder} />
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.mealTitle}>{food.name}</Text>
+                    <View style={styles.mealMacrosRow}>
+                      <View style={styles.mealMacroItem}>
+                        <View style={styles.mealMacroItemLabel}>
+                          <View
+                            style={[
+                              styles.macroDot,
+                              { backgroundColor: MACROS[0].color },
+                            ]}
+                          />
+                          <Text style={styles.mealMacroLabel}>Protein</Text>
+                        </View>
+                        <Text style={styles.mealMacroValue}>
+                          {food.protein ?? 0}
+                        </Text>
                       </View>
-                      <Text style={styles.mealMacroValue}>{meal.protein}</Text>
-                    </View>
-                    <View style={styles.mealMacroItem}>
-                      <View style={styles.mealMacroItemLabel}>
-                        <View
-                          style={[
-                            styles.macroDot,
-                            { backgroundColor: MACROS[1].color },
-                          ]}
-                        />
-                        <Text style={styles.mealMacroLabel}>Fat</Text>
+                      <View style={styles.mealMacroItem}>
+                        <View style={styles.mealMacroItemLabel}>
+                          <View
+                            style={[
+                              styles.macroDot,
+                              { backgroundColor: MACROS[1].color },
+                            ]}
+                          />
+                          <Text style={styles.mealMacroLabel}>Fat</Text>
+                        </View>
+                        <Text style={styles.mealMacroValue}>
+                          {food.fat ?? 0}
+                        </Text>
                       </View>
-                      <Text style={styles.mealMacroValue}>{meal.fat}</Text>
-                    </View>
-                    <View style={styles.mealMacroItem}>
-                      <View style={styles.mealMacroItemLabel}>
-                        <View
-                          style={[
-                            styles.macroDot,
-                            { backgroundColor: MACROS[2].color },
-                          ]}
-                        />
-                        <Text style={styles.mealMacroLabel}>Carbs</Text>
+                      <View style={styles.mealMacroItem}>
+                        <View style={styles.mealMacroItemLabel}>
+                          <View
+                            style={[
+                              styles.macroDot,
+                              { backgroundColor: MACROS[2].color },
+                            ]}
+                          />
+                          <Text style={styles.mealMacroLabel}>Carbs</Text>
+                        </View>
+                        <Text style={styles.mealMacroValue}>
+                          {food.carbs ?? 0}
+                        </Text>
                       </View>
-                      <Text style={styles.mealMacroValue}>{meal.carbs}</Text>
                     </View>
                   </View>
                 </View>
-              </View>
-            ))}
+              ))
+            )}
           </ScrollView>
         </View>
       </View>
