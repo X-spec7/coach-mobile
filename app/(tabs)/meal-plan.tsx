@@ -177,7 +177,7 @@ export default function MealPlanScreen() {
         <View style={styles.carouselWrap}>
           <Carousel
             width={320}
-            height={260}
+            height={280}
             data={meals}
             style={{ width: width, alignSelf: "center" }}
             renderItem={({ item }) => (
@@ -197,7 +197,7 @@ export default function MealPlanScreen() {
             onSnapToItem={(index) => setSelectedId(meals[index].id)}
           />
         </View>
-        {foods.length > 0 && (
+        {/*         {foods.length > 0 && (
           <View style={styles.foodListContainer}>
             <Text style={styles.foodListTitle}>Food items of this meal</Text>
             <View style={styles.foodList}>
@@ -210,7 +210,7 @@ export default function MealPlanScreen() {
               ))}
             </View>
           </View>
-        )}
+        )} */}
         <View style={styles.menuSection}>
           {menuItems.map((item, idx) => (
             <TouchableOpacity
