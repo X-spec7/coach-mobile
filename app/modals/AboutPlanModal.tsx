@@ -12,11 +12,13 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import Svg, { Circle } from "react-native-svg";
 import ChangePlanModal from "./ChangePlanModal";
+import { MealPlan } from "../services/api";
 
 interface AboutPlanModalProps {
   visible: boolean;
   onClose: () => void;
   onChange?: () => void;
+  selectedMeal: MealPlan;
 }
 
 const PLAN_IMAGE = require("../../assets/images/plan-placeholder.png"); // Placeholder image
@@ -24,14 +26,6 @@ const CIRCLE_SIZE = 180;
 const STROKE_WIDTH = 16;
 const RADIUS = (CIRCLE_SIZE - STROKE_WIDTH) / 2;
 const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
-
-const MACROS = [
-  { key: "protein", label: "Protein", value: 530, color: "#7C3AED" },
-  { key: "fat", label: "Fat", value: 103, color: "#F87171" },
-  { key: "carbs", label: "Carbs", value: 250, color: "#FBBF24" },
-];
-const CALORIES = 3000;
-const TOTAL = MACROS.reduce((sum, m) => sum + m.value, 0);
 
 const MEALS = [
   {
@@ -56,9 +50,34 @@ const MEALS = [
 
 export const AboutPlanModal: React.FC<AboutPlanModalProps> = ({
   visible,
+  selectedMeal,
   onClose,
   onChange,
 }) => {
+  const TOTAL =
+    (selectedMeal?.protein ?? 0) +
+    (selectedMeal?.fat ?? 0) +
+    (selectedMeal?.carbs ?? 0);
+  const MACROS = [
+    {
+      key: "protein",
+      label: "Protein",
+      value: selectedMeal?.protein || 0,
+      color: "#7C3AED",
+    },
+    {
+      key: "fat",
+      label: "Fat",
+      value: selectedMeal?.fat || 0,
+      color: "#F87171",
+    },
+    {
+      key: "carbs",
+      label: "Carbs",
+      value: selectedMeal?.carbs || 0,
+      color: "#FBBF24",
+    },
+  ];
   // Calculate circle segments for macros
   let startAngle = 0;
   const macroSegments = MACROS.map((macro) => {
@@ -112,11 +131,7 @@ export const AboutPlanModal: React.FC<AboutPlanModalProps> = ({
             {/* Plan Info */}
             <Text style={styles.planSubtitle}>Traditional diets</Text>
             <Text style={styles.planName}>Mediterranean</Text>
-            <Text style={styles.planDesc}>
-              A balanced Mediterranean plan is one that give your body the
-              nutrients it needs to function properly. Enjoy the benefits of
-              diet and don't forget to keep physically active.
-            </Text>
+            <Text style={styles.planDesc}>{selectedMeal?.description}</Text>
             {/* Macros Chart */}
             <View style={styles.chartCard}>
               <View style={styles.chartWrap}>
@@ -156,7 +171,9 @@ export const AboutPlanModal: React.FC<AboutPlanModalProps> = ({
                 </Svg>
                 <View style={styles.chartCenter}>
                   <Text style={styles.chartCaloriesLabel}>Calories</Text>
-                  <Text style={styles.chartCaloriesValue}>~{CALORIES}</Text>
+                  <Text style={styles.chartCaloriesValue}>
+                    ~{selectedMeal?.calories}
+                  </Text>
                   <Text style={styles.chartCaloriesSub}>Daily energy goal</Text>
                 </View>
               </View>

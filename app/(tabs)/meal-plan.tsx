@@ -276,6 +276,7 @@ export default function MealPlanScreen() {
       />
       <AboutPlanModal
         visible={showAboutPlanModal}
+        selectedMeal={selectedMeal}
         onClose={() => setShowAboutPlanModal(false)}
         onChange={() => {
           setShowAboutPlanModal(false);
