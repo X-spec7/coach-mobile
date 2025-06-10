@@ -2,17 +2,22 @@ import { Stack, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import { View, StyleSheet } from "react-native";
 import Logo from "./components/Logo";
+import { AuthProvider, useAuth } from "./contexts/AuthContext";
 
-export default function RootLayout() {
-  const [isSplashComplete, setIsSplashComplete] = useState(false);
+function RootLayoutNav() {
+  const { isAuthenticated, isLoading } = useAuth();
   const router = useRouter();
+  const [isSplashComplete, setIsSplashComplete] = useState(false);
 
   useEffect(() => {
-    if (isSplashComplete) {
-      // After splash, navigate directly to login-register
-      router.replace("/(auth)/login-register");
+    if (isSplashComplete && !isLoading) {
+      if (isAuthenticated) {
+        router.replace("/(tabs)");
+      } else {
+        router.replace("/(auth)/login-register");
+      }
     }
-  }, [isSplashComplete]);
+  }, [isSplashComplete, isLoading, isAuthenticated]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -36,8 +41,23 @@ export default function RootLayout() {
         headerShown: false,
       }}
     >
-      <Stack.Screen name="(auth)" />
+      {isAuthenticated ? (
+        <>
+          <Stack.Screen name="(tabs)" />
+          <Stack.Screen name="(onboarding)" />
+        </>
+      ) : (
+        <Stack.Screen name="(auth)" />
+      )}
     </Stack>
+  );
+}
+
+export default function RootLayout() {
+  return (
+    <AuthProvider>
+      <RootLayoutNav />
+    </AuthProvider>
   );
 }
 
