@@ -117,7 +117,7 @@ export const fetchMealPlanDetails = async (
 ): Promise<MealPlanDetails> => {
   try {
     const headers = await getAuthHeaders();
-    const url = `${API_BASE_URL}/meal-plans/${id}/`;
+    const url = `${API_BASE_URL}/mealplan/${id}/`;
     console.log("Making request to:", url);
     console.log("Request headers:", headers);
 

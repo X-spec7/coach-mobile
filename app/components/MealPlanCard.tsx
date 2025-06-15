@@ -66,7 +66,7 @@ export const MealPlanCard: React.FC<MealPlanCardProps> = ({
               />
               <Text style={styles.macroLabel}>Protein</Text>
             </View>
-            <Text style={styles.macroValue}>{protein}</Text>
+            <Text style={styles.macroValue}>{protein.toFixed(2)}</Text>
           </View>
           <View style={styles.macroItem}>
             <View style={styles.macroItemLabel}>
@@ -75,7 +75,7 @@ export const MealPlanCard: React.FC<MealPlanCardProps> = ({
               />
               <Text style={styles.macroLabel}>Fat</Text>
             </View>
-            <Text style={styles.macroValue}>{fat}</Text>
+            <Text style={styles.macroValue}>{fat.toFixed(2)}</Text>
           </View>
           <View style={styles.macroItem}>
             <View style={styles.macroItemLabel}>
@@ -84,7 +84,7 @@ export const MealPlanCard: React.FC<MealPlanCardProps> = ({
               />
               <Text style={styles.macroLabel}>Carbs</Text>
             </View>
-            <Text style={styles.macroValue}>{carbs}</Text>
+            <Text style={styles.macroValue}>{carbs.toFixed(2)}</Text>
           </View>
         </View>
       </View>

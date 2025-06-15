@@ -19,23 +19,26 @@ interface Macro {
   color: string;
 }
 
-interface Meal {
-  title: string;
-  protein: number;
-  fat: number;
-  carbs: number;
-}
-
 interface MealPlanDetailsModalProps {
   visible: boolean;
   onClose: () => void;
   plan: {
-    category: string;
     name: string;
     description: string;
     calories: number;
-    macros: Macro[];
-    meals: Meal[];
+    protein: number;
+    fat: number;
+    carbs: number;
+    meal_times?: Array<{
+      day: string;
+      time: string;
+      mealplan_food_items: Array<{
+        name: string;
+        protein: number;
+        fat: number;
+        carbs: number;
+      }>;
+    }>;
   } | null;
   onChoose: () => void;
 }
@@ -52,10 +55,33 @@ export const MealPlanDetailsModal: React.FC<MealPlanDetailsModalProps> = ({
   onChoose,
 }) => {
   if (!plan) return null;
+
+  // Create macros array from individual properties
+  const macros: Macro[] = [
+    {
+      key: "protein",
+      label: "Protein",
+      value: plan.protein,
+      color: "#7C3AED",
+    },
+    {
+      key: "fat",
+      label: "Fat",
+      value: plan.fat,
+      color: "#F87171",
+    },
+    {
+      key: "carbs",
+      label: "Carbs",
+      value: plan.carbs,
+      color: "#FBBF24",
+    },
+  ];
+
   // Calculate circle segments for macros
-  const total = plan.macros.reduce((sum, m) => sum + m.value, 0);
+  const total = macros.reduce((sum, m) => sum + m.value, 0);
   let startAngle = 0;
-  const macroSegments = plan.macros.map((macro) => {
+  const macroSegments = macros.map((macro) => {
     const percent = macro.value / total;
     const length = percent * CIRCUMFERENCE;
     const segment = {
@@ -70,27 +96,6 @@ export const MealPlanDetailsModal: React.FC<MealPlanDetailsModalProps> = ({
   // State for FoodDetailsModal
   const [showFoodDetails, setShowFoodDetails] = React.useState(false);
   const [selectedFood, setSelectedFood] = React.useState<any>(null);
-
-  // Example food details (should be replaced with real data)
-  const getFoodDetails = (meal: any) => ({
-    name: meal.title,
-    protein: meal.protein,
-    fat: meal.fat,
-    carbs: meal.carbs,
-    materials: [
-      { name: "Corn", amount: "150g" },
-      { name: "Sweet Potato", amount: "150g" },
-      { name: "Carrot", amount: "150g" },
-      { name: "Cauliflower", amount: "150g" },
-    ],
-    steps: [
-      "Add enough salted water to cover.",
-      "Place lid on saucepan, bring to the boil as quickly as possible.",
-      "Place vegetables in a saucepan.",
-      "Reduce heat and simmer gently until tender when tested with a skewer, point of knife or fork.",
-      "Always simmer vegetables as vigorous boiling will cause some vegetables to break up.",
-    ],
-  });
 
   return (
     <Modal visible={visible} animationType="slide" transparent>
@@ -111,10 +116,6 @@ export const MealPlanDetailsModal: React.FC<MealPlanDetailsModalProps> = ({
             contentContainerStyle={{ paddingBottom: 32 }}
             showsVerticalScrollIndicator={false}
           >
-            {/* Plan Category */}
-            <Text style={styles.planCategory}>{plan.category}</Text>
-            {/* Plan Name */}
-            <Text style={styles.planName}>{plan.name}</Text>
             {/* Plan Description */}
             <Text style={styles.planDesc}>{plan.description}</Text>
             {/* Macros Chart */}
@@ -164,7 +165,7 @@ export const MealPlanDetailsModal: React.FC<MealPlanDetailsModalProps> = ({
               </View>
               {/* Macro Legend */}
               <View style={styles.macroLegendRow}>
-                {plan.macros.map((m) => (
+                {macros.map((m) => (
                   <View style={styles.macroLegendItem} key={m.key}>
                     <View
                       style={[styles.macroDot, { backgroundColor: m.color }]}
@@ -180,55 +181,59 @@ export const MealPlanDetailsModal: React.FC<MealPlanDetailsModalProps> = ({
               Our dietitian specialists prepared for you balanced meal plan for
               every day of your diet.
             </Text>
-            {plan.meals.map((meal, idx) => (
-              <TouchableOpacity
-                key={meal.title + idx}
-                activeOpacity={0.8}
-                onPress={() => {
-                  setSelectedFood(getFoodDetails(meal));
-                  setShowFoodDetails(true);
-                }}
-              >
-                <View style={styles.mealCard}>
-                  <View style={styles.mealImagePlaceholder} />
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.mealTitle}>{meal.title}</Text>
-                    <View style={styles.mealMacrosRow}>
-                      <View style={styles.mealMacroItemLabel}>
-                        <View
-                          style={[
-                            styles.macroDot,
-                            { backgroundColor: plan.macros[0].color },
-                          ]}
-                        />
-                        <Text style={styles.mealMacroLabel}>Protein</Text>
+            {plan.meal_times?.map((mealTime, mtIdx) =>
+              mealTime.mealplan_food_items.map((food, idx) => (
+                <TouchableOpacity
+                  key={food.name + mtIdx + idx}
+                  activeOpacity={0.8}
+                  onPress={() => {
+                    setSelectedFood(food);
+                    setShowFoodDetails(true);
+                  }}
+                >
+                  <View style={styles.mealCard}>
+                    <View style={styles.mealImagePlaceholder} />
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.mealTitle}>{food.name}</Text>
+                      <View style={styles.mealMacrosRow}>
+                        <View style={styles.mealMacroItemLabel}>
+                          <View
+                            style={[
+                              styles.macroDot,
+                              { backgroundColor: macros[0].color },
+                            ]}
+                          />
+                          <Text style={styles.mealMacroLabel}>Protein</Text>
+                        </View>
+                        <Text style={styles.mealMacroValue}>
+                          {food.protein}
+                        </Text>
+                        <View style={styles.mealMacroItemLabel}>
+                          <View
+                            style={[
+                              styles.macroDot,
+                              { backgroundColor: macros[1].color },
+                            ]}
+                          />
+                          <Text style={styles.mealMacroLabel}>Fat</Text>
+                        </View>
+                        <Text style={styles.mealMacroValue}>{food.fat}</Text>
+                        <View style={styles.mealMacroItemLabel}>
+                          <View
+                            style={[
+                              styles.macroDot,
+                              { backgroundColor: macros[2].color },
+                            ]}
+                          />
+                          <Text style={styles.mealMacroLabel}>Carbs</Text>
+                        </View>
+                        <Text style={styles.mealMacroValue}>{food.carbs}</Text>
                       </View>
-                      <Text style={styles.mealMacroValue}>{meal.protein}</Text>
-                      <View style={styles.mealMacroItemLabel}>
-                        <View
-                          style={[
-                            styles.macroDot,
-                            { backgroundColor: plan.macros[1].color },
-                          ]}
-                        />
-                        <Text style={styles.mealMacroLabel}>Fat</Text>
-                      </View>
-                      <Text style={styles.mealMacroValue}>{meal.fat}</Text>
-                      <View style={styles.mealMacroItemLabel}>
-                        <View
-                          style={[
-                            styles.macroDot,
-                            { backgroundColor: plan.macros[2].color },
-                          ]}
-                        />
-                        <Text style={styles.mealMacroLabel}>Carbs</Text>
-                      </View>
-                      <Text style={styles.mealMacroValue}>{meal.carbs}</Text>
                     </View>
                   </View>
-                </View>
-              </TouchableOpacity>
-            ))}
+                </TouchableOpacity>
+              ))
+            )}
           </ScrollView>
           {/* Choose Plan Button */}
           <TouchableOpacity style={styles.chooseBtn} onPress={onChoose}>
@@ -279,21 +284,6 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     fontSize: 20,
     color: "#1E293B",
-  },
-  planCategory: {
-    color: "#A78BFA",
-    fontWeight: "bold",
-    fontSize: 15,
-    marginLeft: 18,
-    marginTop: 18,
-    marginBottom: 2,
-  },
-  planName: {
-    fontWeight: "bold",
-    fontSize: 28,
-    color: "#1E293B",
-    marginLeft: 18,
-    marginBottom: 4,
   },
   planDesc: {
     color: "#64748B",
