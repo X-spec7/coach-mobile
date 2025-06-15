@@ -13,27 +13,34 @@ import { Ionicons } from "@expo/vector-icons";
 interface ChangeFoodModalProps {
   visible: boolean;
   foods: Food[];
+  suitableFoods: Food[];
   onClose: () => void;
-  onSave: (selectedFood: Food) => void;
+  onSave: (food: Food) => void;
 }
 
 export const ChangeFoodModal: React.FC<ChangeFoodModalProps> = ({
   visible,
-  foods,
+  foods = [],
+  suitableFoods = [],
   onClose,
   onSave,
 }) => {
-  if (!foods || foods.length === 0) return null;
-  const [selectedIndex, setSelectedIndex] = useState(0);
-  const currentFood = foods[0];
-  const suitableFoods = foods.slice(1);
+  console.log("foods:", foods);
+  console.log("suitableFoods:", suitableFoods);
 
-  const handleSelect = (idx: number) => {
-    setSelectedIndex(idx + 1); // +1 because 0 is current food
+  if (!foods || foods.length === 0) return null;
+
+  const [selectedFood, setSelectedFood] = useState<Food | null>(null);
+  const currentFood = foods[0];
+
+  const handleSelect = (food: Food) => {
+    setSelectedFood(food);
   };
 
   const handleSave = () => {
-    onSave(foods[selectedIndex]);
+    if (selectedFood) {
+      onSave(selectedFood);
+    }
   };
 
   return (
@@ -59,7 +66,12 @@ export const ChangeFoodModal: React.FC<ChangeFoodModalProps> = ({
           <ScrollView contentContainerStyle={{ paddingBottom: 24 }}>
             {/* Current Food */}
             <Text style={styles.sectionTitle}>Current food</Text>
-            <View style={[styles.foodCard, styles.selectedCard]}>
+            <View
+              style={[
+                styles.foodCard,
+                selectedFood === null && styles.selectedCard,
+              ]}
+            >
               <View style={styles.foodImage} />
               <View style={styles.foodInfo}>
                 <Text style={styles.foodName}>{currentFood.name}</Text>
@@ -87,63 +99,71 @@ export const ChangeFoodModal: React.FC<ChangeFoodModalProps> = ({
                 </View>
               </View>
               <Ionicons
-                name="checkmark-circle"
+                name={
+                  selectedFood === null ? "checkmark-circle" : "ellipse-outline"
+                }
                 size={28}
-                color="#A78BFA"
+                color={selectedFood === null ? "#A78BFA" : "#E5E7EB"}
                 style={{ marginLeft: 8 }}
               />
             </View>
 
             {/* Suitable Foods */}
             <Text style={styles.sectionTitle}>Suitable foods</Text>
-            {suitableFoods.map((food, idx) => (
-              <TouchableOpacity
-                key={food.name + idx}
-                style={[
-                  styles.foodCard,
-                  selectedIndex === idx + 1 && styles.selectedCard,
-                ]}
-                onPress={() => handleSelect(idx)}
-                activeOpacity={0.8}
-              >
-                <View style={styles.foodImage} />
-                <View style={styles.foodInfo}>
-                  <Text style={styles.foodName}>{food.name}</Text>
-                  <View style={styles.macrosRow}>
-                    <Text style={[styles.macro, { color: "#A78BFA" }]}>
-                      Protein
-                    </Text>
-                    <Text style={[styles.macro, { color: "#F472B6" }]}>
-                      Fat
-                    </Text>
-                    <Text style={[styles.macro, { color: "#FBBF24" }]}>
-                      Carbs
-                    </Text>
+            {suitableFoods && suitableFoods.length > 0 ? (
+              suitableFoods.map((food, idx) => (
+                <TouchableOpacity
+                  key={food.name + idx}
+                  style={[
+                    styles.foodCard,
+                    selectedFood === food && styles.selectedCard,
+                  ]}
+                  onPress={() => handleSelect(food)}
+                  activeOpacity={0.8}
+                >
+                  <View style={styles.foodImage} />
+                  <View style={styles.foodInfo}>
+                    <Text style={styles.foodName}>{food.name}</Text>
+                    <View style={styles.macrosRow}>
+                      <Text style={[styles.macro, { color: "#A78BFA" }]}>
+                        Protein
+                      </Text>
+                      <Text style={[styles.macro, { color: "#F472B6" }]}>
+                        Fat
+                      </Text>
+                      <Text style={[styles.macro, { color: "#FBBF24" }]}>
+                        Carbs
+                      </Text>
+                    </View>
+                    <View style={styles.macrosRow}>
+                      <Text style={styles.macroValue}>
+                        {food.protein !== undefined ? food.protein : "--"}
+                      </Text>
+                      <Text style={styles.macroValue}>
+                        {food.fat !== undefined ? food.fat : "--"}
+                      </Text>
+                      <Text style={styles.macroValue}>
+                        {food.carbs !== undefined ? food.carbs : "--"}
+                      </Text>
+                    </View>
                   </View>
-                  <View style={styles.macrosRow}>
-                    <Text style={styles.macroValue}>
-                      {food.protein !== undefined ? food.protein : "--"}
-                    </Text>
-                    <Text style={styles.macroValue}>
-                      {food.fat !== undefined ? food.fat : "--"}
-                    </Text>
-                    <Text style={styles.macroValue}>
-                      {food.carbs !== undefined ? food.carbs : "--"}
-                    </Text>
-                  </View>
-                </View>
-                <Ionicons
-                  name={
-                    selectedIndex === idx + 1
-                      ? "checkmark-circle"
-                      : "ellipse-outline"
-                  }
-                  size={28}
-                  color={selectedIndex === idx + 1 ? "#A78BFA" : "#E5E7EB"}
-                  style={{ marginLeft: 8 }}
-                />
-              </TouchableOpacity>
-            ))}
+                  <Ionicons
+                    name={
+                      selectedFood === food
+                        ? "checkmark-circle"
+                        : "ellipse-outline"
+                    }
+                    size={28}
+                    color={selectedFood === food ? "#A78BFA" : "#E5E7EB"}
+                    style={{ marginLeft: 8 }}
+                  />
+                </TouchableOpacity>
+              ))
+            ) : (
+              <Text style={styles.noFoodsText}>
+                No suitable foods available
+              </Text>
+            )}
           </ScrollView>
         </View>
       </View>
@@ -243,6 +263,12 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: "#334155",
     marginRight: 8,
+  },
+  noFoodsText: {
+    textAlign: "center",
+    color: "#64748B",
+    fontSize: 16,
+    marginTop: 20,
   },
 });
 

@@ -27,8 +27,10 @@ import ChangeFoodModal from "../modals/ChangeFoodModal";
 import {
   fetchMealPlans,
   fetchMealPlanDetails,
+  fetchAllFoods,
   MealPlan,
   MealPlanDetails,
+  Food,
 } from "../services/api";
 
 const { width } = Dimensions.get("window");
@@ -60,6 +62,8 @@ export default function MealPlanScreen() {
   const [showPlanDetails, setShowPlanDetails] = useState(false);
   const [planDetails, setPlanDetails] = useState<MealPlanDetails | null>(null);
   const [showChangeFoodModal, setShowChangeFoodModal] = useState(false);
+  const [suitableFoods, setSuitableFoods] = useState<Food[]>([]);
+  const [isLoadingFoods, setIsLoadingFoods] = useState(false);
 
   console.log("showChangeFoodModal:", showChangeFoodModal);
   console.log("selectedMeal:", selectedMeal);
@@ -106,6 +110,28 @@ export default function MealPlanScreen() {
       } else {
         console.error("Error loading meal details:", err);
       }
+    }
+  };
+
+  useEffect(() => {
+    loadAllFoods();
+  }, []);
+
+  const loadAllFoods = async () => {
+    try {
+      setIsLoadingFoods(true);
+      const foods = await fetchAllFoods();
+      setSuitableFoods(foods);
+    } catch (err) {
+      const errorMessage =
+        err instanceof Error ? err.message : "Failed to load foods";
+      if (errorMessage === "Authentication required") {
+        router.replace("/(auth)/login-register");
+      } else {
+        console.error("Error loading foods:", err);
+      }
+    } finally {
+      setIsLoadingFoods(false);
     }
   };
 
@@ -163,6 +189,7 @@ export default function MealPlanScreen() {
       ? selectedMeal.meal_times.flatMap((mt) => mt.mealplan_food_items)
       : [];
 
+  console.log("suitableFoods:", suitableFoods);
   return (
     <SafeAreaView
       style={[
@@ -278,7 +305,8 @@ export default function MealPlanScreen() {
       />
       <ChangeFoodModal
         visible={showChangeFoodModal && !!selectedMeal}
-        foods={foods}
+        foods={selectedMeal?.meal_times?.[0]?.mealplan_food_items || []}
+        suitableFoods={suitableFoods}
         onClose={() => setShowChangeFoodModal(false)}
         onSave={(newFood) => {
           if (!selectedMeal) return;

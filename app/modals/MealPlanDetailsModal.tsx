@@ -11,35 +11,12 @@ import {
 import Svg, { Circle } from "react-native-svg";
 import { Ionicons } from "@expo/vector-icons";
 import FoodDetailsModal from "./FoodDetailsModal";
-
-interface Macro {
-  key: string;
-  label: string;
-  value: number;
-  color: string;
-}
+import { MealPlanDetails } from "../services/api";
 
 interface MealPlanDetailsModalProps {
   visible: boolean;
   onClose: () => void;
-  plan: {
-    name: string;
-    description: string;
-    calories: number;
-    protein: number;
-    fat: number;
-    carbs: number;
-    meal_times?: Array<{
-      day: string;
-      time: string;
-      mealplan_food_items: Array<{
-        name: string;
-        protein: number;
-        fat: number;
-        carbs: number;
-      }>;
-    }>;
-  } | null;
+  plan: MealPlanDetails | null;
   onChoose: () => void;
 }
 
@@ -56,32 +33,10 @@ export const MealPlanDetailsModal: React.FC<MealPlanDetailsModalProps> = ({
 }) => {
   if (!plan) return null;
 
-  // Create macros array from individual properties
-  const macros: Macro[] = [
-    {
-      key: "protein",
-      label: "Protein",
-      value: plan.protein,
-      color: "#7C3AED",
-    },
-    {
-      key: "fat",
-      label: "Fat",
-      value: plan.fat,
-      color: "#F87171",
-    },
-    {
-      key: "carbs",
-      label: "Carbs",
-      value: plan.carbs,
-      color: "#FBBF24",
-    },
-  ];
-
   // Calculate circle segments for macros
-  const total = macros.reduce((sum, m) => sum + m.value, 0);
+  const total = plan.macros.reduce((sum, m) => sum + m.value, 0);
   let startAngle = 0;
-  const macroSegments = macros.map((macro) => {
+  const macroSegments = plan.macros.map((macro) => {
     const percent = macro.value / total;
     const length = percent * CIRCUMFERENCE;
     const segment = {
@@ -119,53 +74,27 @@ export const MealPlanDetailsModal: React.FC<MealPlanDetailsModalProps> = ({
             {/* Plan Description */}
             <Text style={styles.planDesc}>{plan.description}</Text>
             {/* Macros Chart */}
-            <View style={styles.chartCard}>
-              <View style={styles.chartWrap}>
-                <Svg width={CIRCLE_SIZE} height={CIRCLE_SIZE}>
-                  {/* Background circle */}
+            <View style={styles.macrosChart}>
+              <Svg width={CIRCLE_SIZE} height={CIRCLE_SIZE}>
+                {macroSegments.map((segment, index) => (
                   <Circle
+                    key={index}
                     cx={CIRCLE_SIZE / 2}
                     cy={CIRCLE_SIZE / 2}
                     r={RADIUS}
-                    stroke="#F1F5F9"
+                    stroke={segment.color}
                     strokeWidth={STROKE_WIDTH}
+                    strokeDasharray={`${segment.length} ${CIRCUMFERENCE}`}
+                    strokeDashoffset={segment.offset}
+                    fill="none"
+                    transform={`rotate(-90 ${CIRCLE_SIZE / 2} ${
+                      CIRCLE_SIZE / 2
+                    })`}
                   />
-                  {/* Macro Segments */}
-                  {macroSegments.map((seg, idx) => (
-                    <Circle
-                      key={idx}
-                      cx={CIRCLE_SIZE / 2}
-                      cy={CIRCLE_SIZE / 2}
-                      r={RADIUS}
-                      stroke={seg.color}
-                      strokeWidth={STROKE_WIDTH}
-                      strokeDasharray={`${seg.length},${
-                        CIRCUMFERENCE - seg.length
-                      }`}
-                      strokeDashoffset={-seg.offset}
-                      strokeLinecap="round"
-                      fill="none"
-                    />
-                  ))}
-                  {/* White center mask */}
-                  <Circle
-                    cx={CIRCLE_SIZE / 2}
-                    cy={CIRCLE_SIZE / 2}
-                    r={(CIRCLE_SIZE - STROKE_WIDTH * 1.7) / 2}
-                    fill="#fff"
-                  />
-                </Svg>
-                <View style={styles.chartCenter}>
-                  <Text style={styles.chartCaloriesLabel}>Calories</Text>
-                  <Text style={styles.chartCaloriesValue}>
-                    ~{plan.calories}
-                  </Text>
-                  <Text style={styles.chartCaloriesSub}>Daily energy goal</Text>
-                </View>
-              </View>
-              {/* Macro Legend */}
+                ))}
+              </Svg>
               <View style={styles.macroLegendRow}>
-                {macros.map((m) => (
+                {plan.macros.map((m) => (
                   <View style={styles.macroLegendItem} key={m.key}>
                     <View
                       style={[styles.macroDot, { backgroundColor: m.color }]}
@@ -181,59 +110,55 @@ export const MealPlanDetailsModal: React.FC<MealPlanDetailsModalProps> = ({
               Our dietitian specialists prepared for you balanced meal plan for
               every day of your diet.
             </Text>
-            {plan.meal_times?.map((mealTime, mtIdx) =>
-              mealTime.mealplan_food_items.map((food, idx) => (
-                <TouchableOpacity
-                  key={food.name + mtIdx + idx}
-                  activeOpacity={0.8}
-                  onPress={() => {
-                    setSelectedFood(food);
-                    setShowFoodDetails(true);
-                  }}
-                >
-                  <View style={styles.mealCard}>
-                    <View style={styles.mealImagePlaceholder} />
-                    <View style={{ flex: 1 }}>
-                      <Text style={styles.mealTitle}>{food.name}</Text>
-                      <View style={styles.mealMacrosRow}>
-                        <View style={styles.mealMacroItemLabel}>
-                          <View
-                            style={[
-                              styles.macroDot,
-                              { backgroundColor: macros[0].color },
-                            ]}
-                          />
-                          <Text style={styles.mealMacroLabel}>Protein</Text>
-                        </View>
-                        <Text style={styles.mealMacroValue}>
-                          {food.protein}
-                        </Text>
-                        <View style={styles.mealMacroItemLabel}>
-                          <View
-                            style={[
-                              styles.macroDot,
-                              { backgroundColor: macros[1].color },
-                            ]}
-                          />
-                          <Text style={styles.mealMacroLabel}>Fat</Text>
-                        </View>
-                        <Text style={styles.mealMacroValue}>{food.fat}</Text>
-                        <View style={styles.mealMacroItemLabel}>
-                          <View
-                            style={[
-                              styles.macroDot,
-                              { backgroundColor: macros[2].color },
-                            ]}
-                          />
-                          <Text style={styles.mealMacroLabel}>Carbs</Text>
-                        </View>
-                        <Text style={styles.mealMacroValue}>{food.carbs}</Text>
+            {plan.meals.map((meal, idx) => (
+              <TouchableOpacity
+                key={meal.title + idx}
+                activeOpacity={0.8}
+                onPress={() => {
+                  setSelectedFood(meal);
+                  setShowFoodDetails(true);
+                }}
+              >
+                <View style={styles.mealCard}>
+                  <View style={styles.mealImagePlaceholder} />
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.mealTitle}>{meal.title}</Text>
+                    <View style={styles.mealMacrosRow}>
+                      <View style={styles.mealMacroItemLabel}>
+                        <View
+                          style={[
+                            styles.macroDot,
+                            { backgroundColor: plan.macros[0].color },
+                          ]}
+                        />
+                        <Text style={styles.mealMacroLabel}>Protein</Text>
                       </View>
+                      <Text style={styles.mealMacroValue}>{meal.protein}</Text>
+                      <View style={styles.mealMacroItemLabel}>
+                        <View
+                          style={[
+                            styles.macroDot,
+                            { backgroundColor: plan.macros[1].color },
+                          ]}
+                        />
+                        <Text style={styles.mealMacroLabel}>Fat</Text>
+                      </View>
+                      <Text style={styles.mealMacroValue}>{meal.fat}</Text>
+                      <View style={styles.mealMacroItemLabel}>
+                        <View
+                          style={[
+                            styles.macroDot,
+                            { backgroundColor: plan.macros[2].color },
+                          ]}
+                        />
+                        <Text style={styles.mealMacroLabel}>Carbs</Text>
+                      </View>
+                      <Text style={styles.mealMacroValue}>{meal.carbs}</Text>
                     </View>
                   </View>
-                </TouchableOpacity>
-              ))
-            )}
+                </View>
+              </TouchableOpacity>
+            ))}
           </ScrollView>
           {/* Choose Plan Button */}
           <TouchableOpacity style={styles.chooseBtn} onPress={onChoose}>
@@ -292,7 +217,7 @@ const styles = StyleSheet.create({
     marginRight: 18,
     marginBottom: 18,
   },
-  chartCard: {
+  macrosChart: {
     backgroundColor: "#fff",
     borderRadius: 18,
     marginHorizontal: 18,
@@ -303,37 +228,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.03,
     shadowRadius: 4,
     elevation: 1,
-  },
-  chartWrap: {
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 18,
-  },
-  chartCenter: {
-    position: "absolute",
-    left: 0,
-    right: 0,
-    top: 0,
-    bottom: 0,
-    alignItems: "center",
-    justifyContent: "center",
-    alignSelf: "center",
-  },
-  chartCaloriesLabel: {
-    color: "#A3A3A3",
-    fontSize: 16,
-    fontWeight: "500",
-  },
-  chartCaloriesValue: {
-    color: "#1E293B",
-    fontSize: 28,
-    fontWeight: "bold",
-    marginTop: 2,
-    marginBottom: 2,
-  },
-  chartCaloriesSub: {
-    color: "#A3A3A3",
-    fontSize: 14,
   },
   macroLegendRow: {
     flexDirection: "row",

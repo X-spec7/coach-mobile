@@ -146,3 +146,36 @@ export const fetchMealPlanDetails = async (
     throw error;
   }
 };
+
+export const fetchAllFoods = async (): Promise<Food[]> => {
+  try {
+    const headers = await getAuthHeaders();
+    const url = `${API_BASE_URL}/mealplan/food-items/`;
+    console.log("Making request to:", url);
+    console.log("Request headers:", headers);
+
+    const response = await fetch(url, {
+      headers,
+    });
+
+    console.log("Response status:", response.status);
+    console.log("Response headers:", response.headers);
+
+    if (!response.ok) {
+      if (response.status === 401) {
+        console.log("Authentication failed - 401 Unauthorized");
+        throw new Error("Authentication required");
+      }
+      const errorText = await response.text();
+      console.log("Error response body:", errorText);
+      throw new Error("Failed to fetch foods");
+    }
+
+    const data = await response.json();
+    console.log("Foods response data:", data);
+    return data.foodItems || [];
+  } catch (error) {
+    console.error("Error fetching foods:", error);
+    throw error;
+  }
+};
