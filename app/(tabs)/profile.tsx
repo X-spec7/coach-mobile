@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -11,10 +11,8 @@ import {
   Pressable,
 } from "react-native";
 import { Settings, User as UserIcon } from "lucide-react-native";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import { API_ENDPOINTS } from "@/constants/api";
 import { useRouter } from "expo-router";
-import { getAuthHeaders } from "../services/api";
+import { useAuth } from "../contexts/AuthContext";
 
 const menuItems = [
   { id: 1, title: "Personal Information", icon: "user" },
@@ -25,74 +23,23 @@ const menuItems = [
   { id: 6, title: "Help & Support", icon: "help-circle" },
 ];
 
-interface UserProfile {
-  id: number;
-  firstName: string;
-  lastName: string;
-  fullName: string;
-  userType: string;
-  email: string;
-  avatarImageUrl?: string | null;
-  // ...other fields as needed, but not used in UI yet
-}
-
 export default function ProfileScreen() {
-  const [user, setUser] = useState<UserProfile | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { user, isLoading, signOut } = useAuth();
   const [error, setError] = useState<string | null>(null);
   const [menuVisible, setMenuVisible] = useState(false);
   const router = useRouter();
 
-  useEffect(() => {
-    const checkAuthAndFetchUser = async () => {
-      try {
-        const headers = await getAuthHeaders();
-        if (!headers.Authorization) {
-          router.replace("/(auth)/login-register");
-          return;
-        }
-
-        const response = await fetch(API_ENDPOINTS.USER.GET_USER_INFO, {
-          headers,
-        });
-
-        if (response.status === 401) {
-          // Token is invalid or expired
-          await AsyncStorage.removeItem("accessToken");
-          await AsyncStorage.removeItem("user");
-          router.replace("/(auth)/login-register");
-          return;
-        }
-
-        if (!response.ok) {
-          throw new Error("Failed to fetch user");
-        }
-
-        const data = await response.json();
-        setUser(data.user);
-      } catch (err) {
-        console.error("Error fetching user:", err);
-        if (err instanceof Error && err.message === "No token found") {
-          router.replace("/(auth)/login-register");
-        } else {
-          setError("Could not load user info");
-        }
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    checkAuthAndFetchUser();
-  }, [router]);
-
   const handleLogout = async () => {
-    await AsyncStorage.removeItem("accessToken");
-    await AsyncStorage.removeItem("user");
-    setMenuVisible(false);
-    router.replace("/(auth)/login-register");
+    try {
+      await signOut();
+      setMenuVisible(false);
+      router.replace("/(auth)/login-register");
+    } catch (err) {
+      setError("Failed to log out");
+    }
   };
 
-  if (loading) {
+  if (isLoading) {
     return (
       <View
         style={[
