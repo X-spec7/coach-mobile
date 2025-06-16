@@ -58,7 +58,7 @@ export interface MealPlanDetails {
   }[];
 }
 
-const getAuthHeaders = async () => {
+export const getAuthHeaders = async () => {
   const token = await getToken();
   console.log("Auth token for request:", token ? "Present" : "Missing");
 

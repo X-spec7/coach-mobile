@@ -14,6 +14,7 @@ import { Settings, User as UserIcon } from "lucide-react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { API_ENDPOINTS } from "@/constants/api";
 import { useRouter } from "expo-router";
+import { getAuthHeaders } from "../services/api";
 
 const menuItems = [
   { id: 1, title: "Personal Information", icon: "user" },
@@ -43,27 +44,49 @@ export default function ProfileScreen() {
   const router = useRouter();
 
   useEffect(() => {
-    const fetchUser = async () => {
+    const checkAuthAndFetchUser = async () => {
       try {
-        const token = await AsyncStorage.getItem("token");
-        if (!token) throw new Error("No token found");
+        const headers = await getAuthHeaders();
+        if (!headers.Authorization) {
+          router.replace("/(auth)/login-register");
+          return;
+        }
+
         const response = await fetch(API_ENDPOINTS.USER.GET_USER_INFO, {
-          headers: { Authorization: `Bearer ${token}` },
+          headers,
         });
-        if (!response.ok) throw new Error("Failed to fetch user");
+
+        if (response.status === 401) {
+          // Token is invalid or expired
+          await AsyncStorage.removeItem("accessToken");
+          await AsyncStorage.removeItem("user");
+          router.replace("/(auth)/login-register");
+          return;
+        }
+
+        if (!response.ok) {
+          throw new Error("Failed to fetch user");
+        }
+
         const data = await response.json();
         setUser(data.user);
       } catch (err) {
-        setError("Could not load user info");
+        console.error("Error fetching user:", err);
+        if (err instanceof Error && err.message === "No token found") {
+          router.replace("/(auth)/login-register");
+        } else {
+          setError("Could not load user info");
+        }
       } finally {
         setLoading(false);
       }
     };
-    fetchUser();
-  }, []);
+
+    checkAuthAndFetchUser();
+  }, [router]);
 
   const handleLogout = async () => {
-    await AsyncStorage.removeItem("token");
+    await AsyncStorage.removeItem("accessToken");
     await AsyncStorage.removeItem("user");
     setMenuVisible(false);
     router.replace("/(auth)/login-register");
