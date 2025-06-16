@@ -34,13 +34,15 @@ export const MealPlanDetailsModal: React.FC<MealPlanDetailsModalProps> = ({
   if (!plan) return null;
 
   // Calculate circle segments for macros
-  const total = plan.macros.reduce((sum, m) => sum + m.value, 0);
+  const macros = plan.macros || [];
+  const meals = plan.meals || [];
+  const total = macros.reduce((sum, m) => sum + (m.value || 0), 0);
   let startAngle = 0;
-  const macroSegments = plan.macros.map((macro) => {
-    const percent = macro.value / total;
+  const macroSegments = macros.map((macro) => {
+    const percent = total > 0 ? (macro.value || 0) / total : 0;
     const length = percent * CIRCUMFERENCE;
     const segment = {
-      color: macro.color,
+      color: macro.color || "#000",
       length,
       offset: startAngle,
     };
@@ -94,10 +96,13 @@ export const MealPlanDetailsModal: React.FC<MealPlanDetailsModalProps> = ({
                 ))}
               </Svg>
               <View style={styles.macroLegendRow}>
-                {plan.macros.map((m) => (
+                {macros.map((m) => (
                   <View style={styles.macroLegendItem} key={m.key}>
                     <View
-                      style={[styles.macroDot, { backgroundColor: m.color }]}
+                      style={[
+                        styles.macroDot,
+                        { backgroundColor: m.color || "#000" },
+                      ]}
                     />
                     <Text style={styles.macroLegendLabel}>{m.label}</Text>
                   </View>
@@ -110,7 +115,7 @@ export const MealPlanDetailsModal: React.FC<MealPlanDetailsModalProps> = ({
               Our dietitian specialists prepared for you balanced meal plan for
               every day of your diet.
             </Text>
-            {plan.meals.map((meal, idx) => (
+            {meals.map((meal, idx) => (
               <TouchableOpacity
                 key={meal.title + idx}
                 activeOpacity={0.8}
@@ -128,32 +133,36 @@ export const MealPlanDetailsModal: React.FC<MealPlanDetailsModalProps> = ({
                         <View
                           style={[
                             styles.macroDot,
-                            { backgroundColor: plan.macros[0].color },
+                            { backgroundColor: macros[0]?.color || "#000" },
                           ]}
                         />
                         <Text style={styles.mealMacroLabel}>Protein</Text>
                       </View>
-                      <Text style={styles.mealMacroValue}>{meal.protein}</Text>
+                      <Text style={styles.mealMacroValue}>
+                        {meal.protein || 0}
+                      </Text>
                       <View style={styles.mealMacroItemLabel}>
                         <View
                           style={[
                             styles.macroDot,
-                            { backgroundColor: plan.macros[1].color },
+                            { backgroundColor: macros[1]?.color || "#000" },
                           ]}
                         />
                         <Text style={styles.mealMacroLabel}>Fat</Text>
                       </View>
-                      <Text style={styles.mealMacroValue}>{meal.fat}</Text>
+                      <Text style={styles.mealMacroValue}>{meal.fat || 0}</Text>
                       <View style={styles.mealMacroItemLabel}>
                         <View
                           style={[
                             styles.macroDot,
-                            { backgroundColor: plan.macros[2].color },
+                            { backgroundColor: macros[2]?.color || "#000" },
                           ]}
                         />
                         <Text style={styles.mealMacroLabel}>Carbs</Text>
                       </View>
-                      <Text style={styles.mealMacroValue}>{meal.carbs}</Text>
+                      <Text style={styles.mealMacroValue}>
+                        {meal.carbs || 0}
+                      </Text>
                     </View>
                   </View>
                 </View>
