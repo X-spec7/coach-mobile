@@ -25,9 +25,6 @@ export const ChangeFoodModal: React.FC<ChangeFoodModalProps> = ({
   onClose,
   onSave,
 }) => {
-  console.log("foods:", foods);
-  console.log("suitableFoods:", suitableFoods);
-
   if (!foods || foods.length === 0) return null;
 
   const [selectedFood, setSelectedFood] = useState<Food | null>(null);

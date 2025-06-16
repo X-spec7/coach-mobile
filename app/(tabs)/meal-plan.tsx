@@ -32,6 +32,7 @@ import {
   MealPlanDetails,
   Food,
 } from "../services/api";
+import { useAuth } from "../contexts/AuthContext";
 
 const { width } = Dimensions.get("window");
 
@@ -44,6 +45,7 @@ const menuItems = [
 
 export default function MealPlanScreen() {
   const router = useRouter();
+  const { user } = useAuth();
   const colorScheme = useColorScheme();
   const [meals, setMeals] = useState<MealPlan[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -67,6 +69,7 @@ export default function MealPlanScreen() {
 
   console.log("showChangeFoodModal:", showChangeFoodModal);
   console.log("selectedMeal:", selectedMeal);
+  console.log("user:", user?.selectedMealPlan);
   useEffect(() => {
     loadMealPlans();
   }, []);
@@ -78,7 +81,7 @@ export default function MealPlanScreen() {
       const data = await fetchMealPlans();
       setMeals(data);
       if (data.length > 0) {
-        setSelectedId(data[0].id);
+        setSelectedId(user?.selectedMealPlan?.id ?? data[0].id);
       }
     } catch (err) {
       const errorMessage =
@@ -189,7 +192,6 @@ export default function MealPlanScreen() {
       ? selectedMeal.meal_times.flatMap((mt) => mt.mealplan_food_items)
       : [];
 
-  console.log("suitableFoods:", suitableFoods);
   return (
     <SafeAreaView
       style={[
@@ -207,6 +209,10 @@ export default function MealPlanScreen() {
             height={280}
             data={meals}
             style={{ width: width, alignSelf: "center" }}
+            defaultIndex={Math.max(
+              0,
+              meals.findIndex((m) => m.id === selectedId)
+            )}
             renderItem={({ item }) => (
               <MealPlanCard
                 key={item.id}
