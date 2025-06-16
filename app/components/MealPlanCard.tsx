@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { API_BASE_URL } from "@/constants/api";
 
 interface MealPlanCardProps {
   image: ImageSourcePropType | { uri: string };
@@ -34,10 +35,17 @@ export const MealPlanCard: React.FC<MealPlanCardProps> = ({
   selected = false,
   onTitlePress,
 }) => {
+  const baseUrl = API_BASE_URL.replace("/api", "");
+  const finalUrl = `${baseUrl}${image}`;
+
   return (
     <View style={styles.card}>
       <View style={styles.imageContainer}>
-        <Image source={image} style={styles.image} resizeMode="cover" />
+        <Image
+          source={{ uri: finalUrl }}
+          style={styles.image}
+          resizeMode="cover"
+        />
         <Ionicons
           name="refresh"
           size={22}

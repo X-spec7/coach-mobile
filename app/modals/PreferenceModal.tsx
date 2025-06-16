@@ -131,7 +131,7 @@ export const PreferenceModal: React.FC<PreferenceModalProps> = ({
                 value={meals[meal]}
                 onValueChange={() => handleToggleMeal(meal)}
                 trackColor={{ false: "#E5E7EB", true: "#A78BFA" }}
-                thumbColor={meals[meal] ? "#7C3AED" : "#fff"}
+                thumbColor={meals[meal] ? "#fff" : "#fff"}
               />
             </View>
           ))}
