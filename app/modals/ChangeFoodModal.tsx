@@ -53,11 +53,17 @@ export const ChangeFoodModal: React.FC<ChangeFoodModalProps> = ({
         <View style={styles.container}>
           {/* Header */}
           <View style={styles.header}>
-            <TouchableOpacity onPress={onClose}>
+            <TouchableOpacity
+              onPress={onClose}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
               <Text style={styles.backText}>Back</Text>
             </TouchableOpacity>
             <Text style={styles.title}>Change Foods</Text>
-            <TouchableOpacity onPress={handleSave}>
+            <TouchableOpacity
+              onPress={handleSave}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
               <Text style={styles.saveText}>Save</Text>
             </TouchableOpacity>
           </View>
@@ -205,7 +211,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
     borderTopLeftRadius: 18,
     borderTopRightRadius: 18,
-    paddingTop: 12,
+    paddingTop: 32,
     paddingHorizontal: 18,
     minHeight: 500,
     maxHeight: "90%",
@@ -217,10 +223,12 @@ const styles = StyleSheet.create({
     paddingBottom: 12,
     borderBottomWidth: 1,
     borderBottomColor: "#F1F5F9",
+    marginTop: 8,
   },
   backText: {
     color: "#94A3B8",
     fontSize: 18,
+    paddingVertical: 8,
   },
   title: {
     fontSize: 20,
@@ -231,6 +239,7 @@ const styles = StyleSheet.create({
     color: "#A78BFA",
     fontSize: 18,
     fontWeight: "600",
+    paddingVertical: 8,
   },
   sectionTitle: {
     fontSize: 16,

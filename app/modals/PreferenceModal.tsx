@@ -36,6 +36,7 @@ export const PreferenceModal: React.FC<PreferenceModalProps> = ({
     Lunch: true,
     Dinner: true,
   });
+  console.log("meals:", meals);
   const [dislikes, setDislikes] = useState<string[]>(["Chicken", "Peanut"]);
   const [addInput, setAddInput] = useState("");
   const [showFoodModal, setShowFoodModal] = useState(false);
@@ -64,17 +65,11 @@ export const PreferenceModal: React.FC<PreferenceModalProps> = ({
     <View style={styles.modalContainer}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity
-          onPress={onClose}
-          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-        >
+        <TouchableOpacity onPress={onClose}>
           <Text style={styles.headerBack}>Back</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Preference</Text>
-        <TouchableOpacity
-          onPress={handleSave}
-          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-        >
+        <TouchableOpacity onPress={handleSave}>
           <Text style={styles.headerSave}>Save</Text>
         </TouchableOpacity>
       </View>
@@ -194,6 +189,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: "#E5E7EB",
     backgroundColor: "#F8FAFC",
+    marginTop: 30,
   },
   headerBack: {
     color: "#A3A3A3",

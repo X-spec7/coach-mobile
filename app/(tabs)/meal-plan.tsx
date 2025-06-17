@@ -73,6 +73,7 @@ export default function MealPlanScreen() {
   const [isUpdatingMacros, setIsUpdatingMacros] = useState(false);
   const [updateError, setUpdateError] = useState<string | null>(null);
   const [carouselKey, setCarouselKey] = useState(0);
+  const [isUpdatingFood, setIsUpdatingFood] = useState(false);
 
   const allFoodItemIds = selectedMeal?.meal_times
     .flatMap((mt) => mt.mealplan_food_items)
@@ -184,6 +185,53 @@ export default function MealPlanScreen() {
       );
     } finally {
       setIsUpdatingMacros(false);
+    }
+  };
+
+  const handleFoodUpdate = async (newFood: SuitableFood) => {
+    try {
+      if (!selectedMeal) return;
+
+      // Get the first meal time and its first food item
+      const firstMealTime = selectedMeal.meal_times[0];
+      const firstFoodItem = firstMealTime.mealplan_food_items[0];
+
+      if (!firstMealTime || !firstFoodItem) {
+        throw new Error("No food item found to update");
+      }
+
+      // Update the food item using the API
+      const updatedMealPlan = await updateMealPlanFoodItem(
+        selectedMeal.id,
+        firstMealTime.id,
+        firstFoodItem.id,
+        newFood
+      );
+
+      // Update local state with the response from the API
+      setMeals((prevMeals) =>
+        prevMeals.map((meal) => {
+          if (meal.id !== selectedMeal.id) return meal;
+          return updatedMealPlan;
+        })
+      );
+
+      // Force Carousel to update by setting a new key
+      setCarouselKey((prev) => prev + 1);
+      setShowChangeFoodModal(false);
+
+      // Show success message
+      Alert.alert("Success", "Food item updated successfully!", [
+        { text: "OK" },
+      ]);
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : "Failed to update food item. Please try again.";
+
+      // Show error alert
+      Alert.alert("Error", errorMessage, [{ text: "OK" }]);
     }
   };
 
@@ -385,50 +433,7 @@ export default function MealPlanScreen() {
           (food) => !allFoodItemIds?.includes(food.id)
         )}
         onClose={() => setShowChangeFoodModal(false)}
-        onSave={async (newFood) => {
-          try {
-            if (!selectedMeal) return;
-
-            // Get the first meal time and its first food item
-            const firstMealTime = selectedMeal.meal_times[0];
-            const firstFoodItem = firstMealTime.mealplan_food_items[0];
-
-            if (!firstMealTime || !firstFoodItem) {
-              throw new Error("No food item found to update");
-            }
-
-            // Update the food item using the API
-            const updatedMealPlan = await updateMealPlanFoodItem(
-              selectedMeal.id,
-              firstMealTime.id,
-              firstFoodItem.id,
-              newFood
-            );
-
-            // Update local state with the response from the API
-            setMeals((prevMeals) =>
-              prevMeals.map((meal) => {
-                if (meal.id !== selectedMeal.id) return meal;
-                return updatedMealPlan;
-              })
-            );
-
-            setShowChangeFoodModal(false);
-
-            // Show success message
-            Alert.alert("Success", "Food item updated successfully!", [
-              { text: "OK" },
-            ]);
-          } catch (error) {
-            const errorMessage =
-              error instanceof Error
-                ? error.message
-                : "Failed to update food item. Please try again.";
-
-            // Show error alert
-            Alert.alert("Error", errorMessage, [{ text: "OK" }]);
-          }
-        }}
+        onSave={handleFoodUpdate}
       />
     </SafeAreaView>
   );
@@ -582,11 +587,5 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     borderRadius: 16,
-  },
-  loadingText: {
-    marginTop: 8,
-    color: "#7C3AED",
-    fontSize: 16,
-    fontWeight: "600",
   },
 });
