@@ -342,7 +342,6 @@ export default function MealPlanScreen() {
         ))}
       <SetMacrosModal
         visible={showSetMacrosModal}
-        initialValues={macros}
         onClose={() => {
           setShowSetMacrosModal(false);
           setUpdateError(null);
@@ -350,6 +349,16 @@ export default function MealPlanScreen() {
         onSave={handleMacroUpdate}
         isLoading={isUpdatingMacros}
         error={updateError}
+        initialValues={
+          selectedMeal
+            ? {
+                calories: selectedMeal.calories ?? 0,
+                carbs: selectedMeal.carbs ?? 0,
+                protein: selectedMeal.protein ?? 0,
+                fat: selectedMeal.fat ?? 0,
+              }
+            : undefined
+        }
       />
       <AboutPlanModal
         visible={showAboutPlanModal}

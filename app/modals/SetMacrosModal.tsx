@@ -13,30 +13,30 @@ import {
 
 interface SetMacrosModalProps {
   visible: boolean;
-  initialValues?: {
-    calories: number;
-    carbs: number;
-    protein: number;
-    fat: number;
-  };
   onClose: () => void;
   onSave: (values: {
     calories: number;
-    carbs: number;
     protein: number;
     fat: number;
+    carbs: number;
   }) => void;
   isLoading?: boolean;
   error?: string | null;
+  initialValues?: {
+    calories: number;
+    protein: number;
+    fat: number;
+    carbs: number;
+  };
 }
 
 export const SetMacrosModal: React.FC<SetMacrosModalProps> = ({
   visible,
-  initialValues = { calories: 2904, carbs: 276, protein: 126, fat: 142 },
   onClose,
   onSave,
   isLoading = false,
   error = null,
+  initialValues = { calories: 0, carbs: 0, protein: 0, fat: 0 },
 }) => {
   const [values, setValues] = useState(initialValues);
 
