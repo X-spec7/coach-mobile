@@ -9,6 +9,7 @@ import {
   Pressable,
   ScrollView,
   ActivityIndicator,
+  Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
@@ -32,6 +33,7 @@ import {
   MealPlanDetails,
   Food,
   SuitableFood,
+  updateMealPlan,
 } from "../services/api";
 import { useAuth } from "../contexts/AuthContext";
 
@@ -67,6 +69,8 @@ export default function MealPlanScreen() {
   const [showChangeFoodModal, setShowChangeFoodModal] = useState(false);
   const [suitableFoods, setSuitableFoods] = useState<SuitableFood[]>([]);
   const [isLoadingFoods, setIsLoadingFoods] = useState(false);
+  const [isUpdatingMacros, setIsUpdatingMacros] = useState(false);
+  const [updateError, setUpdateError] = useState<string | null>(null);
 
   console.log("showChangeFoodModal:", showChangeFoodModal);
   const allFoodItemIds = selectedMeal?.meal_times
@@ -299,8 +303,58 @@ export default function MealPlanScreen() {
       <SetMacrosModal
         visible={showSetMacrosModal}
         initialValues={macros}
-        onClose={() => setShowSetMacrosModal(false)}
-        onSave={(values) => setMacros(values)}
+        onClose={() => {
+          setShowSetMacrosModal(false);
+          setUpdateError(null);
+        }}
+        onSave={async (values) => {
+          try {
+            if (!selectedMeal) return;
+
+            setIsUpdatingMacros(true);
+            setUpdateError(null);
+
+            // Update the selected meal plan with new macro values
+            const updatedMealPlan = await updateMealPlan(selectedMeal.id, {
+              calories: values.calories,
+              protein: values.protein,
+              fat: values.fat,
+              carb: values.carbs,
+            });
+
+            // Update local state with the response from the API
+            setMeals((prevMeals) =>
+              prevMeals.map((meal) => {
+                if (meal.id !== selectedMeal.id) return meal;
+                return {
+                  ...meal,
+                  ...updatedMealPlan,
+                };
+              })
+            );
+            setMacros(values);
+            setShowSetMacrosModal(false);
+
+            // Show success message
+            Alert.alert("Success", "Meal plan macros updated successfully!", [
+              { text: "OK" },
+            ]);
+          } catch (error) {
+            console.error("Error updating meal plan:", error);
+            const errorMessage =
+              error instanceof Error
+                ? error.message
+                : "Failed to update meal plan. Please try again.";
+            setUpdateError(errorMessage);
+
+            // Show error alert
+            Alert.alert("Error", errorMessage, [{ text: "OK" }]);
+          } finally {
+            setIsUpdatingMacros(false);
+          }
+        }}
+        isLoading={isUpdatingMacros}
+        error={updateError}
       />
       <AboutPlanModal
         visible={showAboutPlanModal}

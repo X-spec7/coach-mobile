@@ -1,7 +1,6 @@
 import { ImageSourcePropType } from "react-native";
 import { getToken } from "./auth";
-
-const API_BASE_URL = "http://0.0.0.0:8888/api";
+import { API_BASE_URL } from "@/constants/api";
 
 export interface Food {
   name: string;
@@ -193,6 +192,45 @@ export const fetchAllFoods = async (): Promise<Food[]> => {
     return data.foodItems || [];
   } catch (error) {
     console.error("Error fetching foods:", error);
+    throw error;
+  }
+};
+
+export const updateMealPlan = async (
+  mealPlanId: number,
+  data: {
+    calories: number;
+    protein: number;
+    fat: number;
+    carb: number;
+  }
+): Promise<MealPlan> => {
+  try {
+    const headers = await getAuthHeaders();
+    const url = `${API_BASE_URL}/mealplan/${mealPlanId}/`;
+    console.log("Making request to:", url);
+    console.log("Request data:", data);
+
+    const response = await fetch(url, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        ...headers,
+      },
+      body: JSON.stringify(data),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error("Error response body:", errorText);
+      throw new Error(`Failed to update meal plan: ${response.status}`);
+    }
+
+    const updatedMealPlan = await response.json();
+    console.log("Updated meal plan:", updatedMealPlan);
+    return updatedMealPlan;
+  } catch (error) {
+    console.error("Error updating meal plan:", error);
     throw error;
   }
 };
