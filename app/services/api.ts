@@ -167,15 +167,10 @@ export const fetchAllFoods = async (): Promise<Food[]> => {
   try {
     const headers = await getAuthHeaders();
     const url = `${API_BASE_URL}/mealplan/food-items/`;
-    console.log("Making request to:", url);
-    console.log("Request headers:", headers);
 
     const response = await fetch(url, {
       headers,
     });
-
-    console.log("Response status:", response.status);
-    console.log("Response headers:", response.headers);
 
     if (!response.ok) {
       if (response.status === 401) {
@@ -183,7 +178,6 @@ export const fetchAllFoods = async (): Promise<Food[]> => {
         throw new Error("Authentication required");
       }
       const errorText = await response.text();
-      console.log("Error response body:", errorText);
       throw new Error("Failed to fetch foods");
     }
 
@@ -232,5 +226,83 @@ export const updateMealPlan = async (
   } catch (error) {
     console.error("Error updating meal plan:", error);
     throw error;
+  }
+};
+
+export const updateMealPlanFoodItem = async (
+  mealPlanId: number,
+  mealTimeId: number,
+  foodItemId: number,
+  newFoodItem: SuitableFood
+): Promise<MealPlan> => {
+  try {
+    const headers = await getAuthHeaders();
+    const url = `${API_BASE_URL}/mealplan/${mealPlanId}/`;
+    console.log("Making request to:", url);
+
+    // Get the meal time details from the current meal plan
+    const currentMealPlan = await fetchMealPlanDetails(mealPlanId);
+    const currentMealTime = currentMealPlan.mealPlan.meal_times.find(
+      (meal) => meal.id === mealTimeId
+    );
+
+    if (!currentMealTime) {
+      throw new Error(`Meal time with ID ${mealTimeId} not found`);
+    }
+
+    // Create payload with all meal times, updating only the specific food item
+    const payload = {
+      meal_times: currentMealPlan.mealPlan.meal_times.map((mealTime) => {
+        if (mealTime.id === mealTimeId) {
+          // Update the specific meal time with the new food item
+          return {
+            time: mealTime.time,
+            day: mealTime.day,
+            mealplan_food_items: [
+              {
+                amount: parseInt(newFoodItem.amount) || 20,
+                unit: "g",
+                food_item: newFoodItem.id,
+              },
+            ],
+          };
+        }
+        // Keep other meal times unchanged
+        return {
+          time: mealTime.time,
+          day: mealTime.day,
+          mealplan_food_items: mealTime.mealplan_food_items,
+        };
+      }),
+    };
+
+    console.log("Request data:", payload);
+
+    const response = await fetch(url, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        ...headers,
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error("Error response body:", errorText);
+      throw new Error(
+        `Failed to update food item: ${response.status} - ${errorText}`
+      );
+    }
+
+    const updatedMealPlan = await response.json();
+    console.log("Successfully updated meal plan:", updatedMealPlan);
+    return updatedMealPlan;
+  } catch (error) {
+    console.error("Error updating food item:", error);
+    if (error instanceof Error) {
+      throw new Error(`Failed to update food item: ${error.message}`);
+    }
+    throw new Error("Failed to update food item: An unexpected error occurred");
   }
 };

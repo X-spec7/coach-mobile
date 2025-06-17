@@ -34,6 +34,7 @@ import {
   Food,
   SuitableFood,
   updateMealPlan,
+  updateMealPlanFoodItem,
 } from "../services/api";
 import { useAuth } from "../contexts/AuthContext";
 
@@ -381,39 +382,50 @@ export default function MealPlanScreen() {
           (food) => !allFoodItemIds?.includes(food.id)
         )}
         onClose={() => setShowChangeFoodModal(false)}
-        onSave={(newFood) => {
-          console.log("onSave called!:");
-          if (!selectedMeal) return;
-          const transformedFood = {
-            ...newFood,
-            food_item_details: {
-              id: newFood.id,
-              name: newFood.name,
-              fooditem_icon: newFood.fooditem_icon,
-            },
-          };
-          setMeals((prevMeals) =>
-            prevMeals.map((meal) => {
-              if (meal.id !== selectedMeal.id) return meal;
-              const updatedMealTimes = meal.meal_times.map((mt, idx) => {
-                if (idx === 0 && mt.mealplan_food_items.length > 0) {
-                  return {
-                    ...mt,
-                    mealplan_food_items: [
-                      transformedFood,
-                      ...mt.mealplan_food_items.slice(1),
-                    ],
-                  };
-                }
-                return mt;
-              });
-              return {
-                ...meal,
-                meal_times: updatedMealTimes,
-              };
-            })
-          );
-          setShowChangeFoodModal(false);
+        onSave={async (newFood) => {
+          try {
+            if (!selectedMeal) return;
+
+            // Get the first meal time and its first food item
+            const firstMealTime = selectedMeal.meal_times[0];
+            const firstFoodItem = firstMealTime.mealplan_food_items[0];
+
+            if (!firstMealTime || !firstFoodItem) {
+              throw new Error("No food item found to update");
+            }
+
+            // Update the food item using the API
+            const updatedMealPlan = await updateMealPlanFoodItem(
+              selectedMeal.id,
+              firstMealTime.id,
+              firstFoodItem.id,
+              newFood
+            );
+
+            // Update local state with the response from the API
+            setMeals((prevMeals) =>
+              prevMeals.map((meal) => {
+                if (meal.id !== selectedMeal.id) return meal;
+                return updatedMealPlan;
+              })
+            );
+
+            setShowChangeFoodModal(false);
+
+            // Show success message
+            Alert.alert("Success", "Food item updated successfully!", [
+              { text: "OK" },
+            ]);
+          } catch (error) {
+            console.error("Error updating food item:", error);
+            const errorMessage =
+              error instanceof Error
+                ? error.message
+                : "Failed to update food item. Please try again.";
+
+            // Show error alert
+            Alert.alert("Error", errorMessage, [{ text: "OK" }]);
+          }
         }}
       />
     </SafeAreaView>
