@@ -32,9 +32,6 @@ export const ChangeFoodModal: React.FC<ChangeFoodModalProps> = ({
   const [selectedFood, setSelectedFood] = useState<SuitableFood | null>(null);
   const currentFood = foods[0];
 
-  console.log("Current Food:", currentFood);
-  console.log("Suitable Foods:", suitableFoods);
-
   const handleSelect = (food: SuitableFood) => {
     setSelectedFood(food);
   };
@@ -44,8 +41,6 @@ export const ChangeFoodModal: React.FC<ChangeFoodModalProps> = ({
       onSave(selectedFood);
     }
   };
-
-  console.log("selectedFood:", selectedFood);
 
   return (
     <Modal

@@ -72,6 +72,7 @@ export default function MealPlanScreen() {
   const [isLoadingFoods, setIsLoadingFoods] = useState(false);
   const [isUpdatingMacros, setIsUpdatingMacros] = useState(false);
   const [updateError, setUpdateError] = useState<string | null>(null);
+  const [carouselKey, setCarouselKey] = useState(0);
 
   const allFoodItemIds = selectedMeal?.meal_times
     .flatMap((mt) => mt.mealplan_food_items)
@@ -145,6 +146,47 @@ export default function MealPlanScreen() {
     }
   };
 
+  const handleMacroUpdate = async (newMacros: {
+    calories: number;
+    protein: number;
+    fat: number;
+    carbs: number;
+  }) => {
+    if (!selectedMeal) return;
+
+    try {
+      setIsUpdatingMacros(true);
+      setUpdateError(null);
+
+      const updatedMealPlan = await updateMealPlan(selectedMeal.id, newMacros);
+
+      // Update the meals state with the new data
+      setMeals((prevMeals) =>
+        prevMeals.map((meal) =>
+          meal.id === selectedMeal.id
+            ? {
+                ...meal,
+                protein: newMacros.protein,
+                fat: newMacros.fat,
+                carbs: newMacros.carbs,
+                calories: newMacros.calories,
+              }
+            : meal
+        )
+      );
+
+      // Force Carousel to update by setting a new key
+      setCarouselKey((prev) => prev + 1);
+      setShowSetMacrosModal(false);
+    } catch (error) {
+      setUpdateError(
+        error instanceof Error ? error.message : "Failed to update macros"
+      );
+    } finally {
+      setIsUpdatingMacros(false);
+    }
+  };
+
   if (isLoading) {
     return (
       <SafeAreaView
@@ -207,6 +249,7 @@ export default function MealPlanScreen() {
       >
         <View style={styles.carouselWrap}>
           <Carousel
+            key={carouselKey}
             width={320}
             height={280}
             data={meals}
@@ -216,16 +259,24 @@ export default function MealPlanScreen() {
               meals.findIndex((m) => m.id === selectedId)
             )}
             renderItem={({ item }) => (
-              <MealPlanCard
-                key={item.id}
-                image={item.image ?? { uri: "" }}
-                title={item.title ?? item.name ?? ""}
-                protein={item.protein ?? 0}
-                fat={item.fat ?? 0}
-                carbs={item.carbs ?? 0}
-                selected={selectedId === item.id}
-                onTitlePress={() => handleMealSelect(item)}
-              />
+              <View>
+                <MealPlanCard
+                  key={item.id}
+                  image={item.image ?? { uri: "" }}
+                  title={item.title ?? item.name ?? ""}
+                  protein={item.protein ?? 0}
+                  fat={item.fat ?? 0}
+                  carbs={item.carbs ?? 0}
+                  selected={selectedId === item.id}
+                  onTitlePress={() => handleMealSelect(item)}
+                />
+                {isUpdatingMacros && selectedId === item.id && (
+                  <View style={styles.loadingOverlay}>
+                    <ActivityIndicator size="large" color="#7C3AED" />
+                    <Text style={styles.loadingText}>Updating macros...</Text>
+                  </View>
+                )}
+              </View>
             )}
             mode="parallax"
             pagingEnabled
@@ -296,52 +347,7 @@ export default function MealPlanScreen() {
           setShowSetMacrosModal(false);
           setUpdateError(null);
         }}
-        onSave={async (values) => {
-          try {
-            if (!selectedMeal) return;
-
-            setIsUpdatingMacros(true);
-            setUpdateError(null);
-
-            // Update the selected meal plan with new macro values
-            const updatedMealPlan = await updateMealPlan(selectedMeal.id, {
-              calories: values.calories,
-              protein: values.protein,
-              fat: values.fat,
-              carb: values.carbs,
-            });
-
-            // Update local state with the response from the API
-            setMeals((prevMeals) =>
-              prevMeals.map((meal) => {
-                if (meal.id !== selectedMeal.id) return meal;
-                return {
-                  ...meal,
-                  ...updatedMealPlan,
-                };
-              })
-            );
-            setMacros(values);
-            setShowSetMacrosModal(false);
-
-            // Show success message
-            Alert.alert("Success", "Meal plan macros updated successfully!", [
-              { text: "OK" },
-            ]);
-          } catch (error) {
-            console.error("Error updating meal plan:", error);
-            const errorMessage =
-              error instanceof Error
-                ? error.message
-                : "Failed to update meal plan. Please try again.";
-            setUpdateError(errorMessage);
-
-            // Show error alert
-            Alert.alert("Error", errorMessage, [{ text: "OK" }]);
-          } finally {
-            setIsUpdatingMacros(false);
-          }
-        }}
+        onSave={handleMacroUpdate}
         isLoading={isUpdatingMacros}
         error={updateError}
       />
@@ -556,5 +562,22 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontWeight: "bold",
     fontSize: 16,
+  },
+  loadingOverlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: "rgba(255, 255, 255, 0.8)",
+    justifyContent: "center",
+    alignItems: "center",
+    borderRadius: 16,
+  },
+  loadingText: {
+    marginTop: 8,
+    color: "#7C3AED",
+    fontSize: 16,
+    fontWeight: "600",
   },
 });
