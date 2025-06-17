@@ -73,17 +73,10 @@ export default function MealPlanScreen() {
   const [isUpdatingMacros, setIsUpdatingMacros] = useState(false);
   const [updateError, setUpdateError] = useState<string | null>(null);
 
-  console.log("showChangeFoodModal:", showChangeFoodModal);
   const allFoodItemIds = selectedMeal?.meal_times
     .flatMap((mt) => mt.mealplan_food_items)
     .map((item) => item.food_item_details.id);
 
-  console.log("suitableFoods:", suitableFoods);
-  console.log(
-    "All mealplan_food_items ids:",
-    suitableFoods.filter((food) => allFoodItemIds?.includes(food.id))
-  );
-  console.log("user:", user?.selectedMealPlan);
   useEffect(() => {
     loadMealPlans();
   }, []);
@@ -200,11 +193,6 @@ export default function MealPlanScreen() {
       </SafeAreaView>
     );
   }
-
-  const foods =
-    selectedMeal && selectedMeal.meal_times
-      ? selectedMeal.meal_times.flatMap((mt) => mt.mealplan_food_items)
-      : [];
 
   return (
     <SafeAreaView
@@ -417,7 +405,6 @@ export default function MealPlanScreen() {
               { text: "OK" },
             ]);
           } catch (error) {
-            console.error("Error updating food item:", error);
             const errorMessage =
               error instanceof Error
                 ? error.message

@@ -242,6 +242,8 @@ export const updateMealPlanFoodItem = async (
 
     // Get the meal time details from the current meal plan
     const currentMealPlan = await fetchMealPlanDetails(mealPlanId);
+    console.log("Current meal plan before update:", currentMealPlan);
+
     const currentMealTime = currentMealPlan.mealPlan.meal_times.find(
       (meal) => meal.id === mealTimeId
     );
@@ -276,7 +278,7 @@ export const updateMealPlanFoodItem = async (
       }),
     };
 
-    console.log("Request data:", payload);
+    console.log("Request payload:", JSON.stringify(payload, null, 2));
 
     const response = await fetch(url, {
       method: "PUT",
@@ -295,9 +297,23 @@ export const updateMealPlanFoodItem = async (
       );
     }
 
-    const updatedMealPlan = await response.json();
-    console.log("Successfully updated meal plan:", updatedMealPlan);
-    return updatedMealPlan;
+    const responseData = await response.json();
+    console.log("API Response:", JSON.stringify(responseData, null, 2));
+
+    // Handle the response with the correct structure
+    if (responseData.mealplan) {
+      return responseData.mealplan;
+    } else if (responseData.mealPlan) {
+      return responseData.mealPlan;
+    } else if (responseData.meal_times) {
+      return {
+        ...currentMealPlan.mealPlan,
+        meal_times: responseData.meal_times,
+      };
+    } else {
+      console.error("Unexpected response structure:", responseData);
+      throw new Error("Unexpected response structure from API");
+    }
   } catch (error) {
     console.error("Error updating food item:", error);
     if (error instanceof Error) {
