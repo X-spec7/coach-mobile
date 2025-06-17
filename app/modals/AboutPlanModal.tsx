@@ -13,6 +13,7 @@ import { Ionicons } from "@expo/vector-icons";
 import Svg, { Circle } from "react-native-svg";
 import ChangePlanModal from "./ChangePlanModal";
 import { MealPlan } from "../services/api";
+import { API_BASE_URL } from "@/constants/api";
 
 interface AboutPlanModalProps {
   visible: boolean;

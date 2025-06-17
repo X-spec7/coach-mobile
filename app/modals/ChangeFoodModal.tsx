@@ -6,14 +6,16 @@ import {
   TouchableOpacity,
   StyleSheet,
   ScrollView,
+  Image,
 } from "react-native";
-import { Food } from "../services/api";
+import { Food, SuitableFood } from "../services/api";
 import { Ionicons } from "@expo/vector-icons";
+import { API_BASE_URL } from "@/constants/api";
 
 interface ChangeFoodModalProps {
   visible: boolean;
   foods: Food[];
-  suitableFoods: Food[];
+  suitableFoods: SuitableFood[];
   onClose: () => void;
   onSave: (food: Food) => void;
 }
@@ -39,6 +41,14 @@ export const ChangeFoodModal: React.FC<ChangeFoodModalProps> = ({
       onSave(selectedFood);
     }
   };
+
+  console.log("currentFood Icon:", currentFood.food_item_details.fooditem_icon);
+  console.log(
+    "currentFood:",
+    `${API_BASE_URL.replace("/api", "")}${
+      currentFood.food_item_details.fooditem_icon
+    }`
+  );
 
   return (
     <Modal
@@ -69,7 +79,20 @@ export const ChangeFoodModal: React.FC<ChangeFoodModalProps> = ({
                 selectedFood === null && styles.selectedCard,
               ]}
             >
-              <View style={styles.foodImage} />
+              {currentFood.food_item_details.fooditem_icon ? (
+                <Image
+                  source={{
+                    uri: `${API_BASE_URL.replace("/api", "")}${
+                      currentFood.food_item_details.fooditem_icon
+                    }`,
+                  }}
+                  style={styles.foodImage}
+                  resizeMode="cover"
+                />
+              ) : (
+                <View style={styles.foodImage} />
+              )}
+
               <View style={styles.foodInfo}>
                 <Text style={styles.foodName}>{currentFood.name}</Text>
                 <View style={styles.macrosRow}>
@@ -118,7 +141,19 @@ export const ChangeFoodModal: React.FC<ChangeFoodModalProps> = ({
                   onPress={() => handleSelect(food)}
                   activeOpacity={0.8}
                 >
-                  <View style={styles.foodImage} />
+                  {food.fooditem_icon ? (
+                    <Image
+                      source={{
+                        uri: `${API_BASE_URL.replace("/api", "")}${
+                          food.fooditem_icon
+                        }`,
+                      }}
+                      style={styles.foodImage}
+                      resizeMode="cover"
+                    />
+                  ) : (
+                    <View style={styles.foodImage} />
+                  )}
                   <View style={styles.foodInfo}>
                     <Text style={styles.foodName}>{food.name}</Text>
                     <View style={styles.macrosRow}>
