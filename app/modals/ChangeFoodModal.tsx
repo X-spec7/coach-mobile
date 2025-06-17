@@ -17,7 +17,7 @@ interface ChangeFoodModalProps {
   foods: Food[];
   suitableFoods: SuitableFood[];
   onClose: () => void;
-  onSave: (food: Food) => void;
+  onSave: (food: SuitableFood) => void;
 }
 
 export const ChangeFoodModal: React.FC<ChangeFoodModalProps> = ({
@@ -29,10 +29,13 @@ export const ChangeFoodModal: React.FC<ChangeFoodModalProps> = ({
 }) => {
   if (!foods || foods.length === 0) return null;
 
-  const [selectedFood, setSelectedFood] = useState<Food | null>(null);
+  const [selectedFood, setSelectedFood] = useState<SuitableFood | null>(null);
   const currentFood = foods[0];
 
-  const handleSelect = (food: Food) => {
+  console.log("Current Food:", currentFood);
+  console.log("Suitable Foods:", suitableFoods);
+
+  const handleSelect = (food: SuitableFood) => {
     setSelectedFood(food);
   };
 
@@ -42,13 +45,7 @@ export const ChangeFoodModal: React.FC<ChangeFoodModalProps> = ({
     }
   };
 
-  console.log("currentFood Icon:", currentFood.food_item_details.fooditem_icon);
-  console.log(
-    "currentFood:",
-    `${API_BASE_URL.replace("/api", "")}${
-      currentFood.food_item_details.fooditem_icon
-    }`
-  );
+  console.log("selectedFood:", selectedFood);
 
   return (
     <Modal
@@ -79,11 +76,11 @@ export const ChangeFoodModal: React.FC<ChangeFoodModalProps> = ({
                 selectedFood === null && styles.selectedCard,
               ]}
             >
-              {currentFood.food_item_details.fooditem_icon ? (
+              {currentFood.fooditem_icon ? (
                 <Image
                   source={{
                     uri: `${API_BASE_URL.replace("/api", "")}${
-                      currentFood.food_item_details.fooditem_icon
+                      currentFood.fooditem_icon
                     }`,
                   }}
                   style={styles.foodImage}

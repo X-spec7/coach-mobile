@@ -31,6 +31,7 @@ import {
   MealPlan,
   MealPlanDetails,
   Food,
+  SuitableFood,
 } from "../services/api";
 import { useAuth } from "../contexts/AuthContext";
 
@@ -64,11 +65,19 @@ export default function MealPlanScreen() {
   const [showPlanDetails, setShowPlanDetails] = useState(false);
   const [planDetails, setPlanDetails] = useState<MealPlanDetails | null>(null);
   const [showChangeFoodModal, setShowChangeFoodModal] = useState(false);
-  const [suitableFoods, setSuitableFoods] = useState<Food[]>([]);
+  const [suitableFoods, setSuitableFoods] = useState<SuitableFood[]>([]);
   const [isLoadingFoods, setIsLoadingFoods] = useState(false);
 
   console.log("showChangeFoodModal:", showChangeFoodModal);
-  console.log("selectedMeal:", selectedMeal);
+  const allFoodItemIds = selectedMeal?.meal_times
+    .flatMap((mt) => mt.mealplan_food_items)
+    .map((item) => item.food_item_details.id);
+
+  console.log("suitableFoods:", suitableFoods);
+  console.log(
+    "All mealplan_food_items ids:",
+    suitableFoods.filter((food) => allFoodItemIds?.includes(food.id))
+  );
   console.log("user:", user?.selectedMealPlan);
   useEffect(() => {
     loadMealPlans();
@@ -311,21 +320,33 @@ export default function MealPlanScreen() {
       />
       <ChangeFoodModal
         visible={showChangeFoodModal && !!selectedMeal}
-        foods={selectedMeal?.meal_times?.[0]?.mealplan_food_items || []}
-        suitableFoods={suitableFoods}
+        foods={suitableFoods.filter((food) =>
+          allFoodItemIds?.includes(food.id)
+        )}
+        suitableFoods={suitableFoods.filter(
+          (food) => !allFoodItemIds?.includes(food.id)
+        )}
         onClose={() => setShowChangeFoodModal(false)}
         onSave={(newFood) => {
+          console.log("onSave called!:");
           if (!selectedMeal) return;
+          const transformedFood = {
+            ...newFood,
+            food_item_details: {
+              id: newFood.id,
+              name: newFood.name,
+              fooditem_icon: newFood.fooditem_icon,
+            },
+          };
           setMeals((prevMeals) =>
             prevMeals.map((meal) => {
               if (meal.id !== selectedMeal.id) return meal;
-              // Update the first food in the first meal_time
               const updatedMealTimes = meal.meal_times.map((mt, idx) => {
                 if (idx === 0 && mt.mealplan_food_items.length > 0) {
                   return {
                     ...mt,
                     mealplan_food_items: [
-                      newFood,
+                      transformedFood,
                       ...mt.mealplan_food_items.slice(1),
                     ],
                   };
