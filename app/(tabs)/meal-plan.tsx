@@ -9,6 +9,7 @@ import {
   Pressable,
   ScrollView,
   ActivityIndicator,
+  Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
@@ -27,9 +28,15 @@ import ChangeFoodModal from "../modals/ChangeFoodModal";
 import {
   fetchMealPlans,
   fetchMealPlanDetails,
+  fetchAllFoods,
   MealPlan,
   MealPlanDetails,
+  Food,
+  SuitableFood,
+  updateMealPlan,
+  updateMealPlanFoodItem,
 } from "../services/api";
+import { useAuth } from "../contexts/AuthContext";
 
 const { width } = Dimensions.get("window");
 
@@ -42,6 +49,7 @@ const menuItems = [
 
 export default function MealPlanScreen() {
   const router = useRouter();
+  const { user } = useAuth();
   const colorScheme = useColorScheme();
   const [meals, setMeals] = useState<MealPlan[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -60,9 +68,17 @@ export default function MealPlanScreen() {
   const [showPlanDetails, setShowPlanDetails] = useState(false);
   const [planDetails, setPlanDetails] = useState<MealPlanDetails | null>(null);
   const [showChangeFoodModal, setShowChangeFoodModal] = useState(false);
+  const [suitableFoods, setSuitableFoods] = useState<SuitableFood[]>([]);
+  const [isLoadingFoods, setIsLoadingFoods] = useState(false);
+  const [isUpdatingMacros, setIsUpdatingMacros] = useState(false);
+  const [updateError, setUpdateError] = useState<string | null>(null);
+  const [carouselKey, setCarouselKey] = useState(0);
+  const [isUpdatingFood, setIsUpdatingFood] = useState(false);
 
-  console.log("showChangeFoodModal:", showChangeFoodModal);
-  console.log("selectedMeal:", selectedMeal);
+  const allFoodItemIds = selectedMeal?.meal_times
+    .flatMap((mt) => mt.mealplan_food_items)
+    .map((item) => item.food_item_details.id);
+
   useEffect(() => {
     loadMealPlans();
   }, []);
@@ -74,7 +90,7 @@ export default function MealPlanScreen() {
       const data = await fetchMealPlans();
       setMeals(data);
       if (data.length > 0) {
-        setSelectedId(data[0].id);
+        setSelectedId(user?.selectedMealPlan?.id ?? data[0].id);
       }
     } catch (err) {
       const errorMessage =
@@ -106,6 +122,116 @@ export default function MealPlanScreen() {
       } else {
         console.error("Error loading meal details:", err);
       }
+    }
+  };
+
+  useEffect(() => {
+    loadAllFoods();
+  }, []);
+
+  const loadAllFoods = async () => {
+    try {
+      setIsLoadingFoods(true);
+      const foods = await fetchAllFoods();
+      setSuitableFoods(foods);
+    } catch (err) {
+      const errorMessage =
+        err instanceof Error ? err.message : "Failed to load foods";
+      if (errorMessage === "Authentication required") {
+        router.replace("/(auth)/login-register");
+      } else {
+        console.error("Error loading foods:", err);
+      }
+    } finally {
+      setIsLoadingFoods(false);
+    }
+  };
+
+  const handleMacroUpdate = async (newMacros: {
+    calories: number;
+    protein: number;
+    fat: number;
+    carbs: number;
+  }) => {
+    if (!selectedMeal) return;
+
+    try {
+      setIsUpdatingMacros(true);
+      setUpdateError(null);
+
+      const updatedMealPlan = await updateMealPlan(selectedMeal.id, newMacros);
+
+      // Update the meals state with the new data
+      setMeals((prevMeals) =>
+        prevMeals.map((meal) =>
+          meal.id === selectedMeal.id
+            ? {
+                ...meal,
+                protein: newMacros.protein,
+                fat: newMacros.fat,
+                carbs: newMacros.carbs,
+                calories: newMacros.calories,
+              }
+            : meal
+        )
+      );
+
+      // Force Carousel to update by setting a new key
+      setCarouselKey((prev) => prev + 1);
+      setShowSetMacrosModal(false);
+    } catch (error) {
+      setUpdateError(
+        error instanceof Error ? error.message : "Failed to update macros"
+      );
+    } finally {
+      setIsUpdatingMacros(false);
+    }
+  };
+
+  const handleFoodUpdate = async (newFood: SuitableFood) => {
+    try {
+      if (!selectedMeal) return;
+
+      // Get the first meal time and its first food item
+      const firstMealTime = selectedMeal.meal_times[0];
+      const firstFoodItem = firstMealTime.mealplan_food_items[0];
+
+      if (!firstMealTime || !firstFoodItem) {
+        throw new Error("No food item found to update");
+      }
+
+      // Update the food item using the API
+      const updatedMealPlan = await updateMealPlanFoodItem(
+        selectedMeal.id,
+        firstMealTime.id,
+        firstFoodItem.id,
+        newFood
+      );
+
+      // Update local state with the response from the API
+      setMeals((prevMeals) =>
+        prevMeals.map((meal) => {
+          if (meal.id !== selectedMeal.id) return meal;
+          return updatedMealPlan;
+        })
+      );
+
+      // Force Carousel to update by setting a new key
+      setCarouselKey((prev) => prev + 1);
+      setShowChangeFoodModal(false);
+
+      // Show success message
+      Alert.alert("Success", "Food item updated successfully!", [
+        { text: "OK" },
+      ]);
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : "Failed to update food item. Please try again.";
+
+      // Show error alert
+      Alert.alert("Error", errorMessage, [{ text: "OK" }]);
     }
   };
 
@@ -158,11 +284,6 @@ export default function MealPlanScreen() {
     );
   }
 
-  const foods =
-    selectedMeal && selectedMeal.meal_times
-      ? selectedMeal.meal_times.flatMap((mt) => mt.mealplan_food_items)
-      : [];
-
   return (
     <SafeAreaView
       style={[
@@ -176,21 +297,34 @@ export default function MealPlanScreen() {
       >
         <View style={styles.carouselWrap}>
           <Carousel
+            key={carouselKey}
             width={320}
             height={280}
             data={meals}
             style={{ width: width, alignSelf: "center" }}
+            defaultIndex={Math.max(
+              0,
+              meals.findIndex((m) => m.id === selectedId)
+            )}
             renderItem={({ item }) => (
-              <MealPlanCard
-                key={item.id}
-                image={item.image ?? { uri: "" }}
-                title={item.title ?? item.name ?? ""}
-                protein={item.protein ?? 0}
-                fat={item.fat ?? 0}
-                carbs={item.carbs ?? 0}
-                selected={selectedId === item.id}
-                onTitlePress={() => handleMealSelect(item)}
-              />
+              <View>
+                <MealPlanCard
+                  key={item.id}
+                  image={item.image ?? { uri: "" }}
+                  title={item.title ?? item.name ?? ""}
+                  protein={item.protein ?? 0}
+                  fat={item.fat ?? 0}
+                  carbs={item.carbs ?? 0}
+                  selected={selectedId === item.id}
+                  onTitlePress={() => handleMealSelect(item)}
+                />
+                {isUpdatingMacros && selectedId === item.id && (
+                  <View style={styles.loadingOverlay}>
+                    <ActivityIndicator size="large" color="#7C3AED" />
+                    <Text style={styles.loadingText}>Updating macros...</Text>
+                  </View>
+                )}
+              </View>
             )}
             mode="parallax"
             pagingEnabled
@@ -256,9 +390,23 @@ export default function MealPlanScreen() {
         ))}
       <SetMacrosModal
         visible={showSetMacrosModal}
-        initialValues={macros}
-        onClose={() => setShowSetMacrosModal(false)}
-        onSave={(values) => setMacros(values)}
+        onClose={() => {
+          setShowSetMacrosModal(false);
+          setUpdateError(null);
+        }}
+        onSave={handleMacroUpdate}
+        isLoading={isUpdatingMacros}
+        error={updateError}
+        initialValues={
+          selectedMeal
+            ? {
+                calories: selectedMeal.calories ?? 0,
+                carbs: selectedMeal.carbs ?? 0,
+                protein: selectedMeal.protein ?? 0,
+                fat: selectedMeal.fat ?? 0,
+              }
+            : undefined
+        }
       />
       <AboutPlanModal
         visible={showAboutPlanModal}
@@ -278,34 +426,14 @@ export default function MealPlanScreen() {
       />
       <ChangeFoodModal
         visible={showChangeFoodModal && !!selectedMeal}
-        foods={foods}
+        foods={suitableFoods.filter((food) =>
+          allFoodItemIds?.includes(food.id)
+        )}
+        suitableFoods={suitableFoods.filter(
+          (food) => !allFoodItemIds?.includes(food.id)
+        )}
         onClose={() => setShowChangeFoodModal(false)}
-        onSave={(newFood) => {
-          if (!selectedMeal) return;
-          setMeals((prevMeals) =>
-            prevMeals.map((meal) => {
-              if (meal.id !== selectedMeal.id) return meal;
-              // Update the first food in the first meal_time
-              const updatedMealTimes = meal.meal_times.map((mt, idx) => {
-                if (idx === 0 && mt.mealplan_food_items.length > 0) {
-                  return {
-                    ...mt,
-                    mealplan_food_items: [
-                      newFood,
-                      ...mt.mealplan_food_items.slice(1),
-                    ],
-                  };
-                }
-                return mt;
-              });
-              return {
-                ...meal,
-                meal_times: updatedMealTimes,
-              };
-            })
-          );
-          setShowChangeFoodModal(false);
-        }}
+        onSave={handleFoodUpdate}
       />
     </SafeAreaView>
   );
@@ -448,5 +576,16 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontWeight: "bold",
     fontSize: 16,
+  },
+  loadingOverlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: "rgba(255, 255, 255, 0.8)",
+    justifyContent: "center",
+    alignItems: "center",
+    borderRadius: 16,
   },
 });

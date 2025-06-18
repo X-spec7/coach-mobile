@@ -13,6 +13,7 @@ import { Ionicons } from "@expo/vector-icons";
 import Svg, { Circle } from "react-native-svg";
 import ChangePlanModal from "./ChangePlanModal";
 import { MealPlan } from "../services/api";
+import { API_BASE_URL } from "@/constants/api";
 
 interface AboutPlanModalProps {
   visible: boolean;
@@ -97,6 +98,8 @@ export const AboutPlanModal: React.FC<AboutPlanModalProps> = ({
   // State for ChangePlanModal
   const [showChangePlan, setShowChangePlan] = React.useState(false);
 
+  const baseUrl = API_BASE_URL.replace("/api", "");
+  const finalUrl = `${baseUrl}${selectedMeal?.image}`;
   return (
     <Modal
       visible={visible}
@@ -128,7 +131,11 @@ export const AboutPlanModal: React.FC<AboutPlanModalProps> = ({
           >
             {/* Plan Image */}
             <View style={styles.planImageWrap}>
-              <View style={styles.planImagePlaceholder} />
+              <Image
+                source={{ uri: finalUrl }}
+                style={styles.planImagePlaceholder}
+                resizeMode="cover"
+              />
             </View>
             {/* Plan Info */}
             <Text style={styles.planSubtitle}>Traditional diets</Text>

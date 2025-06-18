@@ -11,32 +11,12 @@ import {
 import Svg, { Circle } from "react-native-svg";
 import { Ionicons } from "@expo/vector-icons";
 import FoodDetailsModal from "./FoodDetailsModal";
-
-interface Macro {
-  key: string;
-  label: string;
-  value: number;
-  color: string;
-}
-
-interface Meal {
-  title: string;
-  protein: number;
-  fat: number;
-  carbs: number;
-}
+import { MealPlanDetails } from "../services/api";
 
 interface MealPlanDetailsModalProps {
   visible: boolean;
   onClose: () => void;
-  plan: {
-    category: string;
-    name: string;
-    description: string;
-    calories: number;
-    macros: Macro[];
-    meals: Meal[];
-  } | null;
+  plan: MealPlanDetails | null;
   onChoose: () => void;
 }
 
@@ -52,14 +32,17 @@ export const MealPlanDetailsModal: React.FC<MealPlanDetailsModalProps> = ({
   onChoose,
 }) => {
   if (!plan) return null;
+
   // Calculate circle segments for macros
-  const total = plan.macros.reduce((sum, m) => sum + m.value, 0);
+  const macros = plan.macros || [];
+  const meals = plan.meals || [];
+  const total = macros.reduce((sum, m) => sum + (m.value || 0), 0);
   let startAngle = 0;
-  const macroSegments = plan.macros.map((macro) => {
-    const percent = macro.value / total;
+  const macroSegments = macros.map((macro) => {
+    const percent = total > 0 ? (macro.value || 0) / total : 0;
     const length = percent * CIRCUMFERENCE;
     const segment = {
-      color: macro.color,
+      color: macro.color || "#000",
       length,
       offset: startAngle,
     };
@@ -70,27 +53,6 @@ export const MealPlanDetailsModal: React.FC<MealPlanDetailsModalProps> = ({
   // State for FoodDetailsModal
   const [showFoodDetails, setShowFoodDetails] = React.useState(false);
   const [selectedFood, setSelectedFood] = React.useState<any>(null);
-
-  // Example food details (should be replaced with real data)
-  const getFoodDetails = (meal: any) => ({
-    name: meal.title,
-    protein: meal.protein,
-    fat: meal.fat,
-    carbs: meal.carbs,
-    materials: [
-      { name: "Corn", amount: "150g" },
-      { name: "Sweet Potato", amount: "150g" },
-      { name: "Carrot", amount: "150g" },
-      { name: "Cauliflower", amount: "150g" },
-    ],
-    steps: [
-      "Add enough salted water to cover.",
-      "Place lid on saucepan, bring to the boil as quickly as possible.",
-      "Place vegetables in a saucepan.",
-      "Reduce heat and simmer gently until tender when tested with a skewer, point of knife or fork.",
-      "Always simmer vegetables as vigorous boiling will cause some vegetables to break up.",
-    ],
-  });
 
   return (
     <Modal visible={visible} animationType="slide" transparent>
@@ -111,63 +73,36 @@ export const MealPlanDetailsModal: React.FC<MealPlanDetailsModalProps> = ({
             contentContainerStyle={{ paddingBottom: 32 }}
             showsVerticalScrollIndicator={false}
           >
-            {/* Plan Category */}
-            <Text style={styles.planCategory}>{plan.category}</Text>
-            {/* Plan Name */}
-            <Text style={styles.planName}>{plan.name}</Text>
             {/* Plan Description */}
             <Text style={styles.planDesc}>{plan.description}</Text>
             {/* Macros Chart */}
-            <View style={styles.chartCard}>
-              <View style={styles.chartWrap}>
-                <Svg width={CIRCLE_SIZE} height={CIRCLE_SIZE}>
-                  {/* Background circle */}
+            <View style={styles.macrosChart}>
+              <Svg width={CIRCLE_SIZE} height={CIRCLE_SIZE}>
+                {macroSegments.map((segment, index) => (
                   <Circle
+                    key={index}
                     cx={CIRCLE_SIZE / 2}
                     cy={CIRCLE_SIZE / 2}
                     r={RADIUS}
-                    stroke="#F1F5F9"
+                    stroke={segment.color}
                     strokeWidth={STROKE_WIDTH}
+                    strokeDasharray={`${segment.length} ${CIRCUMFERENCE}`}
+                    strokeDashoffset={segment.offset}
+                    fill="none"
+                    transform={`rotate(-90 ${CIRCLE_SIZE / 2} ${
+                      CIRCLE_SIZE / 2
+                    })`}
                   />
-                  {/* Macro Segments */}
-                  {macroSegments.map((seg, idx) => (
-                    <Circle
-                      key={idx}
-                      cx={CIRCLE_SIZE / 2}
-                      cy={CIRCLE_SIZE / 2}
-                      r={RADIUS}
-                      stroke={seg.color}
-                      strokeWidth={STROKE_WIDTH}
-                      strokeDasharray={`${seg.length},${
-                        CIRCUMFERENCE - seg.length
-                      }`}
-                      strokeDashoffset={-seg.offset}
-                      strokeLinecap="round"
-                      fill="none"
-                    />
-                  ))}
-                  {/* White center mask */}
-                  <Circle
-                    cx={CIRCLE_SIZE / 2}
-                    cy={CIRCLE_SIZE / 2}
-                    r={(CIRCLE_SIZE - STROKE_WIDTH * 1.7) / 2}
-                    fill="#fff"
-                  />
-                </Svg>
-                <View style={styles.chartCenter}>
-                  <Text style={styles.chartCaloriesLabel}>Calories</Text>
-                  <Text style={styles.chartCaloriesValue}>
-                    ~{plan.calories}
-                  </Text>
-                  <Text style={styles.chartCaloriesSub}>Daily energy goal</Text>
-                </View>
-              </View>
-              {/* Macro Legend */}
+                ))}
+              </Svg>
               <View style={styles.macroLegendRow}>
-                {plan.macros.map((m) => (
+                {macros.map((m) => (
                   <View style={styles.macroLegendItem} key={m.key}>
                     <View
-                      style={[styles.macroDot, { backgroundColor: m.color }]}
+                      style={[
+                        styles.macroDot,
+                        { backgroundColor: m.color || "#000" },
+                      ]}
                     />
                     <Text style={styles.macroLegendLabel}>{m.label}</Text>
                   </View>
@@ -180,12 +115,12 @@ export const MealPlanDetailsModal: React.FC<MealPlanDetailsModalProps> = ({
               Our dietitian specialists prepared for you balanced meal plan for
               every day of your diet.
             </Text>
-            {plan.meals.map((meal, idx) => (
+            {meals.map((meal, idx) => (
               <TouchableOpacity
                 key={meal.title + idx}
                 activeOpacity={0.8}
                 onPress={() => {
-                  setSelectedFood(getFoodDetails(meal));
+                  setSelectedFood(meal);
                   setShowFoodDetails(true);
                 }}
               >
@@ -198,32 +133,36 @@ export const MealPlanDetailsModal: React.FC<MealPlanDetailsModalProps> = ({
                         <View
                           style={[
                             styles.macroDot,
-                            { backgroundColor: plan.macros[0].color },
+                            { backgroundColor: macros[0]?.color || "#000" },
                           ]}
                         />
                         <Text style={styles.mealMacroLabel}>Protein</Text>
                       </View>
-                      <Text style={styles.mealMacroValue}>{meal.protein}</Text>
+                      <Text style={styles.mealMacroValue}>
+                        {meal.protein || 0}
+                      </Text>
                       <View style={styles.mealMacroItemLabel}>
                         <View
                           style={[
                             styles.macroDot,
-                            { backgroundColor: plan.macros[1].color },
+                            { backgroundColor: macros[1]?.color || "#000" },
                           ]}
                         />
                         <Text style={styles.mealMacroLabel}>Fat</Text>
                       </View>
-                      <Text style={styles.mealMacroValue}>{meal.fat}</Text>
+                      <Text style={styles.mealMacroValue}>{meal.fat || 0}</Text>
                       <View style={styles.mealMacroItemLabel}>
                         <View
                           style={[
                             styles.macroDot,
-                            { backgroundColor: plan.macros[2].color },
+                            { backgroundColor: macros[2]?.color || "#000" },
                           ]}
                         />
                         <Text style={styles.mealMacroLabel}>Carbs</Text>
                       </View>
-                      <Text style={styles.mealMacroValue}>{meal.carbs}</Text>
+                      <Text style={styles.mealMacroValue}>
+                        {meal.carbs || 0}
+                      </Text>
                     </View>
                   </View>
                 </View>
@@ -280,21 +219,6 @@ const styles = StyleSheet.create({
     fontSize: 20,
     color: "#1E293B",
   },
-  planCategory: {
-    color: "#A78BFA",
-    fontWeight: "bold",
-    fontSize: 15,
-    marginLeft: 18,
-    marginTop: 18,
-    marginBottom: 2,
-  },
-  planName: {
-    fontWeight: "bold",
-    fontSize: 28,
-    color: "#1E293B",
-    marginLeft: 18,
-    marginBottom: 4,
-  },
   planDesc: {
     color: "#64748B",
     fontSize: 16,
@@ -302,7 +226,7 @@ const styles = StyleSheet.create({
     marginRight: 18,
     marginBottom: 18,
   },
-  chartCard: {
+  macrosChart: {
     backgroundColor: "#fff",
     borderRadius: 18,
     marginHorizontal: 18,
@@ -313,37 +237,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.03,
     shadowRadius: 4,
     elevation: 1,
-  },
-  chartWrap: {
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 18,
-  },
-  chartCenter: {
-    position: "absolute",
-    left: 0,
-    right: 0,
-    top: 0,
-    bottom: 0,
-    alignItems: "center",
-    justifyContent: "center",
-    alignSelf: "center",
-  },
-  chartCaloriesLabel: {
-    color: "#A3A3A3",
-    fontSize: 16,
-    fontWeight: "500",
-  },
-  chartCaloriesValue: {
-    color: "#1E293B",
-    fontSize: 28,
-    fontWeight: "bold",
-    marginTop: 2,
-    marginBottom: 2,
-  },
-  chartCaloriesSub: {
-    color: "#A3A3A3",
-    fontSize: 14,
   },
   macroLegendRow: {
     flexDirection: "row",

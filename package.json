@@ -9,7 +9,9 @@
     "ios": "expo run:ios",
     "web": "expo start --web",
     "test": "jest --watchAll",
-    "lint": "expo lint"
+    "lint": "expo lint",
+    "setup-simulator": "./scripts/setup-simulator.sh",
+    "start:ios": "npm run setup-simulator && npx expo start --ios"
   },
   "jest": {
     "preset": "jest-expo"

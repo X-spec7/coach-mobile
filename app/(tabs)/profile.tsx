@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -11,9 +11,8 @@ import {
   Pressable,
 } from "react-native";
 import { Settings, User as UserIcon } from "lucide-react-native";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import { API_ENDPOINTS } from "@/constants/api";
 import { useRouter } from "expo-router";
+import { useAuth } from "../contexts/AuthContext";
 
 const menuItems = [
   { id: 1, title: "Personal Information", icon: "user" },
@@ -24,52 +23,23 @@ const menuItems = [
   { id: 6, title: "Help & Support", icon: "help-circle" },
 ];
 
-interface UserProfile {
-  id: number;
-  firstName: string;
-  lastName: string;
-  fullName: string;
-  userType: string;
-  email: string;
-  avatarImageUrl?: string | null;
-  // ...other fields as needed, but not used in UI yet
-}
-
 export default function ProfileScreen() {
-  const [user, setUser] = useState<UserProfile | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { user, isLoading, signOut } = useAuth();
   const [error, setError] = useState<string | null>(null);
   const [menuVisible, setMenuVisible] = useState(false);
   const router = useRouter();
 
-  useEffect(() => {
-    const fetchUser = async () => {
-      try {
-        const token = await AsyncStorage.getItem("token");
-        if (!token) throw new Error("No token found");
-        const response = await fetch(API_ENDPOINTS.USER.GET_USER_INFO, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        if (!response.ok) throw new Error("Failed to fetch user");
-        const data = await response.json();
-        setUser(data.user);
-      } catch (err) {
-        setError("Could not load user info");
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchUser();
-  }, []);
-
   const handleLogout = async () => {
-    await AsyncStorage.removeItem("token");
-    await AsyncStorage.removeItem("user");
-    setMenuVisible(false);
-    router.replace("/(auth)/login-register");
+    try {
+      await signOut();
+      setMenuVisible(false);
+      router.replace("/(auth)/login-register");
+    } catch (err) {
+      setError("Failed to log out");
+    }
   };
 
-  if (loading) {
+  if (isLoading) {
     return (
       <View
         style={[
