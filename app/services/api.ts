@@ -1,6 +1,6 @@
 import { ImageSourcePropType } from "react-native";
 import { getToken } from "./auth";
-import { API_BASE_URL } from "@/constants/api";
+import { API_BASE_URL, API_ENDPOINTS } from "@/constants/api";
 
 export interface Food {
   name: string;
@@ -56,22 +56,7 @@ export interface MealPlan {
 }
 
 export interface MealPlanDetails {
-  category: string;
-  name: string;
-  description: string;
-  calories: number;
-  macros: {
-    key: string;
-    label: string;
-    value: number;
-    color: string;
-  }[];
-  meals: {
-    title: string;
-    protein: number;
-    fat: number;
-    carbs: number;
-  }[];
+  mealPlan: MealPlan;
 }
 
 export const getAuthHeaders = async () => {
@@ -245,7 +230,7 @@ export const updateMealPlanFoodItem = async (
     console.log("Current meal plan before update:", currentMealPlan);
 
     const currentMealTime = currentMealPlan.mealPlan.meal_times.find(
-      (meal) => meal.id === mealTimeId
+      (meal: MealTime) => meal.id === mealTimeId
     );
 
     if (!currentMealTime) {
@@ -254,28 +239,30 @@ export const updateMealPlanFoodItem = async (
 
     // Create payload with all meal times, updating only the specific food item
     const payload = {
-      meal_times: currentMealPlan.mealPlan.meal_times.map((mealTime) => {
-        if (mealTime.id === mealTimeId) {
-          // Update the specific meal time with the new food item
+      meal_times: currentMealPlan.mealPlan.meal_times.map(
+        (mealTime: MealTime) => {
+          if (mealTime.id === mealTimeId) {
+            // Update the specific meal time with the new food item
+            return {
+              time: mealTime.time,
+              day: mealTime.day,
+              mealplan_food_items: [
+                {
+                  amount: parseInt(newFoodItem.amount) || 20,
+                  unit: "g",
+                  food_item: newFoodItem.id,
+                },
+              ],
+            };
+          }
+          // Keep other meal times unchanged
           return {
             time: mealTime.time,
             day: mealTime.day,
-            mealplan_food_items: [
-              {
-                amount: parseInt(newFoodItem.amount) || 20,
-                unit: "g",
-                food_item: newFoodItem.id,
-              },
-            ],
+            mealplan_food_items: mealTime.mealplan_food_items,
           };
         }
-        // Keep other meal times unchanged
-        return {
-          time: mealTime.time,
-          day: mealTime.day,
-          mealplan_food_items: mealTime.mealplan_food_items,
-        };
-      }),
+      ),
     };
 
     console.log("Request payload:", JSON.stringify(payload, null, 2));
@@ -320,5 +307,49 @@ export const updateMealPlanFoodItem = async (
       throw new Error(`Failed to update food item: ${error.message}`);
     }
     throw new Error("Failed to update food item: An unexpected error occurred");
+  }
+};
+
+export const selectMealPlan = async (mealPlanId: number): Promise<void> => {
+  try {
+    console.log("=== selectMealPlan called ===");
+    console.log("mealPlanId:", mealPlanId);
+
+    const headers = await getAuthHeaders();
+    const url = API_ENDPOINTS.USER.SELECT_MEAL_PLAN;
+    console.log("Making request to:", url);
+    console.log("Request headers:", headers);
+    console.log("Request payload:", { mealPlanId });
+
+    const response = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...headers,
+      },
+      body: JSON.stringify({ mealPlanId }),
+    });
+
+    console.log("Response status:", response.status);
+    console.log("Response headers:", response.headers);
+
+    if (!response.ok) {
+      if (response.status === 401) {
+        console.log("Authentication failed - 401 Unauthorized");
+        throw new Error("Authentication required");
+      }
+      const errorText = await response.text();
+      console.log("Error response body:", errorText);
+      throw new Error(
+        `Failed to select meal plan: ${response.status} - ${errorText}`
+      );
+    }
+
+    const responseText = await response.text();
+    console.log("Response body:", responseText);
+    console.log("Meal plan selected successfully");
+  } catch (error) {
+    console.error("Error selecting meal plan:", error);
+    throw error;
   }
 };

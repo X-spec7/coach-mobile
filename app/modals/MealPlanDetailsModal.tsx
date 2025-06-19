@@ -18,6 +18,7 @@ interface MealPlanDetailsModalProps {
   onClose: () => void;
   plan: any; // Using any for now since the API response structure is different
   onChoose: () => void;
+  isLoading?: boolean; // Add loading prop
 }
 
 const CIRCLE_SIZE = 180;
@@ -30,11 +31,19 @@ export const MealPlanDetailsModal: React.FC<MealPlanDetailsModalProps> = ({
   onClose,
   plan,
   onChoose,
+  isLoading,
 }) => {
+  console.log("=== MealPlanDetailsModal ===");
+  console.log("visible:", visible);
   console.log("plan:", plan);
   console.log("plan.mealPlan:", plan?.mealPlan);
   console.log("plan.mealPlan.meal_times:", plan?.mealPlan?.meal_times);
-  if (!plan || !plan.mealPlan) return null;
+  console.log("onChoose function:", onChoose);
+
+  if (!plan || !plan.mealPlan) {
+    console.log("No plan or mealPlan, returning null");
+    return null;
+  }
 
   // Extract the actual meal plan data
   const mealPlan = plan.mealPlan;
@@ -79,15 +88,32 @@ export const MealPlanDetailsModal: React.FC<MealPlanDetailsModalProps> = ({
   const meals =
     mealPlan.meal_times?.flatMap(
       (mealTime: any) =>
-        mealTime.mealplan_food_items?.map((foodItem: any) => ({
-          title: foodItem.name,
-          protein: foodItem.protein || 0,
-          fat: foodItem.fat || 0,
-          carbs: foodItem.carbs || 0,
-          time: mealTime.time,
-          day: mealTime.day,
-        })) || []
+        mealTime.mealplan_food_items?.map((foodItem: any) => {
+          console.log("Processing food item:", foodItem);
+          return {
+            title:
+              foodItem.name ||
+              foodItem.food_item_details?.name ||
+              "Unknown Food",
+            protein: foodItem.protein || 0,
+            fat: foodItem.fat || 0,
+            carbs: foodItem.carbs || 0,
+            time: mealTime.time,
+            day: mealTime.day,
+          };
+        }) || []
     ) || [];
+
+  const handleChoosePress = () => {
+    console.log("Choose button pressed in MealPlanDetailsModal");
+    if (isLoading) {
+      console.log("Already loading, ignoring press");
+      return;
+    }
+    console.log("Calling onChoose function");
+    console.log("Current plan ID:", mealPlan.id);
+    onChoose();
+  };
 
   return (
     <Modal visible={visible} animationType="slide" transparent>
@@ -237,8 +263,19 @@ export const MealPlanDetailsModal: React.FC<MealPlanDetailsModalProps> = ({
             })()}
           </ScrollView>
           {/* Choose Plan Button */}
-          <TouchableOpacity style={styles.chooseBtn} onPress={onChoose}>
-            <Text style={styles.chooseBtnText}>Choose this Plan</Text>
+          <TouchableOpacity
+            style={[styles.chooseBtn, isLoading && styles.chooseBtnDisabled]}
+            onPress={handleChoosePress}
+            disabled={isLoading}
+          >
+            <Text
+              style={[
+                styles.chooseBtnText,
+                isLoading && styles.chooseBtnTextDisabled,
+              ]}
+            >
+              {isLoading ? "Selecting..." : "Choose this Plan"}
+            </Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -425,6 +462,12 @@ const styles = StyleSheet.create({
   chartCaloriesSub: {
     color: "#A3A3A3",
     fontSize: 12,
+  },
+  chooseBtnDisabled: {
+    backgroundColor: "#E5E7EB",
+  },
+  chooseBtnTextDisabled: {
+    color: "#A3A3A3",
   },
 });
 
