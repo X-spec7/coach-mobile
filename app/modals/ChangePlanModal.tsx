@@ -7,8 +7,10 @@ import {
   Modal,
   ScrollView,
   Dimensions,
+  Image,
 } from "react-native";
 import { MealPlan } from "../services/api";
+import { API_BASE_URL } from "@/constants/api";
 
 interface ChangePlanModalProps {
   visible: boolean;
@@ -104,7 +106,17 @@ export const ChangePlanModal: React.FC<ChangePlanModalProps> = ({
           >
             {filteredPlans.map((plan, idx) => (
               <View key={plan.id} style={styles.planCard}>
-                <View style={styles.planImagePlaceholder} />
+                {plan.image ? (
+                  <Image
+                    source={{
+                      uri: `${API_BASE_URL.replace("/api", "")}${plan.image}`,
+                    }}
+                    style={styles.planImagePlaceholder}
+                    resizeMode="cover"
+                  />
+                ) : (
+                  <View style={styles.planImagePlaceholder} />
+                )}
                 <Text style={styles.planTitle}>{plan.name}</Text>
                 <Text style={styles.planDesc}>{plan.description}</Text>
               </View>
