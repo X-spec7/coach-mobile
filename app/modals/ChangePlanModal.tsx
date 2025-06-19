@@ -11,13 +11,20 @@ import {
 } from "react-native";
 import { MealPlan } from "../services/api";
 import { API_BASE_URL } from "@/constants/api";
+import MealPlanDetailsModal from "./MealPlanDetailsModal";
+
+// Extend MealPlan interface for additional properties
+interface ExtendedMealPlan extends MealPlan {
+  visibility?: string;
+  info?: string;
+}
 
 interface ChangePlanModalProps {
   visible: boolean;
   onClose: () => void;
   onSave: () => void;
-  mealPlans: MealPlan[];
-  selectedMealPlan?: MealPlan;
+  mealPlans: ExtendedMealPlan[];
+  selectedMealPlan?: ExtendedMealPlan;
 }
 
 const PLAN_CATEGORIES = [
@@ -42,6 +49,10 @@ export const ChangePlanModal: React.FC<ChangePlanModalProps> = ({
     (p) => p.visibility === selectedCategory
   );
   const [activeIndex, setActiveIndex] = useState(0);
+  const [showPlanDetails, setShowPlanDetails] = useState(false);
+  const [selectedPlan, setSelectedPlan] = useState<ExtendedMealPlan | null>(
+    null
+  );
 
   return (
     <Modal visible={visible} animationType="slide" transparent>
@@ -105,7 +116,15 @@ export const ChangePlanModal: React.FC<ChangePlanModalProps> = ({
             scrollEventThrottle={16}
           >
             {filteredPlans.map((plan, idx) => (
-              <View key={plan.id} style={styles.planCard}>
+              <TouchableOpacity
+                key={plan.id}
+                style={styles.planCard}
+                onPress={() => {
+                  setSelectedPlan(plan);
+                  setShowPlanDetails(true);
+                }}
+                activeOpacity={0.8}
+              >
                 {plan.image ? (
                   <Image
                     source={{
@@ -119,7 +138,7 @@ export const ChangePlanModal: React.FC<ChangePlanModalProps> = ({
                 )}
                 <Text style={styles.planTitle}>{plan.name}</Text>
                 <Text style={styles.planDesc}>{plan.description}</Text>
-              </View>
+              </TouchableOpacity>
             ))}
           </ScrollView>
           {/* Indicator */}
@@ -136,6 +155,17 @@ export const ChangePlanModal: React.FC<ChangePlanModalProps> = ({
           </View>
         </View>
       </View>
+
+      {/* MealPlanDetails Modal */}
+      <MealPlanDetailsModal
+        visible={showPlanDetails}
+        onClose={() => setShowPlanDetails(false)}
+        plan={selectedPlan ? { mealPlan: selectedPlan } : null}
+        onChoose={() => {
+          setShowPlanDetails(false);
+          // You can add additional logic here if needed when a plan is chosen
+        }}
+      />
     </Modal>
   );
 };
