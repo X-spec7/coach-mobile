@@ -1,5 +1,5 @@
 export const API_BASE_URL =
-  process.env.EXPO_PUBLIC_BASE_URL || "http://localhost:8888/api/";
+  process.env.EXPO_PUBLIC_BASE_URL || "http://localhost:8888/api";
 
 export const API_ENDPOINTS = {
   AUTH: {
@@ -14,6 +14,7 @@ export const API_ENDPOINTS = {
   },
   USER: {
     GET_USER_INFO: `${API_BASE_URL}/users/profile/`,
+    SELECT_MEAL_PLAN: `${API_BASE_URL}/users/select-meal-plan/`,
   },
   CLIENT_USER: {
     GET_USER_INFO: `${API_BASE_URL}/users/client/profile/`,

@@ -7,15 +7,25 @@ import {
   Modal,
   ScrollView,
   Dimensions,
+  Image,
+  Alert,
 } from "react-native";
-import { MealPlan } from "../services/api";
+import { MealPlan, selectMealPlan } from "../services/api";
+import { API_BASE_URL } from "@/constants/api";
+import MealPlanDetailsModal from "./MealPlanDetailsModal";
+
+// Extend MealPlan interface for additional properties
+interface ExtendedMealPlan extends MealPlan {
+  visibility?: string;
+  info?: string;
+}
 
 interface ChangePlanModalProps {
   visible: boolean;
   onClose: () => void;
   onSave: () => void;
-  mealPlans: MealPlan[];
-  selectedMealPlan?: MealPlan;
+  mealPlans: ExtendedMealPlan[];
+  selectedMealPlan?: ExtendedMealPlan;
 }
 
 const PLAN_CATEGORIES = [
@@ -33,13 +43,77 @@ export const ChangePlanModal: React.FC<ChangePlanModalProps> = ({
   mealPlans,
   selectedMealPlan,
 }) => {
+  console.log("ChangePlanModal - mealPlans:", mealPlans);
+  console.log("ChangePlanModal - selectedMealPlan:", selectedMealPlan);
+
   const [selectedCategory, setSelectedCategory] = useState(
     PLAN_CATEGORIES[0].key
   );
-  const filteredPlans = mealPlans.filter(
-    (p) => p.visibility === selectedCategory
-  );
+
+  // Filter plans by visibility, default to showing all if visibility is not set
+  const filteredPlans = mealPlans.filter((p) => {
+    console.log("Plan:", p.name, "visibility:", p.visibility);
+    return p.visibility === selectedCategory || !p.visibility;
+  });
+
+  console.log("ChangePlanModal - filteredPlans:", filteredPlans);
+  console.log("ChangePlanModal - selectedCategory:", selectedCategory);
+
   const [activeIndex, setActiveIndex] = useState(0);
+  const [showPlanDetails, setShowPlanDetails] = useState(false);
+  const [selectedPlan, setSelectedPlan] = useState<ExtendedMealPlan | null>(
+    null
+  );
+  const [isSelectingPlan, setIsSelectingPlan] = useState(false);
+
+  const handleChoosePlan = async () => {
+    console.log("handleChoosePlan called with selectedPlan:", selectedPlan);
+    if (!selectedPlan) {
+      console.log("No selected plan, returning");
+      return;
+    }
+
+    try {
+      setIsSelectingPlan(true);
+      console.log("Calling selectMealPlan with ID:", selectedPlan.id);
+      await selectMealPlan(selectedPlan.id);
+
+      // Show success message
+      Alert.alert("Success", "Meal plan selected successfully!", [
+        {
+          text: "OK",
+          onPress: () => {
+            console.log("Success alert OK pressed, closing modals");
+            // Reset all modal states
+            setShowPlanDetails(false);
+            setSelectedPlan(null);
+            setIsSelectingPlan(false);
+            // Close the change plan modal
+            onSave();
+          },
+        },
+      ]);
+    } catch (error) {
+      console.error("Error in handleChoosePlan:", error);
+      const errorMessage =
+        error instanceof Error ? error.message : "Failed to select meal plan";
+      Alert.alert("Error", errorMessage, [{ text: "OK" }]);
+    } finally {
+      setIsSelectingPlan(false);
+    }
+  };
+
+  const handlePlanPress = (plan: ExtendedMealPlan) => {
+    console.log("Plan pressed:", plan);
+    setSelectedPlan(plan);
+    setShowPlanDetails(true);
+  };
+
+  const handleClosePlanDetails = () => {
+    console.log("MealPlanDetailsModal onClose called");
+    setShowPlanDetails(false);
+    setSelectedPlan(null);
+  };
 
   return (
     <Modal visible={visible} animationType="slide" transparent>
@@ -67,6 +141,7 @@ export const ChangePlanModal: React.FC<ChangePlanModalProps> = ({
               <TouchableOpacity
                 key={cat.key}
                 onPress={() => {
+                  console.log("Tab pressed:", cat.key);
                   setSelectedCategory(cat.key);
                   setActiveIndex(0);
                 }}
@@ -87,7 +162,9 @@ export const ChangePlanModal: React.FC<ChangePlanModalProps> = ({
             ))}
           </View>
           {/* Description */}
-          <Text style={styles.categoryDesc}>{filteredPlans[0]?.info}</Text>
+          <Text style={styles.categoryDesc}>
+            {filteredPlans[0]?.info || "Select a meal plan"}
+          </Text>
           {/* Carousel */}
           <ScrollView
             horizontal
@@ -103,11 +180,26 @@ export const ChangePlanModal: React.FC<ChangePlanModalProps> = ({
             scrollEventThrottle={16}
           >
             {filteredPlans.map((plan, idx) => (
-              <View key={plan.id} style={styles.planCard}>
-                <View style={styles.planImagePlaceholder} />
+              <TouchableOpacity
+                key={plan.id}
+                style={styles.planCard}
+                onPress={() => handlePlanPress(plan)}
+                activeOpacity={0.8}
+              >
+                {plan.image ? (
+                  <Image
+                    source={{
+                      uri: `${API_BASE_URL.replace("/api", "")}${plan.image}`,
+                    }}
+                    style={styles.planImagePlaceholder}
+                    resizeMode="cover"
+                  />
+                ) : (
+                  <View style={styles.planImagePlaceholder} />
+                )}
                 <Text style={styles.planTitle}>{plan.name}</Text>
                 <Text style={styles.planDesc}>{plan.description}</Text>
-              </View>
+              </TouchableOpacity>
             ))}
           </ScrollView>
           {/* Indicator */}
@@ -124,6 +216,15 @@ export const ChangePlanModal: React.FC<ChangePlanModalProps> = ({
           </View>
         </View>
       </View>
+
+      {/* MealPlanDetails Modal */}
+      <MealPlanDetailsModal
+        visible={showPlanDetails}
+        onClose={handleClosePlanDetails}
+        plan={selectedPlan ? { mealPlan: selectedPlan } : null}
+        onChoose={handleChoosePlan}
+        isLoading={isSelectingPlan}
+      />
     </Modal>
   );
 };
