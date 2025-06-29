@@ -13,8 +13,7 @@ import {
 import { useRouter } from "expo-router";
 import { useAuth } from "../contexts/AuthContext";
 import { storeToken } from "../services/auth";
-
-const API_BASE_URL = "http://0.0.0.0:8888/api";
+import { API_ENDPOINTS } from "@/constants/api";
 
 export default function SignInScreen() {
   const [email, setEmail] = useState("");
@@ -35,11 +34,8 @@ export default function SignInScreen() {
     setError("");
 
     try {
-      console.log(
-        "Attempting login to:",
-        `${API_BASE_URL}/authentication/login/`
-      );
-      const response = await fetch(`${API_BASE_URL}/authentication/login/`, {
+      console.log("Attempting login to:", API_ENDPOINTS.AUTH.LOGIN);
+      const response = await fetch(API_ENDPOINTS.AUTH.LOGIN, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

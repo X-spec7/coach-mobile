@@ -25,6 +25,7 @@ import ChangePlanModal from "../modals/ChangePlanModal";
 import { FoodDislikesModal } from "../modals/FoodDislikesModal";
 import MealPlanDetailsModal from "../modals/MealPlanDetailsModal";
 import ChangeFoodModal from "../modals/ChangeFoodModal";
+import CreateMealPlanModal from "../modals/CreateMealPlanModal";
 import {
   fetchMealPlans,
   fetchMealPlanDetails,
@@ -74,6 +75,7 @@ export default function MealPlanScreen() {
   const [updateError, setUpdateError] = useState<string | null>(null);
   const [carouselKey, setCarouselKey] = useState(0);
   const [isUpdatingFood, setIsUpdatingFood] = useState(false);
+  const [showCreateMealPlanModal, setShowCreateMealPlanModal] = useState(false);
 
   const allFoodItemIds = selectedMeal?.meal_times
     .flatMap((mt) => mt.mealplan_food_items)
@@ -235,6 +237,23 @@ export default function MealPlanScreen() {
     }
   };
 
+  const handleCreateMealPlan = async (data: any) => {
+    try {
+      // TODO: Implement API call to create meal plan
+      console.log("Creating meal plan:", data);
+
+      // Simulate API call
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+
+      // Refresh meal plans
+      await loadMealPlans();
+
+      Alert.alert("Success", "Meal plan created successfully!");
+    } catch (error) {
+      Alert.alert("Error", "Failed to create meal plan. Please try again.");
+    }
+  };
+
   if (isLoading) {
     return (
       <SafeAreaView
@@ -279,11 +298,29 @@ export default function MealPlanScreen() {
       >
         <View style={styles.errorContainer}>
           <Text style={styles.errorText}>No meal plans available</Text>
+          <TouchableOpacity
+            style={styles.createPlanButton}
+            onPress={() => {
+              console.log("Button pressed, setting modal to true");
+              setShowCreateMealPlanModal(true);
+            }}
+          >
+            <Ionicons name="add-circle-outline" size={24} color="#fff" />
+            <Text style={styles.createPlanButtonText}>
+              Create New Meal Plan
+            </Text>
+          </TouchableOpacity>
         </View>
+        <CreateMealPlanModal
+          visible={showCreateMealPlanModal}
+          onClose={() => setShowCreateMealPlanModal(false)}
+          onSubmit={handleCreateMealPlan}
+        />
       </SafeAreaView>
     );
   }
 
+  console.log("showCreateMealPlanModal:", showCreateMealPlanModal);
   return (
     <SafeAreaView
       style={[
@@ -434,6 +471,11 @@ export default function MealPlanScreen() {
         )}
         onClose={() => setShowChangeFoodModal(false)}
         onSave={handleFoodUpdate}
+      />
+      <CreateMealPlanModal
+        visible={showCreateMealPlanModal}
+        onClose={() => setShowCreateMealPlanModal(false)}
+        onSubmit={handleCreateMealPlan}
       />
     </SafeAreaView>
   );
@@ -587,5 +629,21 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     borderRadius: 16,
+  },
+  createPlanButton: {
+    backgroundColor: "#7C3AED",
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 8,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 16,
+  },
+  createPlanButtonText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "600",
+    marginLeft: 8,
   },
 });
