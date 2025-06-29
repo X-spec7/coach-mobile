@@ -10,6 +10,7 @@ import {
   Alert,
   ActivityIndicator,
   Dimensions,
+  FlatList,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Colors } from "@/constants/Colors";
@@ -80,6 +81,11 @@ export default function CreateMealPlanModal({
   const [selectedFoodItem, setSelectedFoodItem] = useState<number | null>(null);
   const [foodAmount, setFoodAmount] = useState<string>("");
   const [foodUnit, setFoodUnit] = useState<string>("g");
+  const [showFoodPicker, setShowFoodPicker] = useState(false);
+  const [foodSearchQuery, setFoodSearchQuery] = useState("");
+  const [foodPickerMealTimeIndex, setFoodPickerMealTimeIndex] = useState<
+    number | null
+  >(null);
   const [mealPlan, setMealPlan] = useState<CreateMealPlanData>({
     name: "",
     visibility: "private",
@@ -102,10 +108,32 @@ export default function CreateMealPlanModal({
   const fetchFoodItems = async () => {
     try {
       const foods = await fetchAllFoods();
+      console.log("foods fetched:", foods);
       setFoodItems(foods);
     } catch (error) {
       Alert.alert("Error", "Failed to fetch food items");
     }
+  };
+
+  const filteredFoodItems = foodItems.filter((food) =>
+    food.name.toLowerCase().includes(foodSearchQuery.toLowerCase())
+  );
+
+  const handleFoodPickerOpen = (mealTimeIndex: number) => {
+    setFoodPickerMealTimeIndex(mealTimeIndex);
+    setShowFoodPicker(true);
+    setFoodSearchQuery("");
+  };
+
+  const handleFoodPickerClose = () => {
+    setShowFoodPicker(false);
+    setFoodPickerMealTimeIndex(null);
+    setFoodSearchQuery("");
+  };
+
+  const handleFoodSelect = (foodIndex: number) => {
+    setSelectedFoodItem(foodIndex);
+    handleFoodPickerClose();
   };
 
   const handleInputChange = (
@@ -616,30 +644,40 @@ export default function CreateMealPlanModal({
 
                     <View style={styles.addFoodRow}>
                       <View style={styles.foodSelect}>
-                        <TextInput
+                        <TouchableOpacity
                           style={[
-                            styles.input,
+                            styles.foodPickerButton,
                             {
                               backgroundColor: "#f8f9fa",
-                              color: Colors[colorScheme ?? "light"].text,
                               borderColor: "#e9ecef",
                             },
                           ]}
-                          value={
-                            selectedFoodItem !== null
-                              ? foodItems[selectedFoodItem]?.name || ""
-                              : ""
-                          }
-                          placeholder="Select food item"
-                          placeholderTextColor="#6c757d"
-                          onFocus={() => {
-                            // Show food picker modal or dropdown
-                            Alert.alert(
-                              "Select Food",
-                              "Food picker will be implemented"
-                            );
-                          }}
-                        />
+                          onPress={() => handleFoodPickerOpen(index)}
+                        >
+                          <Text
+                            style={[
+                              styles.foodPickerButtonText,
+                              {
+                                color:
+                                  selectedFoodItem !== null
+                                    ? Colors[colorScheme ?? "light"].text
+                                    : "#6c757d",
+                              },
+                            ]}
+                          >
+                            {selectedFoodItem !== null
+                              ? foodItems[selectedFoodItem]?.name ||
+                                "Select food item"
+                              : "Select food item"}
+                          </Text>
+                          <Ionicons
+                            name={
+                              showFoodPicker ? "chevron-up" : "chevron-down"
+                            }
+                            size={16}
+                            color="#6c757d"
+                          />
+                        </TouchableOpacity>
                       </View>
 
                       <View style={styles.amountInput}>
@@ -753,6 +791,62 @@ export default function CreateMealPlanModal({
           </View>
         </View>
       </View>
+
+      {/* Food Picker Modal */}
+      <Modal
+        visible={showFoodPicker}
+        transparent
+        animationType="fade"
+        onRequestClose={handleFoodPickerClose}
+      >
+        <View style={styles.foodPickerModalOverlay}>
+          <View style={styles.foodPickerModalContent}>
+            <TextInput
+              style={[
+                styles.foodSearchInput,
+                {
+                  backgroundColor: "#fff",
+                  color: Colors[colorScheme ?? "light"].text,
+                  borderColor: "#e9ecef",
+                },
+              ]}
+              value={foodSearchQuery}
+              onChangeText={setFoodSearchQuery}
+              placeholder="Search foods..."
+              placeholderTextColor="#6c757d"
+            />
+            <ScrollView
+              style={styles.foodPickerList}
+              showsVerticalScrollIndicator={false}
+            >
+              {filteredFoodItems.map((item, index) => (
+                <TouchableOpacity
+                  key={index}
+                  style={styles.foodPickerItem}
+                  onPress={() => handleFoodSelect(index)}
+                >
+                  <Text
+                    style={[
+                      styles.foodPickerItemText,
+                      {
+                        color: Colors[colorScheme ?? "light"].text,
+                      },
+                    ]}
+                  >
+                    {item.name}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+            <TouchableOpacity
+              onPress={handleFoodPickerClose}
+              style={styles.foodPickerCloseButton}
+            >
+              <Text style={styles.foodPickerCloseButtonText}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </Modal>
   );
 }
@@ -878,6 +972,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 16,
     marginBottom: 16,
+    zIndex: 10,
   },
   mealTimeHeader: {
     flexDirection: "row",
@@ -933,6 +1028,7 @@ const styles = StyleSheet.create({
   },
   foodSelect: {
     flex: 2,
+    position: "relative",
   },
   amountInput: {
     flex: 1,
@@ -1001,5 +1097,60 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontSize: 16,
     fontWeight: "600",
+  },
+  foodPickerButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    height: 44,
+    paddingHorizontal: 12,
+    borderWidth: 1,
+    borderColor: "#e9ecef",
+    borderRadius: 8,
+  },
+  foodPickerButtonText: {
+    fontSize: 16,
+    flex: 1,
+  },
+  foodPickerModalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  foodPickerModalContent: {
+    backgroundColor: "#fff",
+    padding: 20,
+    borderRadius: 8,
+    width: "80%",
+    maxHeight: "80%",
+  },
+  foodPickerList: {
+    maxHeight: 200,
+  },
+  foodPickerItem: {
+    paddingVertical: 12,
+    paddingHorizontal: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: "#f1f3f4",
+  },
+  foodPickerItemText: {
+    fontSize: 16,
+  },
+  foodSearchInput: {
+    height: 44,
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    fontSize: 16,
+    marginBottom: 12,
+  },
+  foodPickerCloseButton: {
+    alignItems: "center",
+    padding: 12,
+  },
+  foodPickerCloseButtonText: {
+    fontSize: 16,
+    fontWeight: "500",
   },
 });
