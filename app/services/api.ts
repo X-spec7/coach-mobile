@@ -3,6 +3,7 @@ import { getToken } from "./auth";
 import { API_BASE_URL, API_ENDPOINTS } from "@/constants/api";
 
 export interface Food {
+  id: number;
   name: string;
   amount: string;
   fooditem_icon: string;

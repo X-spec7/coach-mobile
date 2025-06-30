@@ -36,8 +36,10 @@ import {
   SuitableFood,
   updateMealPlan,
   updateMealPlanFoodItem,
+  getAuthHeaders,
 } from "../services/api";
 import { useAuth } from "../contexts/AuthContext";
+import { API_BASE_URL } from "@/constants/api";
 
 const { width } = Dimensions.get("window");
 
@@ -237,20 +239,31 @@ export default function MealPlanScreen() {
     }
   };
 
-  const handleCreateMealPlan = async (data: any) => {
+  const handleCreateMealPlan = async (formData: FormData) => {
     try {
-      // TODO: Implement API call to create meal plan
-      console.log("Creating meal plan:", data);
+      let fetchOptions: RequestInit = { method: "POST" };
+      const url = `${API_BASE_URL}/mealplan/create/`;
+      let headers = await getAuthHeaders();
+      if (headers["Content-Type"]) delete headers["Content-Type"];
+      fetchOptions.body = formData;
+      fetchOptions.headers = headers;
 
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 2000));
+      const response = await fetch(url, fetchOptions);
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message);
+      }
 
       // Refresh meal plans
       await loadMealPlans();
 
       Alert.alert("Success", "Meal plan created successfully!");
-    } catch (error) {
-      Alert.alert("Error", "Failed to create meal plan. Please try again.");
+    } catch (error: any) {
+      Alert.alert(
+        "Error",
+        error.message || "Failed to create meal plan. Please try again."
+      );
     }
   };
 
@@ -328,6 +341,18 @@ export default function MealPlanScreen() {
         { backgroundColor: Colors[colorScheme ?? "light"].background },
       ]}
     >
+      <View style={styles.container}>
+        <TouchableOpacity
+          style={{
+            marginTop: 20,
+            alignSelf: "flex-end",
+            padding: 4,
+          }}
+          onPress={() => setShowCreateMealPlanModal(true)}
+        >
+          <Ionicons name="add-circle-outline" size={32} color="#7C3AED" />
+        </TouchableOpacity>
+      </View>
       <ScrollView
         contentContainerStyle={{ paddingBottom: 32 }}
         showsVerticalScrollIndicator={false}

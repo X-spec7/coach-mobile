@@ -11,11 +11,13 @@ import {
   ActivityIndicator,
   Dimensions,
   FlatList,
+  Image,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Colors } from "@/constants/Colors";
 import { useColorScheme } from "@/hooks/useColorScheme";
 import { fetchAllFoods, Food } from "../services/api";
+import * as ImagePicker from "expo-image-picker";
 
 const { width } = Dimensions.get("window");
 
@@ -55,7 +57,7 @@ interface CreateMealPlanData {
 interface CreateMealPlanModalProps {
   visible: boolean;
   onClose: () => void;
-  onSubmit: (data: CreateMealPlanData) => Promise<void>;
+  onSubmit: (data: FormData) => Promise<void>;
 }
 
 const DAYS_OF_WEEK: DayOfWeek[] = [
@@ -96,8 +98,8 @@ export default function CreateMealPlanModal({
     is_ai_generated: false,
     meal_times: [],
   });
-
-  console.log("CreateMealPlanModal - visible:", visible);
+  const [imageUri, setImageUri] = useState<string | null>(null);
+  const [imageFile, setImageFile] = useState<any>(null);
 
   useEffect(() => {
     if (visible) {
@@ -204,7 +206,7 @@ export default function CreateMealPlanModal({
         mealplan_food_items: [
           ...updatedMealTimes[mealTimeIndex].mealplan_food_items,
           {
-            food_item: selectedFoodItem,
+            food_item: Number(selectedFood.id),
             amount: parseFloat(foodAmount),
             unit: foodUnit,
           },
@@ -257,17 +259,92 @@ export default function CreateMealPlanModal({
     return true;
   };
 
+  const pickImage = async () => {
+    let result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [4, 3],
+      quality: 1,
+    });
+
+    if (!result.canceled && result.assets && result.assets.length > 0) {
+      const asset = result.assets[0];
+      setImageUri(asset.uri);
+      const fileName =
+        asset.fileName || asset.uri.split("/").pop() || "image.jpg";
+      const extension = fileName.split(".").pop()?.toLowerCase();
+      let fileType = asset.type;
+      if (!fileType || fileType === "image") {
+        if (extension === "jpg" || extension === "jpeg")
+          fileType = "image/jpeg";
+        else if (extension === "png") fileType = "image/png";
+        else if (extension === "gif") fileType = "image/gif";
+        else fileType = "application/octet-stream";
+      }
+      setImageFile({
+        uri: asset.uri,
+        name: fileName,
+        type: fileType as string,
+      });
+    }
+  };
+
+  function normalizeMealPlanData(data: any) {
+    // Ensure meal_times is always an array
+    if (data.meal_times && !Array.isArray(data.meal_times)) {
+      data.meal_times = [data.meal_times];
+    }
+    if (Array.isArray(data.meal_times)) {
+      data.meal_times = data.meal_times.map((mt: any) => {
+        let items = mt.mealplan_food_items;
+        // If it's a single object, wrap in array
+        if (items && !Array.isArray(items)) {
+          items = [items];
+        }
+        // If it's an array of arrays, flatten
+        if (
+          Array.isArray(items) &&
+          items.length === 1 &&
+          Array.isArray(items[0])
+        ) {
+          items = items[0];
+        }
+        // If undefined, default to []
+        if (!items) items = [];
+        return { ...mt, mealplan_food_items: items };
+      });
+    }
+    return data;
+  }
+
   const handleSubmit = async () => {
     if (!validateForm()) return;
 
     setIsSubmitting(true);
     try {
-      await onSubmit(mealPlan);
+      // Deep clone and deeply ensure arrays
+      let mealPlanData = JSON.parse(JSON.stringify(mealPlan));
+      mealPlanData = normalizeMealPlanData(mealPlanData);
+      delete mealPlanData.image;
+      console.log("ACTUAL JSON SENT:", JSON.stringify(mealPlanData, null, 2));
+
+      // Always use FormData, just like the web frontend
+      const formData = new FormData();
+      formData.append("data", JSON.stringify(mealPlanData));
+      if (imageFile) {
+        formData.append("image", imageFile);
+      }
+
+      await onSubmit(formData);
       Alert.alert("Success", "Meal plan created successfully!", [
         { text: "OK", onPress: onClose },
       ]);
-    } catch (error) {
-      Alert.alert("Error", "Failed to create meal plan. Please try again.");
+    } catch (error: any) {
+      console.log("Error creating meal plan:", error);
+      Alert.alert(
+        "Error",
+        error.message || "Failed to create meal plan. Please try again."
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -417,6 +494,36 @@ export default function CreateMealPlanModal({
                   numberOfLines={4}
                   textAlignVertical="top"
                 />
+              </View>
+
+              <View style={styles.inputGroup}>
+                <Text
+                  style={[
+                    styles.label,
+                    { color: Colors[colorScheme ?? "light"].text },
+                  ]}
+                >
+                  Image
+                </Text>
+                <TouchableOpacity onPress={pickImage} style={styles.addButton}>
+                  <Text style={{ color: "#fff" }}>
+                    {imageUri ? "Change Image" : "Add Image"}
+                  </Text>
+                </TouchableOpacity>
+                {typeof imageUri === "string" &&
+                  imageUri.trim() !== "" &&
+                  (imageUri.startsWith("file://") ||
+                    imageUri.startsWith("http")) && (
+                    <Image
+                      source={{ uri: imageUri.trim() }}
+                      style={styles.imagePreview}
+                      resizeMode="cover"
+                      onError={() => {
+                        console.warn("Failed to load image:", imageUri);
+                        setImageUri(null);
+                      }}
+                    />
+                  )}
               </View>
             </View>
 
@@ -1152,5 +1259,11 @@ const styles = StyleSheet.create({
   foodPickerCloseButtonText: {
     fontSize: 16,
     fontWeight: "500",
+  },
+  imagePreview: {
+    width: 100,
+    height: 100,
+    borderRadius: 8,
+    marginTop: 8,
   },
 });
