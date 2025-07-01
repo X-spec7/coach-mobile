@@ -354,3 +354,38 @@ export const selectMealPlan = async (mealPlanId: number): Promise<void> => {
     throw error;
   }
 };
+
+export const deleteMealPlan = async (mealPlanId: number): Promise<void> => {
+  try {
+    const headers = await getAuthHeaders();
+    const url = `${API_BASE_URL}/mealplan/${mealPlanId}/delete/`;
+    console.log("Making request to:", url);
+    console.log("Request headers:", headers);
+    console.log("Request payload:", { mealPlanId });
+
+    const response = await fetch(url, {
+      method: "DELETE",
+      headers: {
+        "Content-Type": "application/json",
+        ...headers,
+      },
+    });
+
+    if (!response.ok) {
+      if (response.status === 401) {
+        console.log("Authentication failed - 401 Unauthorized");
+        throw new Error("Authentication required");
+      }
+      const errorText = await response.text();
+      console.log("Error response body:", errorText);
+      throw new Error(
+        `Failed to delete meal plan: ${response.status} - ${errorText}`
+      );
+    }
+
+    console.log("Meal plan deleted successfully");
+  } catch (error) {
+    console.error("Error deleting meal plan:", error);
+    throw error;
+  }
+};

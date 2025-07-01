@@ -37,6 +37,7 @@ import {
   updateMealPlan,
   updateMealPlanFoodItem,
   selectMealPlan,
+  deleteMealPlan,
   getAuthHeaders,
 } from "../services/api";
 import { useAuth } from "../contexts/AuthContext";
@@ -291,6 +292,29 @@ export default function MealPlanScreen() {
       Alert.alert("Error", errorMessage);
     }
   };
+  const handleDeleteMealPlan = async () => {
+    if (!planDetails?.mealPlan?.id) {
+      Alert.alert("Error", "No meal plan selected");
+      return;
+    }
+
+    try {
+      await deleteMealPlan(planDetails.mealPlan.id);
+
+      // Update the selected meal plan in local state
+      setSelectedId(null);
+
+      // Close the modal
+      setShowPlanDetails(false);
+
+      // Show success message
+      Alert.alert("Success", "Meal plan deleted successfully!");
+    } catch (error: any) {
+      const errorMessage =
+        error.message || "Failed to delete meal plan. Please try again.";
+      Alert.alert("Error", errorMessage);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -510,6 +534,7 @@ export default function MealPlanScreen() {
         onClose={() => setShowPlanDetails(false)}
         plan={planDetails}
         onChoose={handleSelectMealPlan}
+        onDelete={handleDeleteMealPlan}
       />
       <ChangeFoodModal
         visible={showChangeFoodModal && !!selectedMeal}
