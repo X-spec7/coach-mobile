@@ -273,8 +273,8 @@ export default function CreateMealPlanModal({
       const fileName =
         asset.fileName || asset.uri.split("/").pop() || "image.jpg";
       const extension = fileName.split(".").pop()?.toLowerCase();
-      let fileType = asset.type;
-      if (!fileType || fileType === "image") {
+      let fileType: string = asset.type || "image";
+      if (fileType === "image") {
         if (extension === "jpg" || extension === "jpeg")
           fileType = "image/jpeg";
         else if (extension === "png") fileType = "image/png";
@@ -284,7 +284,7 @@ export default function CreateMealPlanModal({
       setImageFile({
         uri: asset.uri,
         name: fileName,
-        type: fileType as string,
+        type: fileType,
       });
     }
   };

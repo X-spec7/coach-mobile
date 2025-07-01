@@ -11,6 +11,7 @@ import {
 import Svg, { Circle } from "react-native-svg";
 import { Ionicons } from "@expo/vector-icons";
 import FoodDetailsModal from "./FoodDetailsModal";
+import { useAuth } from "../contexts/AuthContext";
 
 // Update the interface to match the actual API response
 interface MealPlanDetailsModalProps {
@@ -40,6 +41,8 @@ export const MealPlanDetailsModal: React.FC<MealPlanDetailsModalProps> = ({
   console.log("plan.mealPlan.meal_times:", plan?.mealPlan?.meal_times);
   console.log("onChoose function:", onChoose);
 
+  const { user } = useAuth();
+  console.log("user:", user);
   if (!plan || !plan.mealPlan) {
     console.log("No plan or mealPlan, returning null");
     return null;
@@ -264,7 +267,11 @@ export const MealPlanDetailsModal: React.FC<MealPlanDetailsModalProps> = ({
           </ScrollView>
           {/* Choose Plan Button */}
           <TouchableOpacity
-            style={[styles.chooseBtn, isLoading && styles.chooseBtnDisabled]}
+            style={[
+              styles.chooseBtn,
+              isLoading && styles.chooseBtnDisabled,
+              user?.userType === "Coach" && styles.coachChooseBtn,
+            ]}
             onPress={handleChoosePress}
             disabled={isLoading}
           >
@@ -429,6 +436,7 @@ const styles = StyleSheet.create({
   },
   chooseBtn: {
     backgroundColor: "#A78BFA",
+    opacity: 1,
     borderRadius: 12,
     margin: 18,
     paddingVertical: 16,
@@ -462,6 +470,12 @@ const styles = StyleSheet.create({
   chartCaloriesSub: {
     color: "#A3A3A3",
     fontSize: 12,
+  },
+  coachChooseBtn: {
+    opacity: 0,
+    display: "none",
+    pointerEvents: "none",
+    backgroundColor: "#E5E7EB",
   },
   chooseBtnDisabled: {
     backgroundColor: "#E5E7EB",

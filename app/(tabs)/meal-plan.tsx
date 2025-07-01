@@ -36,6 +36,7 @@ import {
   SuitableFood,
   updateMealPlan,
   updateMealPlanFoodItem,
+  selectMealPlan,
   getAuthHeaders,
 } from "../services/api";
 import { useAuth } from "../contexts/AuthContext";
@@ -267,6 +268,30 @@ export default function MealPlanScreen() {
     }
   };
 
+  const handleSelectMealPlan = async () => {
+    if (!planDetails?.mealPlan?.id) {
+      Alert.alert("Error", "No meal plan selected");
+      return;
+    }
+
+    try {
+      await selectMealPlan(planDetails.mealPlan.id);
+
+      // Update the selected meal plan in local state
+      setSelectedId(planDetails.mealPlan.id);
+
+      // Close the modal
+      setShowPlanDetails(false);
+
+      // Show success message
+      Alert.alert("Success", "Meal plan selected successfully!");
+    } catch (error: any) {
+      const errorMessage =
+        error.message || "Failed to select meal plan. Please try again.";
+      Alert.alert("Error", errorMessage);
+    }
+  };
+
   if (isLoading) {
     return (
       <SafeAreaView
@@ -484,7 +509,7 @@ export default function MealPlanScreen() {
         visible={showPlanDetails}
         onClose={() => setShowPlanDetails(false)}
         plan={planDetails}
-        onChoose={() => setShowPlanDetails(false)}
+        onChoose={handleSelectMealPlan}
       />
       <ChangeFoodModal
         visible={showChangeFoodModal && !!selectedMeal}
