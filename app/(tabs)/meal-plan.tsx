@@ -301,8 +301,30 @@ export default function MealPlanScreen() {
     try {
       await deleteMealPlan(planDetails.mealPlan.id);
 
-      // Update the selected meal plan in local state
-      setSelectedId(null);
+      // Remove the deleted meal plan from local state
+      const updatedMeals = meals.filter(
+        (meal) => meal.id !== planDetails.mealPlan.id
+      );
+      setMeals(updatedMeals);
+
+      // Select next meal plan or set to null if no meals left
+      if (updatedMeals.length > 0) {
+        // Find the index of the deleted meal plan
+        const deletedIndex = meals.findIndex(
+          (meal) => meal.id === planDetails.mealPlan.id
+        );
+
+        // Select the next meal plan (or the previous one if we're at the end)
+        let nextIndex = deletedIndex;
+        if (deletedIndex >= updatedMeals.length) {
+          nextIndex = updatedMeals.length - 1; // Select the last meal plan
+        }
+
+        setSelectedId(updatedMeals[nextIndex].id);
+      } else {
+        // No meals left, set to null
+        setSelectedId(null);
+      }
 
       // Close the modal
       setShowPlanDetails(false);
