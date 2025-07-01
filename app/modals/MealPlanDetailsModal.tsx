@@ -19,6 +19,7 @@ interface MealPlanDetailsModalProps {
   onClose: () => void;
   plan: any; // Using any for now since the API response structure is different
   onChoose: () => void;
+  onDelete?: () => void;
   isLoading?: boolean; // Add loading prop
 }
 
@@ -32,6 +33,7 @@ export const MealPlanDetailsModal: React.FC<MealPlanDetailsModalProps> = ({
   onClose,
   plan,
   onChoose,
+  onDelete,
   isLoading,
 }) => {
   console.log("=== MealPlanDetailsModal ===");
@@ -116,6 +118,17 @@ export const MealPlanDetailsModal: React.FC<MealPlanDetailsModalProps> = ({
     console.log("Calling onChoose function");
     console.log("Current plan ID:", mealPlan.id);
     onChoose();
+  };
+
+  const handleDeletePress = () => {
+    console.log("Delete button pressed in MealPlanDetailsModal");
+    if (isLoading) {
+      console.log("Already loading, ignoring press");
+      return;
+    }
+    console.log("Calling onDelete function");
+    console.log("Current plan ID:", mealPlan.id);
+    onDelete?.();
   };
 
   return (
@@ -284,6 +297,24 @@ export const MealPlanDetailsModal: React.FC<MealPlanDetailsModalProps> = ({
               {isLoading ? "Selecting..." : "Choose this Plan"}
             </Text>
           </TouchableOpacity>
+          <TouchableOpacity
+            style={[
+              styles.deleteBtn,
+              isLoading && styles.chooseBtnDisabled,
+              user?.userType === "Coach" && styles.coachChooseBtn,
+            ]}
+            onPress={handleDeletePress}
+            disabled={isLoading}
+          >
+            <Text
+              style={[
+                styles.deleteBtnText,
+                isLoading && styles.chooseBtnTextDisabled,
+              ]}
+            >
+              {isLoading ? "Deleting..." : "Delete this Plan"}
+            </Text>
+          </TouchableOpacity>
         </View>
       </View>
       {/* Food Details Modal */}
@@ -443,6 +474,19 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   chooseBtnText: {
+    color: "#fff",
+    fontWeight: "bold",
+    fontSize: 18,
+  },
+  deleteBtn: {
+    backgroundColor: "#F87171",
+    opacity: 1,
+    borderRadius: 12,
+    margin: 18,
+    paddingVertical: 16,
+    alignItems: "center",
+  },
+  deleteBtnText: {
     color: "#fff",
     fontWeight: "bold",
     fontSize: 18,
