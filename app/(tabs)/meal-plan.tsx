@@ -80,6 +80,11 @@ export default function MealPlanScreen() {
   const [carouselKey, setCarouselKey] = useState(0);
   const [isUpdatingFood, setIsUpdatingFood] = useState(false);
   const [showCreateMealPlanModal, setShowCreateMealPlanModal] = useState(false);
+  const [selectedClient, setSelectedClient] = useState<string>("");
+
+  const handleClientChange = (clientId: string) => {
+    setSelectedClient(clientId);
+  };
 
   const allFoodItemIds = selectedMeal?.meal_times
     .flatMap((mt) => mt.mealplan_food_items)
@@ -251,12 +256,31 @@ export default function MealPlanScreen() {
       fetchOptions.headers = headers;
 
       const response = await fetch(url, fetchOptions);
-
+      const mealPlan = await response.json();
       if (!response.ok) {
         const error = await response.json();
         throw new Error(error.message);
       }
 
+      // Assign to client
+      if (selectedClient) {
+        console.log("assigning to client", selectedClient);
+        const assignResponse = await fetch("/api/meal-plans/assign", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            mealPlanId: mealPlan.id,
+            clientId: Number(selectedClient),
+          }),
+        });
+
+        if (!assignResponse.ok) {
+          const error = await assignResponse.json();
+          throw new Error(error.message);
+        }
+      }
       // Refresh meal plans
       await loadMealPlans();
 
@@ -573,6 +597,8 @@ export default function MealPlanScreen() {
         visible={showCreateMealPlanModal}
         onClose={() => setShowCreateMealPlanModal(false)}
         onSubmit={handleCreateMealPlan}
+        selectedClient={selectedClient}
+        handleClientChange={handleClientChange}
       />
     </SafeAreaView>
   );
@@ -742,5 +768,13 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
     marginLeft: 8,
+  },
+  carouselSection: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  menuScrollView: {
+    flex: 1,
   },
 });

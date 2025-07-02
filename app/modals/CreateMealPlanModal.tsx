@@ -18,6 +18,7 @@ import { Colors } from "@/constants/Colors";
 import { useColorScheme } from "@/hooks/useColorScheme";
 import { fetchAllFoods, Food } from "../services/api";
 import * as ImagePicker from "expo-image-picker";
+import ClientSelector from "../components/ClientSelector";
 
 const { width } = Dimensions.get("window");
 
@@ -58,6 +59,8 @@ interface CreateMealPlanModalProps {
   visible: boolean;
   onClose: () => void;
   onSubmit: (data: FormData) => Promise<void>;
+  selectedClient?: string;
+  handleClientChange?: (clientId: string) => void;
 }
 
 const DAYS_OF_WEEK: DayOfWeek[] = [
@@ -76,6 +79,8 @@ export default function CreateMealPlanModal({
   visible,
   onClose,
   onSubmit,
+  selectedClient,
+  handleClientChange,
 }: CreateMealPlanModalProps) {
   const colorScheme = useColorScheme();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -110,7 +115,6 @@ export default function CreateMealPlanModal({
   const fetchFoodItems = async () => {
     try {
       const foods = await fetchAllFoods();
-      console.log("foods fetched:", foods);
       setFoodItems(foods);
     } catch (error) {
       Alert.alert("Error", "Failed to fetch food items");
@@ -383,6 +387,22 @@ export default function CreateMealPlanModal({
             style={styles.scrollView}
             showsVerticalScrollIndicator={false}
           >
+            {/* Client Selector */}
+            <View style={styles.section}>
+              <Text
+                style={[
+                  styles.sectionTitle,
+                  { color: Colors[colorScheme ?? "light"].text },
+                ]}
+              >
+                Client Selection
+              </Text>
+              <ClientSelector
+                selectedClient={selectedClient || ""}
+                onChange={handleClientChange || (() => {})}
+                useFlatList={false}
+              />
+            </View>
             {/* Basic Information */}
             <View style={styles.section}>
               <Text

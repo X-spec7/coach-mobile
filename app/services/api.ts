@@ -168,7 +168,6 @@ export const fetchAllFoods = async (): Promise<Food[]> => {
     }
 
     const data = await response.json();
-    console.log("Foods response data:", data);
     return data.foodItems || [];
   } catch (error) {
     console.error("Error fetching foods:", error);
