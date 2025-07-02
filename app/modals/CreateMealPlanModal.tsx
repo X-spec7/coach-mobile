@@ -16,6 +16,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { Colors } from "@/constants/Colors";
 import { useColorScheme } from "@/hooks/useColorScheme";
+import { useAuth } from "../contexts/AuthContext";
 import { fetchAllFoods, Food } from "../services/api";
 import * as ImagePicker from "expo-image-picker";
 import ClientSelector from "../components/ClientSelector";
@@ -83,6 +84,7 @@ export default function CreateMealPlanModal({
   handleClientChange,
 }: CreateMealPlanModalProps) {
   const colorScheme = useColorScheme();
+  const { user } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [foodItems, setFoodItems] = useState<Food[]>([]);
   const [selectedFoodItem, setSelectedFoodItem] = useState<number | null>(null);
@@ -387,22 +389,24 @@ export default function CreateMealPlanModal({
             style={styles.scrollView}
             showsVerticalScrollIndicator={false}
           >
-            {/* Client Selector */}
-            <View style={styles.section}>
-              <Text
-                style={[
-                  styles.sectionTitle,
-                  { color: Colors[colorScheme ?? "light"].text },
-                ]}
-              >
-                Client Selection
-              </Text>
-              <ClientSelector
-                selectedClient={selectedClient || ""}
-                onChange={handleClientChange || (() => {})}
-                useFlatList={false}
-              />
-            </View>
+            {/* Client Selector - Only visible for Coaches */}
+            {user?.userType === "Coach" && (
+              <View style={styles.section}>
+                <Text
+                  style={[
+                    styles.sectionTitle,
+                    { color: Colors[colorScheme ?? "light"].text },
+                  ]}
+                >
+                  Client Selection
+                </Text>
+                <ClientSelector
+                  selectedClient={selectedClient || ""}
+                  onChange={handleClientChange || (() => {})}
+                  useFlatList={false}
+                />
+              </View>
+            )}
             {/* Basic Information */}
             <View style={styles.section}>
               <Text
