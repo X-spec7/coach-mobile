@@ -16,22 +16,8 @@ import { useAuth } from "../contexts/AuthContext";
 import {
   RelationshipService,
   Relationship,
-  myRelationships,
 } from "../services/relationshipService";
 import { ContactService, IContact } from "../services/contactService";
-
-// Temporary local interface until import is resolved
-interface Contact {
-  id: number;
-  fullName: string;
-  userType: string;
-  avatarUrl?: string | null;
-  unreadCount: number;
-  lastMessage?: {
-    content: string;
-    sentDate: string;
-  };
-}
 import { API_BASE_URL } from "@/constants/api";
 
 const { width } = Dimensions.get("window");
@@ -48,10 +34,10 @@ export const ContactsModal: React.FC<ContactsModalProps> = ({
   onClose,
 }) => {
   const { user } = useAuth();
-  const [contacts, setContacts] = useState<Contact[]>([]);
+  const [contacts, setContacts] = useState<IContact[]>([]);
   const [relationships, setRelationships] = useState<Relationship[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
-  const [filteredContacts, setFilteredContacts] = useState<Contact[]>([]);
+  const [filteredContacts, setFilteredContacts] = useState<IContact[]>([]);
   const [filteredRelationships, setFilteredRelationships] = useState<
     Relationship[]
   >([]);
@@ -69,14 +55,18 @@ export const ContactsModal: React.FC<ContactsModalProps> = ({
     }
   }, [visible]);
 
+  console.log("contacts:", contacts);
+  //console.log("relationships:", relationships);
   useEffect(() => {
     if (searchQuery.trim() === "") {
       setFilteredContacts(contacts);
       setFilteredRelationships(relationships);
     } else {
-      const filtered = contacts.filter((contact) =>
-        contact.fullName.toLowerCase().includes(searchQuery.toLowerCase())
-      );
+      const filtered =
+        contacts &&
+        contacts.filter((contact) =>
+          contact.fullName.toLowerCase().includes(searchQuery.toLowerCase())
+        );
       setFilteredContacts(filtered || []);
 
       const filteredRels = relationships.filter((rel) => {
@@ -100,13 +90,11 @@ export const ContactsModal: React.FC<ContactsModalProps> = ({
       // Fetch relationships related to the logged-in user
       if (user?.id) {
         try {
-          // Fetch contacts - temporarily disabled until service is available
+          // Fetch contacts
           const contactsResponse = await ContactService.getContacts();
-          console.log("contactsResponse", contactsResponse);
           setContacts(contactsResponse.contacts);
           //Use getRelationships without filters to get all relationships for the current user
           let relationshipsData = await RelationshipService.myRelationships();
-          console.log("Fetched relationships:", relationshipsData);
           setRelationships(relationshipsData);
           setFilteredRelationships(relationshipsData);
         } catch (error) {
@@ -265,7 +253,7 @@ export const ContactsModal: React.FC<ContactsModalProps> = ({
     return null;
   };
 
-  const renderContactItem = (contact: Contact) => (
+  const renderContactItem = (contact: IContact) => (
     <View key={contact.id} style={styles.contactItem}>
       <View style={styles.contactAvatarContainer}>
         {contact.avatarUrl ? (
@@ -313,7 +301,9 @@ export const ContactsModal: React.FC<ContactsModalProps> = ({
         <View style={styles.userInfo}>
           {relationship.coach.avatarImageUrl ? (
             <Image
-              source={{ uri: getAvatarUrl(relationship.coach.avatarImageUrl)! }}
+              source={{
+                uri: getAvatarUrl(relationship.coach.avatarImageUrl)!,
+              }}
               style={styles.userAvatar}
             />
           ) : (
@@ -338,7 +328,9 @@ export const ContactsModal: React.FC<ContactsModalProps> = ({
       <View style={styles.userInfo}>
         {relationship.client.avatarImageUrl ? (
           <Image
-            source={{ uri: getAvatarUrl(relationship.client.avatarImageUrl)! }}
+            source={{
+              uri: getAvatarUrl(relationship.client.avatarImageUrl)!,
+            }}
             style={styles.userAvatar}
           />
         ) : (
@@ -484,7 +476,7 @@ export const ContactsModal: React.FC<ContactsModalProps> = ({
                     </Text>
                   </View>
                 ) : (
-                  filteredRelationships.map(renderRelationshipItem)
+                  filteredRelationships?.map(renderRelationshipItem)
                 )}
               </View>
             )}
@@ -531,6 +523,7 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     maxHeight: "90%",
+    minHeight: "50%",
   },
   modalHeader: {
     flexDirection: "row",
@@ -593,6 +586,7 @@ const styles = StyleSheet.create({
   contentContainer: {
     flex: 1,
     paddingHorizontal: 20,
+    minHeight: 200,
   },
   contactsContainer: {
     paddingBottom: 20,
