@@ -16,6 +16,7 @@ import { useAuth } from "../contexts/AuthContext";
 import {
   RelationshipService,
   Relationship,
+  myRelationships,
 } from "../services/relationshipService";
 import { ContactService, IContact } from "../services/contactService";
 
@@ -76,7 +77,7 @@ export const ContactsModal: React.FC<ContactsModalProps> = ({
       const filtered = contacts.filter((contact) =>
         contact.fullName.toLowerCase().includes(searchQuery.toLowerCase())
       );
-      setFilteredContacts(filtered);
+      setFilteredContacts(filtered || []);
 
       const filteredRels = relationships.filter((rel) => {
         const coachName = rel.coach.fullName.toLowerCase();
@@ -104,7 +105,7 @@ export const ContactsModal: React.FC<ContactsModalProps> = ({
           console.log("contactsResponse", contactsResponse);
           setContacts(contactsResponse.contacts);
           //Use getRelationships without filters to get all relationships for the current user
-          let relationshipsData = await RelationshipService.getRelationships();
+          let relationshipsData = await RelationshipService.myRelationships();
           console.log("Fetched relationships:", relationshipsData);
           setRelationships(relationshipsData);
           setFilteredRelationships(relationshipsData);
@@ -460,7 +461,7 @@ export const ContactsModal: React.FC<ContactsModalProps> = ({
           >
             {activeTab === "contacts" ? (
               <View style={styles.contactsContainer}>
-                {filteredContacts.length === 0 ? (
+                {filteredContacts?.length === 0 ? (
                   <View style={styles.emptyState}>
                     <Text style={styles.emptyStateText}>
                       {searchQuery
@@ -469,7 +470,7 @@ export const ContactsModal: React.FC<ContactsModalProps> = ({
                     </Text>
                   </View>
                 ) : (
-                  filteredContacts.map(renderContactItem)
+                  filteredContacts?.map(renderContactItem)
                 )}
               </View>
             ) : (
