@@ -67,6 +67,7 @@ export const ContactsModal: React.FC<ContactsModalProps> = ({
         contacts.filter((contact) =>
           contact.fullName.toLowerCase().includes(searchQuery.toLowerCase())
         );
+      console.log("filtered:", filtered);
       setFilteredContacts(filtered || []);
 
       const filteredRels = relationships.filter((rel) => {
@@ -92,7 +93,8 @@ export const ContactsModal: React.FC<ContactsModalProps> = ({
         try {
           // Fetch contacts
           const contactsResponse = await ContactService.getContacts();
-          setContacts(contactsResponse.contacts);
+          console.log("contactsResponse:", contactsResponse);
+          setContacts(contactsResponse?.contacts || []);
           //Use getRelationships without filters to get all relationships for the current user
           let relationshipsData = await RelationshipService.myRelationships();
           setRelationships(relationshipsData);
@@ -252,6 +254,8 @@ export const ContactsModal: React.FC<ContactsModalProps> = ({
 
     return null;
   };
+
+  console.log("filteredContacts:", filteredContacts);
 
   const renderContactItem = (contact: IContact) => (
     <View key={contact.id} style={styles.contactItem}>
@@ -480,32 +484,31 @@ export const ContactsModal: React.FC<ContactsModalProps> = ({
                 )}
               </View>
             )}
+            <View style={styles.statsContainer}>
+              <Text style={styles.statsTitle}>Network Statistics</Text>
+              <View style={styles.statsRow}>
+                <Text style={styles.statsLabel}>Active Relationships</Text>
+                <Text style={styles.statsValue}>
+                  {relationships.filter((r) => r.status === "active").length}
+                </Text>
+              </View>
+              <View style={styles.statsRow}>
+                <Text style={styles.statsLabel}>Pending Requests</Text>
+                <Text style={styles.statsValue}>
+                  {relationships.filter((r) => r.status === "pending").length}
+                </Text>
+              </View>
+              <View style={styles.statsRow}>
+                <Text style={styles.statsLabel}>Unread Messages</Text>
+                <Text style={styles.statsValue}>
+                  {contacts?.reduce(
+                    (total, contact) => total + contact.unreadCount,
+                    0
+                  ) || 0}
+                </Text>
+              </View>
+            </View>
           </ScrollView>
-
-          <View style={styles.statsContainer}>
-            <Text style={styles.statsTitle}>Network Statistics</Text>
-            <View style={styles.statsRow}>
-              <Text style={styles.statsLabel}>Active Relationships</Text>
-              <Text style={styles.statsValue}>
-                {relationships.filter((r) => r.status === "active").length}
-              </Text>
-            </View>
-            <View style={styles.statsRow}>
-              <Text style={styles.statsLabel}>Pending Requests</Text>
-              <Text style={styles.statsValue}>
-                {relationships.filter((r) => r.status === "pending").length}
-              </Text>
-            </View>
-            <View style={styles.statsRow}>
-              <Text style={styles.statsLabel}>Unread Messages</Text>
-              <Text style={styles.statsValue}>
-                {contacts?.reduce(
-                  (total, contact) => total + contact.unreadCount,
-                  0
-                ) || 0}
-              </Text>
-            </View>
-          </View>
         </View>
       </View>
     </Modal>
