@@ -20,6 +20,7 @@ import {
 } from "../services/clientService";
 import { Colors } from "@/constants/Colors";
 import { useColorScheme } from "@/hooks/useColorScheme";
+import ClientDetailsModal from "./ClientDetailsModal";
 
 interface ClientsModalProps {
   visible: boolean;
@@ -257,6 +258,8 @@ const ClientsModal: React.FC<ClientsModalProps> = ({ visible, onClose }) => {
     limit: 10,
   });
   const [filters, setFilters] = useState({});
+  const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
+  const [showClientDetails, setShowClientDetails] = useState(false);
 
   const fetchClients = useCallback(async () => {
     setLoading(true);
@@ -298,7 +301,8 @@ const ClientsModal: React.FC<ClientsModalProps> = ({ visible, onClose }) => {
   };
 
   const handleClientPress = (client: Client) => {
-    Alert.alert("Client Details", `Selected: ${client.name}`);
+    setSelectedClientId(client.id);
+    setShowClientDetails(true);
   };
 
   return (
@@ -368,6 +372,16 @@ const ClientsModal: React.FC<ClientsModalProps> = ({ visible, onClose }) => {
           </View>
         </View>
       </View>
+
+      {/* Client Details Modal */}
+      <ClientDetailsModal
+        visible={showClientDetails}
+        onClose={() => {
+          setShowClientDetails(false);
+          setSelectedClientId(null);
+        }}
+        clientId={selectedClientId || ""}
+      />
     </Modal>
   );
 };
