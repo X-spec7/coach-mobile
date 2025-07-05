@@ -62,13 +62,15 @@ export const RelationshipService = {
     try {
       const headers = await getAuthHeaders();
       const params = new URLSearchParams();
-      if (coachId) params.append("coachId", coachId.toString());
-      if (clientId) params.append("clientId", clientId.toString());
+      if (coachId) params.append("coach_id", coachId.toString());
+      if (clientId) params.append("client_id", clientId.toString());
 
-      const response = await fetch(
-        `${API_BASE_URL}/users/relationships?${params.toString()}`,
-        { headers }
-      );
+      console.log("headers:", headers);
+      const url = `${API_BASE_URL}/users/relationships/?${params.toString()}`;
+      const response = await fetch(url, {
+        method: "GET",
+        headers,
+      });
 
       if (!response.ok) {
         throw new Error(
