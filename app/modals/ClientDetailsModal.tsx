@@ -160,6 +160,8 @@ const ClientDetailHeader: React.FC<{ client: Client }> = ({ client }) => {
     }
   };
 
+  console.log("user:", user);
+
   const getRelationshipStatusDisplay = () => {
     if (authLoading || isLoadingRelationship) {
       return (
@@ -674,84 +676,7 @@ const ClientDetailsModal: React.FC<ClientDetailsModalProps> = ({
 
           {/* Content */}
           <ScrollView style={styles.content}>
-            <View style={styles.headerContainer}>
-              {/* Header with back button and menu */}
-              <View style={styles.headerTop}>
-                <Text
-                  style={[
-                    styles.headerTitle,
-                    { color: Colors[colorScheme ?? "light"].text },
-                  ]}
-                >
-                  Client Details
-                </Text>
-                <TouchableOpacity
-                  style={styles.menuButton}
-                  onPress={() => setShowMenu(!showMenu)}
-                >
-                  <Ionicons
-                    name="ellipsis-vertical"
-                    size={24}
-                    color={Colors[colorScheme ?? "light"].text}
-                  />
-                </TouchableOpacity>
-              </View>
-
-              {/* Menu dropdown */}
-              {showMenu && (
-                <View style={styles.menuContainer}>
-                  <TouchableOpacity style={styles.menuItem} onPress={() => {}}>
-                    <Ionicons name="create" size={16} color="#6B7280" />
-                    <Text style={styles.menuItemText}>Edit Client</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity style={styles.menuItem} onPress={() => {}}>
-                    <Ionicons name="trash" size={16} color="#DC2626" />
-                    <Text style={[styles.menuItemText, { color: "#DC2626" }]}>
-                      Delete Client
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-              )}
-
-              {/* Client info */}
-              <View style={styles.clientInfo}>
-                <View style={styles.avatarContainer}>
-                  {client.avatar ? (
-                    <Image
-                      source={{ uri: client.avatar }}
-                      style={styles.avatar}
-                    />
-                  ) : (
-                    <View style={styles.avatarPlaceholder}>
-                      <Text style={styles.avatarText}>
-                        {client.name.charAt(0)}
-                      </Text>
-                    </View>
-                  )}
-                </View>
-                <View style={styles.clientDetails}>
-                  <Text
-                    style={[
-                      styles.clientName,
-                      { color: Colors[colorScheme ?? "light"].text },
-                    ]}
-                  >
-                    {client.name}
-                  </Text>
-                  <Text
-                    style={[
-                      styles.clientEmail,
-                      { color: Colors[colorScheme ?? "light"].text },
-                    ]}
-                  >
-                    {client.email}
-                  </Text>
-                </View>
-              </View>
-
-              {/* Relationship section */}
-              {/* {getRelationshipStatusDisplay()} */}
-            </View>
+            <ClientDetailHeader client={client} />
             <ClientDetailTabs client={client} />
           </ScrollView>
         </View>
