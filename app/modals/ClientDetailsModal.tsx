@@ -17,7 +17,7 @@ import { Colors } from "@/constants/Colors";
 import { useColorScheme } from "@/hooks/useColorScheme";
 import { API_BASE_URL } from "@/constants/api";
 import { getAuthHeaders } from "../services/api";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth } from "../contexts/AuthContext";
 import { RelationshipService } from "../services/relationshipService";
 import { ClientService } from "../services/clientService";
 
@@ -49,7 +49,7 @@ const formatDateReadable = (dateString: string) => {
 // Comprehensive ClientDetailHeader component
 const ClientDetailHeader: React.FC<{ client: Client }> = ({ client }) => {
   const colorScheme = useColorScheme();
-  const { user } = useAuth();
+  const { user, isLoading: authLoading } = useAuth();
   const [showMenu, setShowMenu] = useState(false);
   const [relationship, setRelationship] = useState<Relationship | null>(null);
   const [isLoadingRelationship, setIsLoadingRelationship] = useState(true);
@@ -57,12 +57,14 @@ const ClientDetailHeader: React.FC<{ client: Client }> = ({ client }) => {
     useState(false);
 
   useEffect(() => {
+    if (authLoading) return; // Don't fetch if auth is still loading
+
     if (user?.userType === "Coach" && user?.id) {
       fetchRelationship();
     } else {
       setIsLoadingRelationship(false);
     }
-  }, [user, client.id]);
+  }, [user, client.id, authLoading]);
 
   const fetchRelationship = async () => {
     try {
@@ -82,12 +84,22 @@ const ClientDetailHeader: React.FC<{ client: Client }> = ({ client }) => {
   };
 
   const handleEdit = () => {
+    if (authLoading) {
+      Alert.alert("Error", "Please wait while authentication is loading");
+      return;
+    }
+
     // TODO: Implement edit navigation
     setShowMenu(false);
     Alert.alert("Edit", "Edit functionality coming soon");
   };
 
   const handleDelete = async () => {
+    if (authLoading) {
+      Alert.alert("Error", "Please wait while authentication is loading");
+      return;
+    }
+
     Alert.alert(
       "Delete Client",
       "Are you sure you want to delete this client?",
@@ -116,6 +128,11 @@ const ClientDetailHeader: React.FC<{ client: Client }> = ({ client }) => {
   };
 
   const handleRequestRelationship = async () => {
+    if (authLoading) {
+      Alert.alert("Error", "Please wait while authentication is loading");
+      return;
+    }
+
     if (!user?.id) {
       Alert.alert("Error", "User not authenticated");
       return;
@@ -144,7 +161,7 @@ const ClientDetailHeader: React.FC<{ client: Client }> = ({ client }) => {
   };
 
   const getRelationshipStatusDisplay = () => {
-    if (isLoadingRelationship) {
+    if (authLoading || isLoadingRelationship) {
       return (
         <View style={styles.relationshipLoadingContainer}>
           <ActivityIndicator size="small" color="#10B981" />
@@ -364,15 +381,15 @@ const ClientDetailsModal: React.FC<ClientDetailsModalProps> = ({
   clientId,
 }) => {
   const colorScheme = useColorScheme();
+  const { user, isLoading: authLoading } = useAuth();
   const [client, setClient] = useState<Client | null>(null);
   const [loading, setLoading] = useState(true);
   const [showMenu, setShowMenu] = useState(false);
   const [relationship, setRelationship] = useState<Relationship | null>(null);
   const [isLoadingRelationship, setIsLoadingRelationship] = useState(true);
-
   useEffect(() => {
     const fetchClient = async () => {
-      if (!visible || !clientId) return;
+      if (!visible || !clientId || authLoading) return;
 
       setLoading(true);
       try {
@@ -460,6 +477,59 @@ const ClientDetailsModal: React.FC<ClientDetailsModalProps> = ({
     setLoading(true);
     onClose();
   };
+
+  // Show loading state while auth is loading
+  if (authLoading) {
+    return (
+      <Modal visible={visible} animationType="slide" transparent>
+        <View style={styles.overlay}>
+          <View
+            style={[
+              styles.modal,
+              { backgroundColor: Colors[colorScheme ?? "light"].background },
+            ]}
+          >
+            <SafeAreaView>
+              <View style={styles.header}>
+                <TouchableOpacity
+                  onPress={handleClose}
+                  style={styles.closeButton}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                >
+                  <Ionicons
+                    name="close"
+                    size={24}
+                    color={Colors[colorScheme ?? "light"].text}
+                  />
+                </TouchableOpacity>
+                <Text
+                  style={[
+                    styles.headerTitle,
+                    { color: Colors[colorScheme ?? "light"].text },
+                  ]}
+                >
+                  Client Details
+                </Text>
+                <View style={styles.placeholder} />
+              </View>
+            </SafeAreaView>
+
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color="#10B981" />
+              <Text
+                style={[
+                  styles.loadingText,
+                  { color: Colors[colorScheme ?? "light"].text },
+                ]}
+              >
+                Loading authentication...
+              </Text>
+            </View>
+          </View>
+        </View>
+      </Modal>
+    );
+  }
 
   if (loading) {
     return (
@@ -680,7 +750,7 @@ const ClientDetailsModal: React.FC<ClientDetailsModalProps> = ({
               </View>
 
               {/* Relationship section */}
-              {/*  {getRelationshipStatusDisplay()} */}
+              {/* {getRelationshipStatusDisplay()} */}
             </View>
             <ClientDetailTabs client={client} />
           </ScrollView>
@@ -728,6 +798,11 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 16,
+    textAlign: "center",
   },
   errorContainer: {
     flex: 1,
