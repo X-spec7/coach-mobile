@@ -93,4 +93,29 @@ export class ClientService {
       throw error;
     }
   }
+
+  static async deleteClient(clientId: string): Promise<void> {
+    try {
+      const headers = await getAuthHeaders();
+      const response = await fetch(`${API_BASE_URL}/users/${clientId}/`, {
+        method: "DELETE",
+        headers,
+      });
+
+      if (!response.ok) {
+        if (response.status === 401) {
+          throw new Error("Authentication required");
+        }
+        const errorText = await response.text();
+        throw new Error(
+          `Failed to delete client: ${response.status} - ${errorText}`
+        );
+      }
+
+      console.log("Client deleted successfully");
+    } catch (error) {
+      console.error("Error deleting client:", error);
+      throw error;
+    }
+  }
 }

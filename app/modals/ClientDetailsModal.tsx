@@ -17,6 +17,9 @@ import { Colors } from "@/constants/Colors";
 import { useColorScheme } from "@/hooks/useColorScheme";
 import { API_BASE_URL } from "@/constants/api";
 import { getAuthHeaders } from "../services/api";
+import { useAuth } from "@/hooks/useAuth";
+import { RelationshipService } from "../services/relationshipService";
+import { ClientService } from "../services/clientService";
 
 interface ClientDetailsModalProps {
   visible: boolean;
@@ -24,23 +27,282 @@ interface ClientDetailsModalProps {
   clientId: string;
 }
 
-// Placeholder ClientDetailHeader component
+interface Relationship {
+  id: number;
+  status: string;
+  startDate: string;
+  notes?: string;
+  coach: { id: number };
+  client: { id: number };
+}
+
+// Helper function to format dates
+const formatDateReadable = (dateString: string) => {
+  const date = new Date(dateString);
+  return date.toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+};
+
+// Comprehensive ClientDetailHeader component
 const ClientDetailHeader: React.FC<{ client: Client }> = ({ client }) => {
   const colorScheme = useColorScheme();
+  const { user } = useAuth();
+  const [showMenu, setShowMenu] = useState(false);
+  const [relationship, setRelationship] = useState<Relationship | null>(null);
+  const [isLoadingRelationship, setIsLoadingRelationship] = useState(true);
+  const [isRequestingRelationship, setIsRequestingRelationship] =
+    useState(false);
+
+  useEffect(() => {
+    if (user?.userType === "Coach" && user?.id) {
+      fetchRelationship();
+    } else {
+      setIsLoadingRelationship(false);
+    }
+  }, [user, client.id]);
+
+  const fetchRelationship = async () => {
+    try {
+      setIsLoadingRelationship(true);
+      const relationshipData = await RelationshipService.getRelationshipStatus(
+        Number(user?.id),
+        Number(client.id)
+      );
+      console.log("relationshipData", relationshipData);
+      setRelationship(relationshipData);
+    } catch (error) {
+      console.error("Error fetching relationship:", error);
+      setRelationship(null);
+    } finally {
+      setIsLoadingRelationship(false);
+    }
+  };
+
+  const handleEdit = () => {
+    // TODO: Implement edit navigation
+    setShowMenu(false);
+    Alert.alert("Edit", "Edit functionality coming soon");
+  };
+
+  const handleDelete = async () => {
+    Alert.alert(
+      "Delete Client",
+      "Are you sure you want to delete this client?",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await ClientService.deleteClient(client.id);
+              Alert.alert("Success", "Client deleted successfully!");
+              // TODO: Navigate back or close modal
+            } catch (error) {
+              console.error("Error deleting client:", error);
+              Alert.alert(
+                "Error",
+                "Failed to delete client. Please try again."
+              );
+            }
+          },
+        },
+      ]
+    );
+    setShowMenu(false);
+  };
+
+  const handleRequestRelationship = async () => {
+    if (!user?.id) {
+      Alert.alert("Error", "User not authenticated");
+      return;
+    }
+
+    setIsRequestingRelationship(true);
+    try {
+      await RelationshipService.createRelationship({
+        coach_id: Number(user.id),
+        client_id: Number(client.id),
+        status: "pending",
+        notes: "Relationship request from coach",
+      });
+
+      Alert.alert("Success", "Relationship request sent successfully!");
+      await fetchRelationship(); // Refresh relationship status
+    } catch (error) {
+      console.error("Error requesting relationship:", error);
+      Alert.alert(
+        "Error",
+        "Failed to send relationship request. Please try again."
+      );
+    } finally {
+      setIsRequestingRelationship(false);
+    }
+  };
+
+  const getRelationshipStatusDisplay = () => {
+    if (isLoadingRelationship) {
+      return (
+        <View style={styles.relationshipLoadingContainer}>
+          <ActivityIndicator size="small" color="#10B981" />
+        </View>
+      );
+    }
+
+    if (!user || user.userType !== "Coach") {
+      return null;
+    }
+
+    if (!relationship) {
+      return (
+        <View style={styles.relationshipContainer}>
+          <Text
+            style={[
+              styles.relationshipText,
+              { color: Colors[colorScheme ?? "light"].text },
+            ]}
+          >
+            No relationship established
+          </Text>
+          <TouchableOpacity
+            style={[
+              styles.requestButton,
+              isRequestingRelationship && styles.requestButtonDisabled,
+            ]}
+            onPress={handleRequestRelationship}
+            disabled={isRequestingRelationship}
+          >
+            <Ionicons name="person-add" size={16} color="#fff" />
+            <Text style={styles.requestButtonText}>
+              {isRequestingRelationship ? "Sending..." : "Request Relationship"}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      );
+    }
+
+    const getStatusConfig = (status: string) => {
+      switch (status) {
+        case "pending":
+          return {
+            icon: "time",
+            color: "#D97706",
+            bgColor: "#FEF3C7",
+            text: "Pending",
+          };
+        case "accepted":
+        case "active":
+          return {
+            icon: "checkmark-circle",
+            color: "#059669",
+            bgColor: "#D1FAE5",
+            text: "Connected",
+          };
+        case "inactive":
+        case "rejected":
+          return {
+            icon: "close-circle",
+            color: "#DC2626",
+            bgColor: "#FEE2E2",
+            text: "Rejected",
+          };
+        case "terminated":
+          return {
+            icon: "close-circle",
+            color: "#6B7280",
+            bgColor: "#F3F4F6",
+            text: "Terminated",
+          };
+        default:
+          return {
+            icon: "time",
+            color: "#D97706",
+            bgColor: "#FEF3C7",
+            text: "Pending",
+          };
+      }
+    };
+
+    const config = getStatusConfig(relationship.status);
+
+    return (
+      <View
+        style={[
+          styles.relationshipStatusContainer,
+          { backgroundColor: config.bgColor },
+        ]}
+      >
+        <View style={styles.relationshipStatusHeader}>
+          <Ionicons name={config.icon as any} size={16} color={config.color} />
+          <Text
+            style={[styles.relationshipStatusText, { color: config.color }]}
+          >
+            {config.text}
+          </Text>
+        </View>
+        <Text style={styles.relationshipDateText}>
+          Since {formatDateReadable(relationship.startDate)}
+        </Text>
+        {relationship.notes && (
+          <Text style={styles.relationshipNotesText}>
+            Note: {relationship.notes}
+          </Text>
+        )}
+      </View>
+    );
+  };
 
   return (
     <View style={styles.headerContainer}>
+      {/* Header with back button and menu */}
+      <View style={styles.headerTop}>
+        <Text
+          style={[
+            styles.headerTitle,
+            { color: Colors[colorScheme ?? "light"].text },
+          ]}
+        >
+          Client Details
+        </Text>
+        <TouchableOpacity
+          style={styles.menuButton}
+          onPress={() => setShowMenu(!showMenu)}
+        >
+          <Ionicons
+            name="ellipsis-vertical"
+            size={24}
+            color={Colors[colorScheme ?? "light"].text}
+          />
+        </TouchableOpacity>
+      </View>
+
+      {/* Menu dropdown */}
+      {showMenu && (
+        <View style={styles.menuContainer}>
+          <TouchableOpacity style={styles.menuItem} onPress={handleEdit}>
+            <Ionicons name="create" size={16} color="#6B7280" />
+            <Text style={styles.menuItemText}>Edit Client</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.menuItem} onPress={handleDelete}>
+            <Ionicons name="trash" size={16} color="#DC2626" />
+            <Text style={[styles.menuItemText, { color: "#DC2626" }]}>
+              Delete Client
+            </Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
+      {/* Client info */}
       <View style={styles.clientInfo}>
         <View style={styles.avatarContainer}>
           {client.avatar ? (
             <Image source={{ uri: client.avatar }} style={styles.avatar} />
           ) : (
             <View style={styles.avatarPlaceholder}>
-              <Ionicons
-                name="person"
-                size={32}
-                color={Colors[colorScheme ?? "light"].text}
-              />
+              <Text style={styles.avatarText}>{client.name.charAt(0)}</Text>
             </View>
           )}
         </View>
@@ -63,6 +325,9 @@ const ClientDetailHeader: React.FC<{ client: Client }> = ({ client }) => {
           </Text>
         </View>
       </View>
+
+      {/* Relationship section */}
+      {getRelationshipStatusDisplay()}
     </View>
   );
 };
@@ -101,6 +366,9 @@ const ClientDetailsModal: React.FC<ClientDetailsModalProps> = ({
   const colorScheme = useColorScheme();
   const [client, setClient] = useState<Client | null>(null);
   const [loading, setLoading] = useState(true);
+  const [showMenu, setShowMenu] = useState(false);
+  const [relationship, setRelationship] = useState<Relationship | null>(null);
+  const [isLoadingRelationship, setIsLoadingRelationship] = useState(true);
 
   useEffect(() => {
     const fetchClient = async () => {
@@ -336,7 +604,84 @@ const ClientDetailsModal: React.FC<ClientDetailsModalProps> = ({
 
           {/* Content */}
           <ScrollView style={styles.content}>
-            <ClientDetailHeader client={client} />
+            <View style={styles.headerContainer}>
+              {/* Header with back button and menu */}
+              <View style={styles.headerTop}>
+                <Text
+                  style={[
+                    styles.headerTitle,
+                    { color: Colors[colorScheme ?? "light"].text },
+                  ]}
+                >
+                  Client Details
+                </Text>
+                <TouchableOpacity
+                  style={styles.menuButton}
+                  onPress={() => setShowMenu(!showMenu)}
+                >
+                  <Ionicons
+                    name="ellipsis-vertical"
+                    size={24}
+                    color={Colors[colorScheme ?? "light"].text}
+                  />
+                </TouchableOpacity>
+              </View>
+
+              {/* Menu dropdown */}
+              {showMenu && (
+                <View style={styles.menuContainer}>
+                  <TouchableOpacity style={styles.menuItem} onPress={() => {}}>
+                    <Ionicons name="create" size={16} color="#6B7280" />
+                    <Text style={styles.menuItemText}>Edit Client</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.menuItem} onPress={() => {}}>
+                    <Ionicons name="trash" size={16} color="#DC2626" />
+                    <Text style={[styles.menuItemText, { color: "#DC2626" }]}>
+                      Delete Client
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+
+              {/* Client info */}
+              <View style={styles.clientInfo}>
+                <View style={styles.avatarContainer}>
+                  {client.avatar ? (
+                    <Image
+                      source={{ uri: client.avatar }}
+                      style={styles.avatar}
+                    />
+                  ) : (
+                    <View style={styles.avatarPlaceholder}>
+                      <Text style={styles.avatarText}>
+                        {client.name.charAt(0)}
+                      </Text>
+                    </View>
+                  )}
+                </View>
+                <View style={styles.clientDetails}>
+                  <Text
+                    style={[
+                      styles.clientName,
+                      { color: Colors[colorScheme ?? "light"].text },
+                    ]}
+                  >
+                    {client.name}
+                  </Text>
+                  <Text
+                    style={[
+                      styles.clientEmail,
+                      { color: Colors[colorScheme ?? "light"].text },
+                    ]}
+                  >
+                    {client.email}
+                  </Text>
+                </View>
+              </View>
+
+              {/* Relationship section */}
+              {/*  {getRelationshipStatusDisplay()} */}
+            </View>
             <ClientDetailTabs client={client} />
           </ScrollView>
         </View>
@@ -369,7 +714,7 @@ const styles = StyleSheet.create({
     padding: 8,
   },
   headerTitle: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: "600",
   },
   placeholder: {
@@ -462,6 +807,107 @@ const styles = StyleSheet.create({
     fontSize: 14,
     textAlign: "center",
     lineHeight: 20,
+  },
+  // New styles for enhanced header
+  headerTop: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 16,
+  },
+  menuButton: {
+    padding: 8,
+  },
+  menuContainer: {
+    position: "absolute",
+    top: 50,
+    right: 0,
+    backgroundColor: "#fff",
+    borderRadius: 8,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 5,
+    zIndex: 1000,
+  },
+  menuItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: "#F3F4F6",
+  },
+  menuItemText: {
+    marginLeft: 8,
+    fontSize: 14,
+    color: "#6B7280",
+  },
+  avatarText: {
+    fontSize: 24,
+    fontWeight: "600",
+    color: "#3B82F6",
+  },
+  // Relationship styles
+  relationshipLoadingContainer: {
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 16,
+  },
+  relationshipContainer: {
+    alignItems: "center",
+    padding: 16,
+    backgroundColor: "#F9FAFB",
+    borderRadius: 8,
+    marginTop: 16,
+  },
+  relationshipText: {
+    fontSize: 14,
+    marginBottom: 12,
+    textAlign: "center",
+  },
+  requestButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#10B981",
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 6,
+  },
+  requestButtonDisabled: {
+    opacity: 0.5,
+  },
+  requestButtonText: {
+    color: "#fff",
+    fontSize: 14,
+    fontWeight: "500",
+    marginLeft: 6,
+  },
+  relationshipStatusContainer: {
+    padding: 12,
+    borderRadius: 8,
+    marginTop: 16,
+  },
+  relationshipStatusHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 4,
+  },
+  relationshipStatusText: {
+    fontSize: 14,
+    fontWeight: "500",
+    marginLeft: 6,
+  },
+  relationshipDateText: {
+    fontSize: 12,
+    color: "#6B7280",
+    marginBottom: 2,
+  },
+  relationshipNotesText: {
+    fontSize: 12,
+    color: "#6B7280",
+    fontStyle: "italic",
   },
 });
 
