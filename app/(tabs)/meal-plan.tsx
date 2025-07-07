@@ -25,6 +25,7 @@ import ChangePlanModal from "../modals/ChangePlanModal";
 import { FoodDislikesModal } from "../modals/FoodDislikesModal";
 import MealPlanDetailsModal from "../modals/MealPlanDetailsModal";
 import ChangeFoodModal from "../modals/ChangeFoodModal";
+import CreateMealPlanModal from "../modals/CreateMealPlanModal";
 import {
   fetchMealPlans,
   fetchMealPlanDetails,
@@ -35,8 +36,12 @@ import {
   SuitableFood,
   updateMealPlan,
   updateMealPlanFoodItem,
+  selectMealPlan,
+  deleteMealPlan,
+  getAuthHeaders,
 } from "../services/api";
 import { useAuth } from "../contexts/AuthContext";
+import { API_BASE_URL } from "@/constants/api";
 
 const { width } = Dimensions.get("window");
 
@@ -74,6 +79,12 @@ export default function MealPlanScreen() {
   const [updateError, setUpdateError] = useState<string | null>(null);
   const [carouselKey, setCarouselKey] = useState(0);
   const [isUpdatingFood, setIsUpdatingFood] = useState(false);
+  const [showCreateMealPlanModal, setShowCreateMealPlanModal] = useState(false);
+  const [selectedClient, setSelectedClient] = useState<string>("");
+
+  const handleClientChange = (clientId: string) => {
+    setSelectedClient(clientId);
+  };
 
   const allFoodItemIds = selectedMeal?.meal_times
     .flatMap((mt) => mt.mealplan_food_items)
@@ -235,6 +246,122 @@ export default function MealPlanScreen() {
     }
   };
 
+  const handleCreateMealPlan = async (formData: FormData) => {
+    try {
+      let fetchOptions: RequestInit = { method: "POST" };
+      const url = `${API_BASE_URL}/mealplan/create/`;
+      let headers = await getAuthHeaders();
+      if (headers["Content-Type"]) delete headers["Content-Type"];
+      fetchOptions.body = formData;
+      fetchOptions.headers = headers;
+
+      const response = await fetch(url, fetchOptions);
+      const mealPlan = await response.json();
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message);
+      }
+
+      // Assign to client
+      if (selectedClient) {
+        console.log("assigning to client", selectedClient);
+        const assignResponse = await fetch("/api/meal-plans/assign", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            mealPlanId: mealPlan.id,
+            clientId: Number(selectedClient),
+          }),
+        });
+
+        if (!assignResponse.ok) {
+          const error = await assignResponse.json();
+          throw new Error(error.message);
+        }
+      }
+      // Refresh meal plans
+      await loadMealPlans();
+
+      Alert.alert("Success", "Meal plan created successfully!");
+    } catch (error: any) {
+      Alert.alert(
+        "Error",
+        error.message || "Failed to create meal plan. Please try again."
+      );
+    }
+  };
+
+  const handleSelectMealPlan = async () => {
+    if (!planDetails?.mealPlan?.id) {
+      Alert.alert("Error", "No meal plan selected");
+      return;
+    }
+
+    try {
+      await selectMealPlan(planDetails.mealPlan.id);
+
+      // Update the selected meal plan in local state
+      setSelectedId(planDetails.mealPlan.id);
+
+      // Close the modal
+      setShowPlanDetails(false);
+
+      // Show success message
+      Alert.alert("Success", "Meal plan selected successfully!");
+    } catch (error: any) {
+      const errorMessage =
+        error.message || "Failed to select meal plan. Please try again.";
+      Alert.alert("Error", errorMessage);
+    }
+  };
+  const handleDeleteMealPlan = async () => {
+    if (!planDetails?.mealPlan?.id) {
+      Alert.alert("Error", "No meal plan selected");
+      return;
+    }
+
+    try {
+      await deleteMealPlan(planDetails.mealPlan.id);
+
+      // Remove the deleted meal plan from local state
+      const updatedMeals = meals.filter(
+        (meal) => meal.id !== planDetails.mealPlan.id
+      );
+      setMeals(updatedMeals);
+
+      // Select next meal plan or set to null if no meals left
+      if (updatedMeals.length > 0) {
+        // Find the index of the deleted meal plan
+        const deletedIndex = meals.findIndex(
+          (meal) => meal.id === planDetails.mealPlan.id
+        );
+
+        // Select the next meal plan (or the previous one if we're at the end)
+        let nextIndex = deletedIndex;
+        if (deletedIndex >= updatedMeals.length) {
+          nextIndex = updatedMeals.length - 1; // Select the last meal plan
+        }
+
+        setSelectedId(updatedMeals[nextIndex].id);
+      } else {
+        // No meals left, set to null
+        setSelectedId(null);
+      }
+
+      // Close the modal
+      setShowPlanDetails(false);
+
+      // Show success message
+      Alert.alert("Success", "Meal plan deleted successfully!");
+    } catch (error: any) {
+      const errorMessage =
+        error.message || "Failed to delete meal plan. Please try again.";
+      Alert.alert("Error", errorMessage);
+    }
+  };
+
   if (isLoading) {
     return (
       <SafeAreaView
@@ -279,11 +406,29 @@ export default function MealPlanScreen() {
       >
         <View style={styles.errorContainer}>
           <Text style={styles.errorText}>No meal plans available</Text>
+          <TouchableOpacity
+            style={styles.createPlanButton}
+            onPress={() => {
+              console.log("Button pressed, setting modal to true");
+              setShowCreateMealPlanModal(true);
+            }}
+          >
+            <Ionicons name="add-circle-outline" size={24} color="#fff" />
+            <Text style={styles.createPlanButtonText}>
+              Create New Meal Plan
+            </Text>
+          </TouchableOpacity>
         </View>
+        <CreateMealPlanModal
+          visible={showCreateMealPlanModal}
+          onClose={() => setShowCreateMealPlanModal(false)}
+          onSubmit={handleCreateMealPlan}
+        />
       </SafeAreaView>
     );
   }
 
+  console.log("showCreateMealPlanModal:", showCreateMealPlanModal);
   return (
     <SafeAreaView
       style={[
@@ -291,6 +436,18 @@ export default function MealPlanScreen() {
         { backgroundColor: Colors[colorScheme ?? "light"].background },
       ]}
     >
+      <View style={styles.container}>
+        <TouchableOpacity
+          style={{
+            marginTop: 20,
+            alignSelf: "flex-end",
+            padding: 4,
+          }}
+          onPress={() => setShowCreateMealPlanModal(true)}
+        >
+          <Ionicons name="add-circle-outline" size={32} color="#7C3AED" />
+        </TouchableOpacity>
+      </View>
       <ScrollView
         contentContainerStyle={{ paddingBottom: 32 }}
         showsVerticalScrollIndicator={false}
@@ -422,7 +579,8 @@ export default function MealPlanScreen() {
         visible={showPlanDetails}
         onClose={() => setShowPlanDetails(false)}
         plan={planDetails}
-        onChoose={() => setShowPlanDetails(false)}
+        onChoose={handleSelectMealPlan}
+        onDelete={handleDeleteMealPlan}
       />
       <ChangeFoodModal
         visible={showChangeFoodModal && !!selectedMeal}
@@ -434,6 +592,13 @@ export default function MealPlanScreen() {
         )}
         onClose={() => setShowChangeFoodModal(false)}
         onSave={handleFoodUpdate}
+      />
+      <CreateMealPlanModal
+        visible={showCreateMealPlanModal}
+        onClose={() => setShowCreateMealPlanModal(false)}
+        onSubmit={handleCreateMealPlan}
+        selectedClient={selectedClient}
+        handleClientChange={handleClientChange}
       />
     </SafeAreaView>
   );
@@ -587,5 +752,29 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     borderRadius: 16,
+  },
+  createPlanButton: {
+    backgroundColor: "#7C3AED",
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 8,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 16,
+  },
+  createPlanButtonText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "600",
+    marginLeft: 8,
+  },
+  carouselSection: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  menuScrollView: {
+    flex: 1,
   },
 });

@@ -99,7 +99,7 @@ const Verification: React.FC = () => {
     setError(null);
     try {
       // You may need to call your resend endpoint here
-      await fetch("/authentication/resend-code/", {
+      await fetch(API_ENDPOINTS.AUTH.RESEND_CODE, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email }),
