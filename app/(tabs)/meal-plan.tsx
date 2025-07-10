@@ -471,7 +471,7 @@ export default function MealPlanScreen() {
                         typeof item.image === "string"
                           ? item.image
                           : "https://picsum.photos/200/300"
-                      ) ?? undefined,
+                      ) ?? "https://picsum.photos/200/300",
                   }}
                   title={item.title ?? item.name ?? ""}
                   protein={item.protein ?? 0}

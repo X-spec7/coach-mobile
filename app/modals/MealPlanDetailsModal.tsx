@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -37,6 +37,10 @@ export const MealPlanDetailsModal: React.FC<MealPlanDetailsModalProps> = ({
   isLoading,
 }) => {
   const { user } = useAuth();
+  // State for FoodDetailsModal
+  const [showFoodDetails, setShowFoodDetails] = useState(false);
+  const [selectedFood, setSelectedFood] = useState<any>(null);
+
   if (!plan || !plan.mealPlan) {
     console.log("No plan or mealPlan, returning null");
     return null;
@@ -77,16 +81,11 @@ export const MealPlanDetailsModal: React.FC<MealPlanDetailsModalProps> = ({
     return segment;
   });
 
-  // State for FoodDetailsModal
-  const [showFoodDetails, setShowFoodDetails] = React.useState(false);
-  const [selectedFood, setSelectedFood] = React.useState<any>(null);
-
   // Extract meals from meal_times
   const meals =
     mealPlan.meal_times?.flatMap(
       (mealTime: any) =>
         mealTime.mealplan_food_items?.map((foodItem: any) => {
-          console.log("Processing food item:", foodItem);
           return {
             title:
               foodItem.name ||
@@ -102,20 +101,14 @@ export const MealPlanDetailsModal: React.FC<MealPlanDetailsModalProps> = ({
     ) || [];
 
   const handleChoosePress = () => {
-    console.log("Choose button pressed in MealPlanDetailsModal");
     if (isLoading) {
-      console.log("Already loading, ignoring press");
       return;
     }
-    console.log("Calling onChoose function");
-    console.log("Current plan ID:", mealPlan.id);
     onChoose();
   };
 
   const handleDeletePress = () => {
-    console.log("Delete button pressed in MealPlanDetailsModal");
     if (isLoading) {
-      console.log("Already loading, ignoring press");
       return;
     }
     console.log("Calling onDelete function");
