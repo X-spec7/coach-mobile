@@ -35,16 +35,16 @@ export const MealPlanCard: React.FC<MealPlanCardProps> = ({
   selected = false,
   onTitlePress,
 }) => {
-  const baseUrl = API_BASE_URL.replace("/api", "");
-  const finalUrl = `${baseUrl}${image}`;
-
   return (
     <View style={styles.card}>
       <View style={styles.imageContainer}>
         <Image
-          source={{ uri: finalUrl }}
+          source={image}
           style={styles.image}
           resizeMode="cover"
+          onError={(e) => {
+            console.warn("Image load failed:", e.nativeEvent.error);
+          }}
         />
         <Ionicons
           name="refresh"

@@ -11,6 +11,7 @@ import {
   ActivityIndicator,
   Alert,
 } from "react-native";
+import { resolveImageUri } from "@/utils/resolveImageUri";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { Colors } from "@/constants/Colors";
@@ -169,8 +170,6 @@ export default function MealPlanScreen() {
     try {
       setIsUpdatingMacros(true);
       setUpdateError(null);
-
-      const updatedMealPlan = await updateMealPlan(selectedMeal.id, newMacros);
 
       // Update the meals state with the new data
       setMeals((prevMeals) =>
@@ -428,7 +427,6 @@ export default function MealPlanScreen() {
     );
   }
 
-  console.log("showCreateMealPlanModal:", showCreateMealPlanModal);
   return (
     <SafeAreaView
       style={[
@@ -467,7 +465,14 @@ export default function MealPlanScreen() {
               <View>
                 <MealPlanCard
                   key={item.id}
-                  image={item.image ?? { uri: "" }}
+                  image={{
+                    uri:
+                      resolveImageUri(
+                        typeof item.image === "string"
+                          ? item.image
+                          : "https://picsum.photos/200/300"
+                      ) ?? undefined,
+                  }}
                   title={item.title ?? item.name ?? ""}
                   protein={item.protein ?? 0}
                   fat={item.fat ?? 0}
