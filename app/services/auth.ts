@@ -21,7 +21,6 @@ export const storeToken = async (token: AuthToken): Promise<void> => {
 
 export const getToken = async (): Promise<AuthToken | null> => {
   try {
-    console.log("Retrieving token from secure storage");
     const tokenString = await SecureStore.getItemAsync(TOKEN_KEY);
 
     if (!tokenString) {
@@ -30,7 +29,6 @@ export const getToken = async (): Promise<AuthToken | null> => {
     }
 
     const token = JSON.parse(tokenString) as AuthToken;
-    console.log("Retrieved token:", token);
 
     // Check if token is expired
     if (token.expiresAt && token.expiresAt < Date.now()) {

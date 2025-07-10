@@ -36,15 +36,7 @@ export const MealPlanDetailsModal: React.FC<MealPlanDetailsModalProps> = ({
   onDelete,
   isLoading,
 }) => {
-  console.log("=== MealPlanDetailsModal ===");
-  console.log("visible:", visible);
-  console.log("plan:", plan);
-  console.log("plan.mealPlan:", plan?.mealPlan);
-  console.log("plan.mealPlan.meal_times:", plan?.mealPlan?.meal_times);
-  console.log("onChoose function:", onChoose);
-
   const { user } = useAuth();
-  console.log("user:", user);
   if (!plan || !plan.mealPlan) {
     console.log("No plan or mealPlan, returning null");
     return null;
