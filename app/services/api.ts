@@ -62,7 +62,6 @@ export interface MealPlanDetails {
 
 export const getAuthHeaders = async () => {
   const token = await getToken();
-  console.log("Auth token for request:", token ? "Present" : "Missing");
 
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
@@ -70,10 +69,6 @@ export const getAuthHeaders = async () => {
 
   if (token) {
     headers["Authorization"] = `Bearer ${token.accessToken}`;
-    console.log(
-      "Authorization header set with token:",
-      token.accessToken.substring(0, 20) + "..."
-    );
   } else {
     console.log("No token available, proceeding without authorization");
   }
@@ -85,15 +80,10 @@ export const fetchMealPlans = async (): Promise<MealPlan[]> => {
   try {
     const headers = await getAuthHeaders();
     const url = `${API_BASE_URL}/mealplan/`;
-    console.log("Making request to:", url);
-    console.log("Request headers:", headers);
 
     const response = await fetch(url, {
       headers,
     });
-
-    console.log("Response status:", response.status);
-    console.log("Response headers:", response.headers);
 
     if (!response.ok) {
       if (response.status === 401) {
@@ -106,7 +96,6 @@ export const fetchMealPlans = async (): Promise<MealPlan[]> => {
     }
 
     const data = await response.json();
-    console.log("Meal plans response data:", data);
     return data.mealPlans;
   } catch (error) {
     console.error("Error fetching meal plans:", error);
@@ -120,15 +109,10 @@ export const fetchMealPlanDetails = async (
   try {
     const headers = await getAuthHeaders();
     const url = `${API_BASE_URL}/mealplan/${id}/`;
-    console.log("Making request to:", url);
-    console.log("Request headers:", headers);
 
     const response = await fetch(url, {
       headers,
     });
-
-    console.log("Response status:", response.status);
-    console.log("Response headers:", response.headers);
 
     if (!response.ok) {
       if (response.status === 401) {
@@ -317,10 +301,6 @@ export const selectMealPlan = async (mealPlanId: number): Promise<void> => {
 
     const headers = await getAuthHeaders();
     const url = API_ENDPOINTS.USER.SELECT_MEAL_PLAN;
-    console.log("Making request to:", url);
-    console.log("Request headers:", headers);
-    console.log("Request payload:", { mealPlanId });
-
     const response = await fetch(url, {
       method: "POST",
       headers: {
@@ -329,9 +309,6 @@ export const selectMealPlan = async (mealPlanId: number): Promise<void> => {
       },
       body: JSON.stringify({ mealPlanId }),
     });
-
-    console.log("Response status:", response.status);
-    console.log("Response headers:", response.headers);
 
     if (!response.ok) {
       if (response.status === 401) {
@@ -358,10 +335,6 @@ export const deleteMealPlan = async (mealPlanId: number): Promise<void> => {
   try {
     const headers = await getAuthHeaders();
     const url = `${API_BASE_URL}/mealplan/${mealPlanId}/delete/`;
-    console.log("Making request to:", url);
-    console.log("Request headers:", headers);
-    console.log("Request payload:", { mealPlanId });
-
     const response = await fetch(url, {
       method: "DELETE",
       headers: {
