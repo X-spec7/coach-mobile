@@ -11,6 +11,7 @@ import {
 import Svg, { Circle } from "react-native-svg";
 import { Ionicons } from "@expo/vector-icons";
 import FoodDetailsModal from "./FoodDetailsModal";
+import AssignMealPlanModal from "./AssignMealPlanModal";
 import { useAuth } from "../contexts/AuthContext";
 
 // Update the interface to match the actual API response
@@ -42,6 +43,8 @@ export const MealPlanDetailsModal: React.FC<MealPlanDetailsModalProps> = ({
   // State for FoodDetailsModal
   const [showFoodDetails, setShowFoodDetails] = useState(false);
   const [selectedFood, setSelectedFood] = useState<any>(null);
+  // State for AssignMealPlanModal
+  const [showAssignModal, setShowAssignModal] = useState(false);
 
   if (!plan || !plan.mealPlan) {
     console.log("No plan or mealPlan, returning null");
@@ -113,7 +116,7 @@ export const MealPlanDetailsModal: React.FC<MealPlanDetailsModalProps> = ({
     if (isLoading) {
       return;
     }
-    onAssign();
+    setShowAssignModal(true);
   };
 
   const handleDeletePress = () => {
@@ -334,6 +337,17 @@ export const MealPlanDetailsModal: React.FC<MealPlanDetailsModalProps> = ({
         visible={showFoodDetails}
         onClose={() => setShowFoodDetails(false)}
         food={selectedFood}
+      />
+      {/* Assign Meal Plan Modal */}
+      <AssignMealPlanModal
+        visible={showAssignModal}
+        onClose={() => setShowAssignModal(false)}
+        mealPlanId={mealPlan.id.toString()}
+        mealPlanName={mealPlan.name}
+        onAssignSuccess={() => {
+          setShowAssignModal(false);
+          onAssign(); // Call the original onAssign callback
+        }}
       />
     </Modal>
   );

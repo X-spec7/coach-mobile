@@ -37,7 +37,6 @@ export const MealPlanCard: React.FC<MealPlanCardProps> = ({
   selected = false,
   onTitlePress,
 }) => {
-  console.log("image", image);
   const {
     imageSource,
     isLoading: imageLoading,
@@ -49,7 +48,6 @@ export const MealPlanCard: React.FC<MealPlanCardProps> = ({
     timeout: 8000, // 8 seconds timeout
   });
 
-  console.log("imageSource", imageSource);
   return (
     <View style={styles.card}>
       <View style={styles.imageContainer}>

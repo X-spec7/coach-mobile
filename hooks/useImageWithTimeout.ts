@@ -12,8 +12,6 @@ export const useImageWithTimeout = ({
   timeout = 10000, // 10 seconds default
   fallbackSource = require("@/assets/images/plan-placeholder.png"),
 }: UseImageWithTimeoutProps) => {
-  console.log("source", source);
-
   // Convert string to proper image source format
   const normalizedSource =
     typeof source === "string" ? { uri: source } : source;

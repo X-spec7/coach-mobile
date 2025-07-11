@@ -43,7 +43,6 @@ import {
 } from "../services/api";
 import { useAuth } from "../contexts/AuthContext";
 import { API_BASE_URL } from "@/constants/api";
-
 const { width } = Dimensions.get("window");
 
 const menuItems = [
@@ -64,6 +63,7 @@ export default function MealPlanScreen() {
   const [modal, setModal] = useState<string | null>(null);
   const selectedMeal = meals.find((m) => m.id === selectedId);
   const [showSetMacrosModal, setShowSetMacrosModal] = useState(false);
+  const [showAssignMealPlanModal, setShowAssignMealPlanModal] = useState(false);
   const [macros, setMacros] = useState({
     calories: 2904,
     carbs: 276,

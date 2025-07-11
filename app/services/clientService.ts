@@ -59,7 +59,6 @@ export class ClientService {
         headers,
       });
 
-      console.log("response", response);
       if (!response.ok) {
         if (response.status === 401) {
           throw new Error("Authentication required");
@@ -71,7 +70,6 @@ export class ClientService {
       }
 
       const data = await response.json();
-      console.log("clients data", data);
 
       // Transform the API response to match our interface
       const clients: Client[] = data.users.map((user: any) => ({
