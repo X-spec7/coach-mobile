@@ -102,7 +102,7 @@ export default function MealPlanScreen() {
       const data = await fetchMealPlans();
       setMeals(data);
       if (data.length > 0) {
-        setSelectedId(user?.selectedMealPlan?.id ?? data[0].id);
+        setSelectedId(data[0].id);
       }
     } catch (err) {
       const errorMessage =
@@ -246,6 +246,8 @@ export default function MealPlanScreen() {
   };
 
   const handleCreateMealPlan = async (formData: FormData) => {
+    console.log("=== handleCreateMealPlan ===");
+    console.log("formData:", formData);
     try {
       let fetchOptions: RequestInit = { method: "POST" };
       const url = `${API_BASE_URL}/mealplan/create/`;
@@ -465,14 +467,17 @@ export default function MealPlanScreen() {
               <View>
                 <MealPlanCard
                   key={item.id}
-                  image={{
-                    uri:
-                      resolveImageUri(
-                        typeof item.image === "string"
-                          ? item.image
-                          : "https://picsum.photos/200/300"
-                      ) ?? "https://picsum.photos/200/300",
-                  }}
+                  image={
+                    resolveImageUri(
+                      typeof item.image === "string" ? item.image : null
+                    )
+                      ? {
+                          uri: resolveImageUri(
+                            typeof item.image === "string" ? item.image : null
+                          )!,
+                        }
+                      : require("../../assets/images/plan-placeholder.png")
+                  }
                   title={item.title ?? item.name ?? ""}
                   protein={item.protein ?? 0}
                   fat={item.fat ?? 0}

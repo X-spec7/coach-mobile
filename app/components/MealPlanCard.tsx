@@ -6,9 +6,11 @@ import {
   Image,
   ImageSourcePropType,
   TouchableOpacity,
+  ActivityIndicator,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { API_BASE_URL } from "@/constants/api";
+import { useImageWithTimeout } from "@/hooks/useImageWithTimeout";
 
 interface MealPlanCardProps {
   image: ImageSourcePropType | { uri: string };
@@ -35,17 +37,44 @@ export const MealPlanCard: React.FC<MealPlanCardProps> = ({
   selected = false,
   onTitlePress,
 }) => {
+  console.log("image", image);
+  const {
+    imageSource,
+    isLoading: imageLoading,
+    hasError: imageError,
+    handleImageLoad,
+    handleImageError,
+  } = useImageWithTimeout({
+    source: image,
+    timeout: 8000, // 8 seconds timeout
+  });
+
+  console.log("imageSource", imageSource);
   return (
     <View style={styles.card}>
       <View style={styles.imageContainer}>
         <Image
-          source={image}
+          source={imageSource}
           style={styles.image}
           resizeMode="cover"
-          onError={(e) => {
-            console.warn("Image load failed:", e.nativeEvent.error);
-          }}
+          onLoad={handleImageLoad}
+          onError={handleImageError}
+          // Add timeout for image loading
+          defaultSource={require("../../assets/images/plan-placeholder.png")}
         />
+
+        {imageLoading && (
+          <View style={styles.loadingOverlay}>
+            <ActivityIndicator size="small" color="#7C3AED" />
+          </View>
+        )}
+
+        {imageError && (
+          <View style={styles.errorOverlay}>
+            <Ionicons name="image-outline" size={24} color="#94A3B8" />
+          </View>
+        )}
+
         <Ionicons
           name="refresh"
           size={22}
@@ -181,5 +210,27 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     color: "#1E293B",
     marginTop: 2,
+  },
+  loadingOverlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(255, 255, 255, 0.8)",
+    zIndex: 1,
+  },
+  errorOverlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(255, 255, 255, 0.8)",
+    zIndex: 1,
   },
 });
