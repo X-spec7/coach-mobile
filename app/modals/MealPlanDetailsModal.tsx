@@ -190,7 +190,7 @@ export const MealPlanDetailsModal: React.FC<MealPlanDetailsModalProps> = ({
                 <View style={styles.chartCenter} pointerEvents="none">
                   <Text style={styles.chartCaloriesLabel}>Calories</Text>
                   <Text style={styles.chartCaloriesValue}>
-                    ~{mealPlan.calories}
+                    ~{mealPlan.calories?.toFixed(2) || "0.00"}
                   </Text>
                   <Text style={styles.chartCaloriesSub}>Daily energy goal</Text>
                 </View>
