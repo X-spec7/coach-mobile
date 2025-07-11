@@ -19,6 +19,7 @@ interface MealPlanDetailsModalProps {
   onClose: () => void;
   plan: any; // Using any for now since the API response structure is different
   onChoose: () => void;
+  onAssign: () => void;
   onDelete?: () => void;
   isLoading?: boolean; // Add loading prop
 }
@@ -33,6 +34,7 @@ export const MealPlanDetailsModal: React.FC<MealPlanDetailsModalProps> = ({
   onClose,
   plan,
   onChoose,
+  onAssign,
   onDelete,
   isLoading,
 }) => {
@@ -105,6 +107,13 @@ export const MealPlanDetailsModal: React.FC<MealPlanDetailsModalProps> = ({
       return;
     }
     onChoose();
+  };
+
+  const handleAssignPress = () => {
+    if (isLoading) {
+      return;
+    }
+    onAssign();
   };
 
   const handleDeletePress = () => {
@@ -284,9 +293,27 @@ export const MealPlanDetailsModal: React.FC<MealPlanDetailsModalProps> = ({
           </TouchableOpacity>
           <TouchableOpacity
             style={[
+              styles.chooseBtn,
+              isLoading && styles.chooseBtnDisabled,
+              user?.userType === "Client" && styles.clientAssignBtn,
+            ]}
+            onPress={handleAssignPress}
+            disabled={isLoading}
+          >
+            <Text
+              style={[
+                styles.chooseBtnText,
+                isLoading && styles.chooseBtnTextDisabled,
+              ]}
+            >
+              {isLoading ? "Selecting..." : "Assign this Plan"}
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[
               styles.deleteBtn,
               isLoading && styles.chooseBtnDisabled,
-              user?.userType === "Coach" && styles.coachChooseBtn,
+              // user?.userType === "Coach" && styles.coachChooseBtn,
             ]}
             onPress={handleDeletePress}
             disabled={isLoading}
@@ -499,6 +526,12 @@ const styles = StyleSheet.create({
   chartCaloriesSub: {
     color: "#A3A3A3",
     fontSize: 12,
+  },
+  clientAssignBtn: {
+    opacity: 0,
+    display: "none",
+    pointerEvents: "none",
+    backgroundColor: "#E5E7EB",
   },
   coachChooseBtn: {
     opacity: 0,

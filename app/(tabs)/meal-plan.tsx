@@ -317,6 +317,11 @@ export default function MealPlanScreen() {
       Alert.alert("Error", errorMessage);
     }
   };
+
+  const handleAssignMealPlan = async () => {
+    console.log("handleAssignMealPlan");
+  };
+
   const handleDeleteMealPlan = async () => {
     if (!planDetails?.mealPlan?.id) {
       Alert.alert("Error", "No meal plan selected");
@@ -590,6 +595,7 @@ export default function MealPlanScreen() {
         onClose={() => setShowPlanDetails(false)}
         plan={planDetails}
         onChoose={handleSelectMealPlan}
+        onAssign={handleAssignMealPlan}
         onDelete={handleDeleteMealPlan}
       />
       <ChangeFoodModal
