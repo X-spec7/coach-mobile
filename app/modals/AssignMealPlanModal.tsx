@@ -134,7 +134,7 @@ const AssignMealPlanModal: React.FC<AssignMealPlanModalProps> = ({
     setIsLoading(true);
     try {
       const headers = await getAuthHeaders();
-      const response = await fetch(`${API_BASE_URL}/meal-plans/assign`, {
+      const response = await fetch(`${API_BASE_URL}/mealplan/assign/`, {
         method: "POST",
         headers: {
           ...headers,
