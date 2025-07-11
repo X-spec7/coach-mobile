@@ -59,10 +59,13 @@ const AssignMealPlanModal: React.FC<AssignMealPlanModalProps> = ({
     setIsLoadingAssignments(true);
     try {
       const headers = await getAuthHeaders();
-      const response = await fetch(`${API_BASE_URL}/mealplan/assignments/`, {
-        method: "GET",
-        headers,
-      });
+      const response = await fetch(
+        `${API_BASE_URL}/mealplan/assignments/${mealPlanId}`,
+        {
+          method: "GET",
+          headers,
+        }
+      );
 
       if (response.ok) {
         const data = await response.json();
