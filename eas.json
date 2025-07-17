@@ -1,0 +1,30 @@
+{
+  "cli": {
+    "version": ">= 16.13.3",
+    "appVersionSource": "remote"
+  },
+  "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal",
+      "env": {
+        "EXPO_PUBLIC_BASE_URL": "http://52.15.195.49:8000/api"
+      }
+    },
+    "preview": {
+      "distribution": "internal",
+      "env": {
+        "EXPO_PUBLIC_BASE_URL": "http://52.15.195.49:8000/api"
+      }
+    },
+    "production": {
+      "autoIncrement": true,
+      "env": {
+        "EXPO_PUBLIC_BASE_URL": "http://52.15.195.49:8000/api"
+      }
+    }
+  },
+  "submit": {
+    "production": {}
+  }
+}

@@ -24,17 +24,17 @@
 
 export const DEV_CONFIG = {
   // Set this to your computer's IP address when testing on physical devices
-  COMPUTER_IP: "192.168.1.100", // Replace with your actual IP
+  COMPUTER_IP: "52.15.195.49", // Replace with your actual IP
 
   // Common development URLs
-  LOCALHOST: "http://localhost:8888/api",
-  ANDROID_EMULATOR: "http://10.0.2.2:8888/api",
+  LOCALHOST: "http://localhost:8000/api",
+  ANDROID_EMULATOR: "http://52.15.195.49:8000/api",
 
   // Helper function to get the correct URL
   getApiUrl: (ip?: string) => {
     if (ip) {
-      return `http://${ip}:8888/api`;
+      return `http://${ip}:8000/api`;
     }
-    return process.env.EXPO_PUBLIC_BASE_URL || "http://localhost:8888/api";
+    return process.env.EXPO_PUBLIC_BASE_URL || "http://52.15.195.49:8000/api";
   },
 };

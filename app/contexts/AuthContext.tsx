@@ -23,6 +23,9 @@ export interface User {
   userType: string;
   email: string;
   avatarImageUrl?: string | null;
+  selectedMealPlan?: {
+    id: number
+  }
 }
 
 interface AuthContextType {

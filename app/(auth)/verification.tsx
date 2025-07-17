@@ -47,6 +47,7 @@ const Verification: React.FC = () => {
         body: JSON.stringify({ email, verificationCode: code }),
       });
       const contentType = response.headers.get("content-type");
+
       if (contentType && contentType.includes("application/json")) {
         const data = await response.json();
         if (!response.ok) {
@@ -56,6 +57,7 @@ const Verification: React.FC = () => {
           email: email,
           password: password,
         });
+        
         // After verification, log in the user automatically
         const loginRes = await fetch(API_ENDPOINTS.AUTH.LOGIN, {
           method: "POST",

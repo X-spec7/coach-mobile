@@ -162,7 +162,7 @@ export default function MealPlanScreen() {
     calories: number;
     protein: number;
     fat: number;
-    carbs: number;
+    carb: number;
   }) => {
     if (!selectedMeal) return;
 
@@ -180,7 +180,7 @@ export default function MealPlanScreen() {
                 ...meal,
                 protein: newMacros.protein,
                 fat: newMacros.fat,
-                carbs: newMacros.carbs,
+                carb: newMacros.carb,
                 calories: newMacros.calories,
               }
             : meal
@@ -558,7 +558,7 @@ export default function MealPlanScreen() {
           selectedMeal
             ? {
                 calories: selectedMeal.calories ?? 0,
-                carbs: selectedMeal.carbs ?? 0,
+                carb: selectedMeal.carbs ?? 0,
                 protein: selectedMeal.protein ?? 0,
                 fat: selectedMeal.fat ?? 0,
               }

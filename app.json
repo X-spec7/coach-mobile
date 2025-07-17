@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "coach-mobile",
-    "slug": "coach-mobile",
+    "name": "coach-app",
+    "slug": "coach-app",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -10,13 +10,16 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.ruhul.coach-mobile"
+      "bundleIdentifier": "com.kousa.coach-app"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
-      }
+      },
+      "package": "com.coachmobile",
+      "usesCleartextTraffic": true,
+      "cleartextTrafficPermitted": true
     },
     "web": {
       "bundler": "metro",
@@ -34,10 +37,17 @@
           "backgroundColor": "#ffffff"
         }
       ],
-      "expo-secure-store"
+      "expo-secure-store",
+      "expo-build-properties"
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "baseUrl": "http://52.15.195.49:8000/api",
+      "eas": {
+        "projectId": "3f619311-eb86-4ea6-b600-1e98acf24b64"
+      }
     }
   }
 }

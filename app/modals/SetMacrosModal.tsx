@@ -18,7 +18,7 @@ interface SetMacrosModalProps {
     calories: number;
     protein: number;
     fat: number;
-    carbs: number;
+    carb: number;
   }) => void;
   isLoading?: boolean;
   error?: string | null;
@@ -26,7 +26,7 @@ interface SetMacrosModalProps {
     calories: number;
     protein: number;
     fat: number;
-    carbs: number;
+    carb: number;
   };
 }
 
@@ -36,7 +36,7 @@ export const SetMacrosModal: React.FC<SetMacrosModalProps> = ({
   onSave,
   isLoading = false,
   error = null,
-  initialValues = { calories: 0, carbs: 0, protein: 0, fat: 0 },
+  initialValues = { calories: 0, carb: 0, protein: 0, fat: 0 },
 }) => {
   const [values, setValues] = useState(initialValues);
 
@@ -103,9 +103,9 @@ export const SetMacrosModal: React.FC<SetMacrosModalProps> = ({
                 <Text style={styles.fieldLabel}>Net Carbs (g)</Text>
                 <TextInput
                   style={styles.fieldInput}
-                  value={values.carbs.toString()}
+                  value={values.carb.toString()}
                   onChangeText={(text) =>
-                    setValues({ ...values, carbs: parseInt(text) || 0 })
+                    setValues({ ...values, carb: parseInt(text) || 0 })
                   }
                   keyboardType="number-pad"
                   maxLength={4}

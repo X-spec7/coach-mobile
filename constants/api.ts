@@ -7,7 +7,7 @@ const getApiBaseUrl = () => {
 
   // For development, use localhost (works for iOS Simulator on same machine)
   // For physical devices, you'll need to set EXPO_PUBLIC_BASE_URL to your computer's IP
-  return "http://localhost:8888/api";
+  return "http://localhost:8000/api";
 };
 
 export const API_BASE_URL = getApiBaseUrl();
@@ -16,7 +16,7 @@ export const API_ENDPOINTS = {
   AUTH: {
     LOGIN: `${API_BASE_URL}/authentication/login/`,
     LOGOUT: `${API_BASE_URL}/auth/logout`,
-    REGISTER: `${API_BASE_URL}/authentication/register/`,
+    REGISTER: `http://52.15.195.49:8000/api/authentication/register/`,
     VERIFY_CODE: `${API_BASE_URL}/authentication/verify-code/`,
     RESEND_CODE: `${API_BASE_URL}/authentication/resend-code/`,
   },
