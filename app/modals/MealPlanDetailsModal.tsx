@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -11,6 +11,7 @@ import {
 import Svg, { Circle } from "react-native-svg";
 import { Ionicons } from "@expo/vector-icons";
 import FoodDetailsModal from "./FoodDetailsModal";
+import AssignMealPlanModal from "./AssignMealPlanModal";
 import { useAuth } from "../contexts/AuthContext";
 
 // Update the interface to match the actual API response
@@ -19,6 +20,7 @@ interface MealPlanDetailsModalProps {
   onClose: () => void;
   plan: any; // Using any for now since the API response structure is different
   onChoose: () => void;
+  onAssign: () => void;
   onDelete?: () => void;
   isLoading?: boolean; // Add loading prop
 }
@@ -33,18 +35,17 @@ export const MealPlanDetailsModal: React.FC<MealPlanDetailsModalProps> = ({
   onClose,
   plan,
   onChoose,
+  onAssign,
   onDelete,
   isLoading,
 }) => {
-  console.log("=== MealPlanDetailsModal ===");
-  console.log("visible:", visible);
-  console.log("plan:", plan);
-  console.log("plan.mealPlan:", plan?.mealPlan);
-  console.log("plan.mealPlan.meal_times:", plan?.mealPlan?.meal_times);
-  console.log("onChoose function:", onChoose);
-
   const { user } = useAuth();
-  console.log("user:", user);
+  // State for FoodDetailsModal
+  const [showFoodDetails, setShowFoodDetails] = useState(false);
+  const [selectedFood, setSelectedFood] = useState<any>(null);
+  // State for AssignMealPlanModal
+  const [showAssignModal, setShowAssignModal] = useState(false);
+
   if (!plan || !plan.mealPlan) {
     console.log("No plan or mealPlan, returning null");
     return null;
@@ -85,16 +86,11 @@ export const MealPlanDetailsModal: React.FC<MealPlanDetailsModalProps> = ({
     return segment;
   });
 
-  // State for FoodDetailsModal
-  const [showFoodDetails, setShowFoodDetails] = React.useState(false);
-  const [selectedFood, setSelectedFood] = React.useState<any>(null);
-
   // Extract meals from meal_times
   const meals =
     mealPlan.meal_times?.flatMap(
       (mealTime: any) =>
         mealTime.mealplan_food_items?.map((foodItem: any) => {
-          console.log("Processing food item:", foodItem);
           return {
             title:
               foodItem.name ||
@@ -110,20 +106,21 @@ export const MealPlanDetailsModal: React.FC<MealPlanDetailsModalProps> = ({
     ) || [];
 
   const handleChoosePress = () => {
-    console.log("Choose button pressed in MealPlanDetailsModal");
     if (isLoading) {
-      console.log("Already loading, ignoring press");
       return;
     }
-    console.log("Calling onChoose function");
-    console.log("Current plan ID:", mealPlan.id);
     onChoose();
   };
 
-  const handleDeletePress = () => {
-    console.log("Delete button pressed in MealPlanDetailsModal");
+  const handleAssignPress = () => {
     if (isLoading) {
-      console.log("Already loading, ignoring press");
+      return;
+    }
+    setShowAssignModal(true);
+  };
+
+  const handleDeletePress = () => {
+    if (isLoading) {
       return;
     }
     console.log("Calling onDelete function");
@@ -193,7 +190,7 @@ export const MealPlanDetailsModal: React.FC<MealPlanDetailsModalProps> = ({
                 <View style={styles.chartCenter} pointerEvents="none">
                   <Text style={styles.chartCaloriesLabel}>Calories</Text>
                   <Text style={styles.chartCaloriesValue}>
-                    ~{mealPlan.calories}
+                    ~{mealPlan.calories?.toFixed(2) || "0.00"}
                   </Text>
                   <Text style={styles.chartCaloriesSub}>Daily energy goal</Text>
                 </View>
@@ -299,9 +296,27 @@ export const MealPlanDetailsModal: React.FC<MealPlanDetailsModalProps> = ({
           </TouchableOpacity>
           <TouchableOpacity
             style={[
+              styles.chooseBtn,
+              isLoading && styles.chooseBtnDisabled,
+              user?.userType === "Client" && styles.clientAssignBtn,
+            ]}
+            onPress={handleAssignPress}
+            disabled={isLoading}
+          >
+            <Text
+              style={[
+                styles.chooseBtnText,
+                isLoading && styles.chooseBtnTextDisabled,
+              ]}
+            >
+              {isLoading ? "Selecting..." : "Assign this Plan"}
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[
               styles.deleteBtn,
               isLoading && styles.chooseBtnDisabled,
-              user?.userType === "Coach" && styles.coachChooseBtn,
+              // user?.userType === "Coach" && styles.coachChooseBtn,
             ]}
             onPress={handleDeletePress}
             disabled={isLoading}
@@ -322,6 +337,17 @@ export const MealPlanDetailsModal: React.FC<MealPlanDetailsModalProps> = ({
         visible={showFoodDetails}
         onClose={() => setShowFoodDetails(false)}
         food={selectedFood}
+      />
+      {/* Assign Meal Plan Modal */}
+      <AssignMealPlanModal
+        visible={showAssignModal}
+        onClose={() => setShowAssignModal(false)}
+        mealPlanId={mealPlan.id.toString()}
+        mealPlanName={mealPlan.name}
+        onAssignSuccess={() => {
+          setShowAssignModal(false);
+          onAssign(); // Call the original onAssign callback
+        }}
       />
     </Modal>
   );
@@ -514,6 +540,12 @@ const styles = StyleSheet.create({
   chartCaloriesSub: {
     color: "#A3A3A3",
     fontSize: 12,
+  },
+  clientAssignBtn: {
+    opacity: 0,
+    display: "none",
+    pointerEvents: "none",
+    backgroundColor: "#E5E7EB",
   },
   coachChooseBtn: {
     opacity: 0,

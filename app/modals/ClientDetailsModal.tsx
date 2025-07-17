@@ -404,9 +404,6 @@ const ClientDetailsModal: React.FC<ClientDetailsModalProps> = ({
           headers,
         });
 
-        console.log("Response status:", response.status);
-        console.log("Response headers:", response.headers);
-
         if (!response.ok) {
           if (response.status === 401) {
             console.log("Authentication failed - 401 Unauthorized");

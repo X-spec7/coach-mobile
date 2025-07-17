@@ -11,6 +11,7 @@ import {
   ActivityIndicator,
   Alert,
 } from "react-native";
+import { resolveImageUri } from "@/utils/resolveImageUri";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { Colors } from "@/constants/Colors";
@@ -42,7 +43,6 @@ import {
 } from "../services/api";
 import { useAuth } from "../contexts/AuthContext";
 import { API_BASE_URL } from "@/constants/api";
-
 const { width } = Dimensions.get("window");
 
 const menuItems = [
@@ -63,6 +63,7 @@ export default function MealPlanScreen() {
   const [modal, setModal] = useState<string | null>(null);
   const selectedMeal = meals.find((m) => m.id === selectedId);
   const [showSetMacrosModal, setShowSetMacrosModal] = useState(false);
+  const [showAssignMealPlanModal, setShowAssignMealPlanModal] = useState(false);
   const [macros, setMacros] = useState({
     calories: 2904,
     carbs: 276,
@@ -101,7 +102,7 @@ export default function MealPlanScreen() {
       const data = await fetchMealPlans();
       setMeals(data);
       if (data.length > 0) {
-        setSelectedId(user?.selectedMealPlan?.id ?? data[0].id);
+        setSelectedId(data[0].id);
       }
     } catch (err) {
       const errorMessage =
@@ -169,8 +170,6 @@ export default function MealPlanScreen() {
     try {
       setIsUpdatingMacros(true);
       setUpdateError(null);
-
-      const updatedMealPlan = await updateMealPlan(selectedMeal.id, newMacros);
 
       // Update the meals state with the new data
       setMeals((prevMeals) =>
@@ -247,6 +246,8 @@ export default function MealPlanScreen() {
   };
 
   const handleCreateMealPlan = async (formData: FormData) => {
+    console.log("=== handleCreateMealPlan ===");
+    console.log("formData:", formData);
     try {
       let fetchOptions: RequestInit = { method: "POST" };
       const url = `${API_BASE_URL}/mealplan/create/`;
@@ -316,6 +317,11 @@ export default function MealPlanScreen() {
       Alert.alert("Error", errorMessage);
     }
   };
+
+  const handleAssignMealPlan = async () => {
+    console.log("handleAssignMealPlan");
+  };
+
   const handleDeleteMealPlan = async () => {
     if (!planDetails?.mealPlan?.id) {
       Alert.alert("Error", "No meal plan selected");
@@ -428,7 +434,6 @@ export default function MealPlanScreen() {
     );
   }
 
-  console.log("showCreateMealPlanModal:", showCreateMealPlanModal);
   return (
     <SafeAreaView
       style={[
@@ -467,7 +472,17 @@ export default function MealPlanScreen() {
               <View>
                 <MealPlanCard
                   key={item.id}
-                  image={item.image ?? { uri: "" }}
+                  image={
+                    resolveImageUri(
+                      typeof item.image === "string" ? item.image : null
+                    )
+                      ? {
+                          uri: resolveImageUri(
+                            typeof item.image === "string" ? item.image : null
+                          )!,
+                        }
+                      : require("../../assets/images/plan-placeholder.png")
+                  }
                   title={item.title ?? item.name ?? ""}
                   protein={item.protein ?? 0}
                   fat={item.fat ?? 0}
@@ -580,6 +595,7 @@ export default function MealPlanScreen() {
         onClose={() => setShowPlanDetails(false)}
         plan={planDetails}
         onChoose={handleSelectMealPlan}
+        onAssign={handleAssignMealPlan}
         onDelete={handleDeleteMealPlan}
       />
       <ChangeFoodModal
