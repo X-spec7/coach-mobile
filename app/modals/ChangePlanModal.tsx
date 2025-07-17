@@ -224,6 +224,7 @@ export const ChangePlanModal: React.FC<ChangePlanModalProps> = ({
         plan={selectedPlan ? { mealPlan: selectedPlan } : null}
         onChoose={handleChoosePlan}
         isLoading={isSelectingPlan}
+        onAssign={() => {}}
       />
     </Modal>
   );
