@@ -27,12 +27,12 @@ export function useAuth() {
   }, []);
 
   useEffect(() => {
-    const inAuthGroup = segments[0] === "auth";
+    const inAuthGroup = segments[0] === "(auth)";
 
     if (!user && !loading && !hasSeenOnboarding) {
       router.replace("/(onboarding)/welcome");
     } else if (!user && !loading && !inAuthGroup) {
-      router.replace("/auth/sign-in");
+      router.replace("/(auth)/sign-in");
     } else if (user) {
       router.replace("/(tabs)");
     }

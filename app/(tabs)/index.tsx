@@ -77,15 +77,28 @@ export default function HomeScreen() {
     async function fetchWeather() {
       setWeatherLoading(true);
       try {
+        // Skip weather fetch if no API key is provided
+        if (WEATHER_API_KEY === "YOUR_OPENWEATHERMAP_API_KEY") {
+          setWeather(null);
+          setWeatherLoading(false);
+          return;
+        }
+        
         const res = await fetch(
           `https://api.openweathermap.org/data/2.5/weather?q=${DEFAULT_CITY}&appid=${WEATHER_API_KEY}&units=metric`
         );
+        
+        if (!res.ok) {
+          throw new Error(`HTTP error! status: ${res.status}`);
+        }
+        
         const data = await res.json();
         setWeather({
           temp: Math.round(data.main.temp),
           icon: data.weather[0].icon,
         });
-      } catch {
+      } catch (error) {
+        console.log('Weather fetch failed:', error);
         setWeather(null);
       } finally {
         setWeatherLoading(false);

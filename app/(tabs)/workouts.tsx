@@ -1,5 +1,5 @@
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image } from 'react-native';
-import { Clock, Flame } from 'lucide-react-native';
+import React from 'react';
 
 const workoutCategories = [
   {
@@ -23,37 +23,48 @@ const workoutCategories = [
 ];
 
 export default function WorkoutsScreen() {
-  return (
-    <View style={styles.container}>
-      <ScrollView style={styles.scrollView}>
-        <Text style={styles.title}>Workout Library</Text>
-        
-        <View style={styles.statsContainer}>
-          <View style={styles.statCard}>
-            <Clock size={24} color="#8B5CF6" />
-            <Text style={styles.statValue}>148</Text>
-            <Text style={styles.statLabel}>Minutes</Text>
-          </View>
-          <View style={styles.statCard}>
-            <Flame size={24} color="#8B5CF6" />
-            <Text style={styles.statValue}>1,850</Text>
-            <Text style={styles.statLabel}>Calories</Text>
-          </View>
-        </View>
-
-        <Text style={styles.sectionTitle}>Categories</Text>
-        {workoutCategories.map((category) => (
-          <TouchableOpacity key={category.id} style={styles.categoryCard}>
-            <Image source={{ uri: category.image }} style={styles.categoryImage} />
-            <View style={styles.categoryContent}>
-              <Text style={styles.categoryTitle}>{category.title}</Text>
-              <Text style={styles.categoryWorkouts}>{category.workouts} workouts</Text>
+  console.log('WorkoutsScreen rendering...');
+  
+  try {
+    return (
+      <View style={styles.container}>
+        <ScrollView style={styles.scrollView}>
+          <Text style={styles.title}>Workout Library</Text>
+          
+          <View style={styles.statsContainer}>
+            <View style={styles.statCard}>
+              <Text style={styles.statValue}>148</Text>
+              <Text style={styles.statLabel}>Minutes</Text>
             </View>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
-    </View>
-  );
+            <View style={styles.statCard}>
+              <Text style={styles.statValue}>1,850</Text>
+              <Text style={styles.statLabel}>Calories</Text>
+            </View>
+          </View>
+
+          <Text style={styles.sectionTitle}>Categories</Text>
+          {workoutCategories.map((category) => (
+            <TouchableOpacity key={category.id} style={styles.categoryCard}>
+              <Image source={{ uri: category.image }} style={styles.categoryImage} />
+              <View style={styles.categoryContent}>
+                <Text style={styles.categoryTitle}>{category.title}</Text>
+                <Text style={styles.categoryWorkouts}>{category.workouts} workouts</Text>
+              </View>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      </View>
+    );
+  } catch (error) {
+    console.error('WorkoutsScreen error:', error);
+    return (
+      <View style={styles.container}>
+        <Text style={{color: '#fff', textAlign: 'center', marginTop: 50}}>
+          Error loading workouts
+        </Text>
+      </View>
+    );
+  }
 }
 
 const styles = StyleSheet.create({

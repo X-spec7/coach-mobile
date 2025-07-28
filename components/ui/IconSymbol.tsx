@@ -16,6 +16,8 @@ const MAPPING = {
   'dumbbell': 'fitness-center',
   'figure.walk': 'directions-run',
   'person.fill': 'person',
+  'ellipsis.circle': 'more-horiz',
+  'fork.knife': 'restaurant',
 } as Partial<
   Record<
     import('expo-symbols').SymbolViewProps['name'],
@@ -42,5 +44,5 @@ export function IconSymbol({
   style?: StyleProp<ViewStyle>;
   weight?: SymbolWeight;
 }) {
-  return <MaterialIcons color={color} size={size} name={MAPPING[name]} style={style} />;
+  return <MaterialIcons color={color} size={size} name={MAPPING[name]} style={style as any} />;
 }

@@ -1,5 +1,5 @@
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
-import { Calendar, TrendingUp, Trophy } from 'lucide-react-native';
+import React from 'react';
 
 const activityData = [
   { date: 'Mon', calories: 450 },
@@ -12,62 +12,71 @@ const activityData = [
 ];
 
 export default function ActivityScreen() {
-  const maxCalories = Math.max(...activityData.map(d => d.calories));
+  console.log('ActivityScreen rendering...');
+  
+  try {
+    const maxCalories = Math.max(...activityData.map(d => d.calories));
 
-  return (
-    <View style={styles.container}>
-      <ScrollView style={styles.scrollView}>
-        <Text style={styles.title}>Activity</Text>
+    return (
+      <View style={styles.container}>
+        <ScrollView style={styles.scrollView}>
+          <Text style={styles.title}>Activity</Text>
 
-        <View style={styles.statsGrid}>
-          <View style={styles.statCard}>
-            <Calendar size={24} color="#8B5CF6" />
-            <Text style={styles.statValue}>15</Text>
-            <Text style={styles.statLabel}>Workouts</Text>
+          <View style={styles.statsGrid}>
+            <View style={styles.statCard}>
+              <Text style={styles.statValue}>15</Text>
+              <Text style={styles.statLabel}>Workouts</Text>
+            </View>
+            <View style={styles.statCard}>
+              <Text style={styles.statValue}>3,420</Text>
+              <Text style={styles.statLabel}>Calories</Text>
+            </View>
+            <View style={styles.statCard}>
+              <Text style={styles.statValue}>5</Text>
+              <Text style={styles.statLabel}>Achievements</Text>
+            </View>
           </View>
-          <View style={styles.statCard}>
-            <TrendingUp size={24} color="#8B5CF6" />
-            <Text style={styles.statValue}>3,420</Text>
-            <Text style={styles.statLabel}>Calories</Text>
-          </View>
-          <View style={styles.statCard}>
-            <Trophy size={24} color="#8B5CF6" />
-            <Text style={styles.statValue}>5</Text>
-            <Text style={styles.statLabel}>Achievements</Text>
-          </View>
-        </View>
 
-        <Text style={styles.sectionTitle}>Weekly Progress</Text>
-        <View style={styles.chartContainer}>
-          {activityData.map((day, index) => (
-            <View key={index} style={styles.chartColumn}>
-              <View style={styles.barContainer}>
-                <View 
-                  style={[
-                    styles.bar, 
-                    { height: `${(day.calories / maxCalories) * 100}%` }
-                  ]} 
-                />
+          <Text style={styles.sectionTitle}>Weekly Progress</Text>
+          <View style={styles.chartContainer}>
+            {activityData.map((day, index) => (
+              <View key={index} style={styles.chartColumn}>
+                <View style={styles.barContainer}>
+                  <View 
+                    style={[
+                      styles.bar, 
+                      { height: `${(day.calories / maxCalories) * 100}%` }
+                    ]} 
+                  />
+                </View>
+                <Text style={styles.chartLabel}>{day.date}</Text>
+                <Text style={styles.chartValue}>{day.calories}</Text>
               </View>
-              <Text style={styles.chartLabel}>{day.date}</Text>
-              <Text style={styles.chartValue}>{day.calories}</Text>
-            </View>
-          ))}
-        </View>
+            ))}
+          </View>
 
-        <View style={styles.achievementsContainer}>
-          <Text style={styles.sectionTitle}>Recent Achievements</Text>
-          <View style={styles.achievement}>
-            <Trophy size={32} color="#FFD700" />
-            <View style={styles.achievementContent}>
-              <Text style={styles.achievementTitle}>Workout Warrior</Text>
-              <Text style={styles.achievementDesc}>Completed 5 workouts in a week</Text>
+          <View style={styles.achievementsContainer}>
+            <Text style={styles.sectionTitle}>Recent Achievements</Text>
+            <View style={styles.achievement}>
+              <View style={styles.achievementContent}>
+                <Text style={styles.achievementTitle}>Workout Warrior</Text>
+                <Text style={styles.achievementDesc}>Completed 5 workouts in a week</Text>
+              </View>
             </View>
           </View>
-        </View>
-      </ScrollView>
-    </View>
-  );
+        </ScrollView>
+      </View>
+    );
+  } catch (error) {
+    console.error('ActivityScreen error:', error);
+    return (
+      <View style={styles.container}>
+        <Text style={{color: '#fff', textAlign: 'center', marginTop: 50}}>
+          Error loading activity
+        </Text>
+      </View>
+    );
+  }
 }
 
 const styles = StyleSheet.create({

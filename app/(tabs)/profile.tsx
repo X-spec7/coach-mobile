@@ -10,7 +10,6 @@ import {
   Modal,
   Pressable,
 } from "react-native";
-import { Settings, User as UserIcon } from "lucide-react-native";
 import { useRouter } from "expo-router";
 import { useAuth } from "../contexts/AuthContext";
 import { ContactsModal } from "../components/ContactsModal";
@@ -26,6 +25,8 @@ const menuItems = [
 ];
 
 export default function ProfileScreen() {
+  console.log('ProfileScreen rendering...');
+  
   const { user, isLoading, signOut } = useAuth();
   const [error, setError] = useState<string | null>(null);
   const [menuVisible, setMenuVisible] = useState(false);
@@ -42,131 +43,145 @@ export default function ProfileScreen() {
     }
   };
 
-  if (isLoading) {
-    return (
-      <View
-        style={[
-          styles.container,
-          { justifyContent: "center", alignItems: "center" },
-        ]}
-      >
-        <ActivityIndicator size="large" color="#A26FFD" />
-      </View>
-    );
-  }
-  if (error) {
-    return (
-      <View
-        style={[
-          styles.container,
-          { justifyContent: "center", alignItems: "center" },
-        ]}
-      >
-        <Text style={{ color: "#fff" }}>{error}</Text>
-      </View>
-    );
-  }
-
-  return (
-    <View style={styles.container}>
-      <Modal
-        visible={menuVisible}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setMenuVisible(false)}
-      >
-        <Pressable
-          style={styles.modalOverlay}
-          onPress={() => setMenuVisible(false)}
+  try {
+    if (isLoading) {
+      return (
+        <View
+          style={[
+            styles.container,
+            { justifyContent: "center", alignItems: "center" },
+          ]}
         >
-          <View style={styles.menuModal}>
+          <ActivityIndicator size="large" color="#A26FFD" />
+        </View>
+      );
+    }
+    if (error) {
+      return (
+        <View
+          style={[
+            styles.container,
+            { justifyContent: "center", alignItems: "center" },
+          ]}
+        >
+          <Text style={{ color: "#fff" }}>{error}</Text>
+        </View>
+      );
+    }
+
+    return (
+      <View style={styles.container}>
+        <Modal
+          visible={menuVisible}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setMenuVisible(false)}
+        >
+          <Pressable
+            style={styles.modalOverlay}
+            onPress={() => setMenuVisible(false)}
+          >
+            <View style={styles.menuModal}>
+              <TouchableOpacity
+                style={styles.menuModalItem}
+                onPress={() => {
+                  setMenuVisible(false);
+                  // Navigate to settings page if you have one
+                }}
+              >
+                <Text style={styles.menuModalText}>Settings</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.menuModalItem}
+                onPress={handleLogout}
+              >
+                <Text style={[styles.menuModalText, { color: "#FF4444" }]}>
+                  Log Out
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </Pressable>
+        </Modal>
+        <ScrollView style={styles.scrollView}>
+          <View style={styles.header}>
+            <View style={styles.profileInfo}>
+              {user?.avatarImageUrl ? (
+                <Image
+                  source={{ uri: user.avatarImageUrl }}
+                  style={styles.avatar}
+                />
+              ) : (
+                <View style={[styles.avatar, styles.defaultAvatar]}>
+                  <Text style={{color: '#A26FFD', fontSize: 20}}>👤</Text>
+                </View>
+              )}
+              <View style={styles.userInfo}>
+                <Text style={styles.name}>{user?.fullName || "-"}</Text>
+                <Text style={styles.email}>{user?.email || "-"}</Text>
+              </View>
+            </View>
             <TouchableOpacity
-              style={styles.menuModalItem}
-              onPress={() => {
-                setMenuVisible(false);
-                // Navigate to settings page if you have one
-              }}
+              style={styles.settingsButton}
+              onPress={() => setMenuVisible(true)}
             >
-              <Text style={styles.menuModalText}>Settings</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.menuModalItem}
-              onPress={handleLogout}
-            >
-              <Text style={[styles.menuModalText, { color: "#FF4444" }]}>
-                Log Out
-              </Text>
+              <Text style={{color: '#fff', fontSize: 20}}>⚙️</Text>
             </TouchableOpacity>
           </View>
-        </Pressable>
-      </Modal>
-      <ScrollView style={styles.scrollView}>
-        <View style={styles.header}>
-          <View style={styles.profileInfo}>
-            {user?.avatarImageUrl ? (
-              <Image
-                source={{ uri: user.avatarImageUrl }}
-                style={styles.avatar}
-              />
-            ) : (
-              <View style={[styles.avatar, styles.defaultAvatar]}>
-                <UserIcon size={40} color="#A26FFD" />
-              </View>
-            )}
-            <View style={styles.userInfo}>
-              <Text style={styles.name}>{user?.fullName || "-"}</Text>
-              <Text style={styles.email}>{user?.email || "-"}</Text>
+
+          <View style={styles.statsContainer}>
+            <View style={styles.statItem}>
+              <Text style={styles.statValue}>156</Text>
+              <Text style={styles.statLabel}>Workouts</Text>
+            </View>
+            <View style={styles.statDivider} />
+            <View style={styles.statItem}>
+              <Text style={styles.statValue}>42.5k</Text>
+              <Text style={styles.statLabel}>Calories</Text>
+            </View>
+            <View style={styles.statDivider} />
+            <View style={styles.statItem}>
+              <Text style={styles.statValue}>23</Text>
+              <Text style={styles.statLabel}>Achievements</Text>
             </View>
           </View>
-          <TouchableOpacity
-            style={styles.settingsButton}
-            onPress={() => setMenuVisible(true)}
-          >
-            <Settings size={24} color="#fff" />
-          </TouchableOpacity>
-        </View>
 
-        <View style={styles.statsContainer}>
-          <View style={styles.statItem}>
-            <Text style={styles.statValue}>156</Text>
-            <Text style={styles.statLabel}>Workouts</Text>
+          <View style={styles.menuContainer}>
+            {menuItems.map((item) => (
+              <TouchableOpacity
+                key={item.id}
+                style={styles.menuItem}
+                onPress={() => {
+                  if (item.title === "Contacts") {
+                    console.log('Contacts button pressed - temporarily disabled');
+                    // setContactsModalVisible(true);
+                  }
+                }}
+              >
+                <Text style={styles.menuTitle}>{item.title}</Text>
+                {/* <ChevronRight size={20} color="#666" /> */}
+              </TouchableOpacity>
+            ))}
           </View>
-          <View style={styles.statDivider} />
-          <View style={styles.statItem}>
-            <Text style={styles.statValue}>42.5k</Text>
-            <Text style={styles.statLabel}>Calories</Text>
-          </View>
-          <View style={styles.statDivider} />
-          <View style={styles.statItem}>
-            <Text style={styles.statValue}>23</Text>
-            <Text style={styles.statLabel}>Achievements</Text>
-          </View>
-        </View>
+        </ScrollView>
 
-        <View style={styles.menuContainer}>
-          {menuItems.map((item) => (
-            <TouchableOpacity
-              key={item.id}
-              style={styles.menuItem}
-              onPress={() => {
-                if (item.title === "Contacts") {
-                  setContactsModalVisible(true);
-                }
-              }}
-            >
-              <Text style={styles.menuTitle}>{item.title}</Text>
-              {/* <ChevronRight size={20} color="#666" /> */}
-            </TouchableOpacity>
-          ))}
-        </View>
-      </ScrollView>
-
-      <ContactsModal
-        visible={contactsModalVisible}
-        onClose={() => setContactsModalVisible(false)}
-      />
-    </View>
-  );
+        {/* Temporarily commented out ContactsModal to prevent crashes
+        <ContactsModal
+          visible={contactsModalVisible}
+          onClose={() => setContactsModalVisible(false)}
+        />
+        */}
+      </View>
+    );
+  } catch (error) {
+    console.error('ProfileScreen error:', error);
+    return (
+      <View style={styles.container}>
+        <Text style={{color: '#fff', textAlign: 'center', marginTop: 50}}>
+          Error loading profile
+        </Text>
+      </View>
+    );
+  }
 }
 
 const styles = StyleSheet.create({

@@ -1,15 +1,12 @@
 {
   "cli": {
-    "version": ">= 16.13.3",
+    "version": ">= 16.16.0",
     "appVersionSource": "remote"
   },
   "build": {
     "development": {
       "developmentClient": true,
-      "distribution": "internal",
-      "env": {
-        "EXPO_PUBLIC_BASE_URL": "http://52.15.195.49:8000/api"
-      }
+      "distribution": "internal"
     },
     "preview": {
       "distribution": "internal",
@@ -18,10 +15,7 @@
       }
     },
     "production": {
-      "autoIncrement": true,
-      "env": {
-        "EXPO_PUBLIC_BASE_URL": "http://52.15.195.49:8000/api"
-      }
+      "autoIncrement": true
     }
   },
   "submit": {

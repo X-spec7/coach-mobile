@@ -18,8 +18,7 @@
         "backgroundColor": "#ffffff"
       },
       "package": "com.coachmobile",
-      "usesCleartextTraffic": true,
-      "cleartextTrafficPermitted": true
+      "usesCleartextTraffic": true
     },
     "web": {
       "bundler": "metro",
@@ -27,6 +26,14 @@
       "favicon": "./assets/images/favicon.png"
     },
     "plugins": [
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "usesCleartextTraffic": true
+          }
+        }
+      ],
       "expo-router",
       [
         "expo-splash-screen",
@@ -45,8 +52,11 @@
     },
     "extra": {
       "baseUrl": "http://52.15.195.49:8000/api",
+      "router": {
+        "origin": false
+      },
       "eas": {
-        "projectId": "3f619311-eb86-4ea6-b600-1e98acf24b64"
+        "projectId": "9fd2768a-0509-43ff-a254-67f2c8f8cb8d"
       }
     }
   }
