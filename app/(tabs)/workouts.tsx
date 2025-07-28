@@ -1,5 +1,9 @@
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image } from 'react-native';
-import React from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Alert, ActivityIndicator, RefreshControl } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { Ionicons } from '@expo/vector-icons';
+import { WorkoutService, WorkoutPlan } from '../services/workoutService';
+import { CreateWorkoutPlanModal } from '../modals/CreateWorkoutPlanModal';
+import { WorkoutPlanDetailsModal } from '../modals/WorkoutPlanDetailsModal';
 
 const workoutCategories = [
   {
@@ -25,11 +29,174 @@ const workoutCategories = [
 export default function WorkoutsScreen() {
   console.log('WorkoutsScreen rendering...');
   
+  const [workoutPlans, setWorkoutPlans] = useState<WorkoutPlan[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [selectedPlanId, setSelectedPlanId] = useState<number | null>(null);
+
+  useEffect(() => {
+    fetchWorkoutPlans();
+  }, []);
+
+  const fetchWorkoutPlans = async (isRefresh = false) => {
+    if (isRefresh) {
+      setRefreshing(true);
+    } else {
+      setLoading(true);
+    }
+    
+    try {
+      const response = await WorkoutService.getWorkoutPlans();
+      setWorkoutPlans(response.workout_plans);
+    } catch (error) {
+      console.error('Error fetching workout plans:', error);
+      Alert.alert('Error', 'Failed to load workout plans');
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
+
+  const handleRefresh = () => {
+    fetchWorkoutPlans(true);
+  };
+
+  const handlePlanPress = (planId: number) => {
+    setSelectedPlanId(planId);
+    setShowDetailsModal(true);
+  };
+
+  const handleDeletePlan = async (planId: number, planTitle: string) => {
+    Alert.alert(
+      'Delete Workout Plan',
+      `Are you sure you want to delete "${planTitle}"? This action cannot be undone.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await WorkoutService.deleteWorkoutPlan(planId);
+              await fetchWorkoutPlans();
+            } catch (error) {
+              console.error('Error deleting workout plan:', error);
+              Alert.alert('Error', 'Failed to delete workout plan');
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const renderWorkoutPlan = (plan: WorkoutPlan) => (
+    <TouchableOpacity
+      key={plan.id}
+      style={styles.planCard}
+      onPress={() => handlePlanPress(plan.id)}
+    >
+      <View style={styles.planContent}>
+        <View style={styles.planInfo}>
+          <View style={styles.planHeader}>
+            <Text style={styles.planTitle}>{plan.title}</Text>
+            <View style={[
+              styles.statusBadge,
+              { backgroundColor: plan.status === 'published' ? '#4CAF50' : '#FFA726' }
+            ]}>
+              <Text style={styles.statusText}>{plan.status_display}</Text>
+            </View>
+          </View>
+          {plan.description && (
+            <Text style={styles.planDescription} numberOfLines={2}>
+              {plan.description}
+            </Text>
+          )}
+          <View style={styles.planStats}>
+            <View style={styles.statItem}>
+              <Ionicons name="calendar-outline" size={16} color="#666" />
+              <Text style={styles.statText}>
+                {plan.daily_plans_count || 0} days
+              </Text>
+            </View>
+            <View style={styles.statItem}>
+              <Ionicons name="flame-outline" size={16} color="#666" />
+              <Text style={styles.statText}>
+                {plan.total_calories} cal
+              </Text>
+            </View>
+            <View style={styles.statItem}>
+              <Ionicons name="time-outline" size={16} color="#666" />
+              <Text style={styles.statText}>
+                {new Date(plan.updated_at).toLocaleDateString()}
+              </Text>
+            </View>
+          </View>
+        </View>
+        <TouchableOpacity
+          style={styles.deleteButton}
+          onPress={() => handleDeletePlan(plan.id, plan.title)}
+        >
+          <Ionicons name="trash-outline" size={20} color="#FF6B6B" />
+        </TouchableOpacity>
+      </View>
+    </TouchableOpacity>
+  );
+
+  const renderEmptyWorkoutPlans = () => (
+    <View style={styles.emptyState}>
+      <Ionicons name="barbell-outline" size={48} color="#666" />
+      <Text style={styles.emptyStateTitle}>No Workout Plans Yet</Text>
+      <Text style={styles.emptyStateText}>
+        Create your first workout plan to get started
+      </Text>
+      <TouchableOpacity 
+        style={styles.emptyStateButton}
+        onPress={() => setShowCreateModal(true)}
+      >
+        <Text style={styles.emptyStateButtonText}>Create Your First Plan</Text>
+      </TouchableOpacity>
+    </View>
+  );
+
+  const renderWorkoutPlansStats = () => {
+    const totalPlans = workoutPlans.length;
+    const publishedPlans = workoutPlans.filter(plan => plan.status === 'published').length;
+    const totalCalories = workoutPlans.reduce((sum, plan) => sum + plan.total_calories, 0);
+
+    return (
+      <View style={styles.plansStatsContainer}>
+        <View style={styles.planStatCard}>
+          <Text style={styles.planStatValue}>{totalPlans}</Text>
+          <Text style={styles.planStatLabel}>Total Plans</Text>
+        </View>
+        <View style={styles.planStatCard}>
+          <Text style={styles.planStatValue}>{publishedPlans}</Text>
+          <Text style={styles.planStatLabel}>Published</Text>
+        </View>
+        <View style={styles.planStatCard}>
+          <Text style={styles.planStatValue}>{totalCalories}</Text>
+          <Text style={styles.planStatLabel}>Total Calories</Text>
+        </View>
+      </View>
+    );
+  };
+  
   try {
     return (
       <View style={styles.container}>
-        <ScrollView style={styles.scrollView}>
-          <Text style={styles.title}>Workout Library</Text>
+        <ScrollView 
+          style={styles.scrollView}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={handleRefresh}
+              tintColor="#A78BFA"
+            />
+          }
+        >
+          <Text style={styles.title}>Workouts & Plans</Text>
           
           <View style={styles.statsContainer}>
             <View style={styles.statCard}>
@@ -42,7 +209,36 @@ export default function WorkoutsScreen() {
             </View>
           </View>
 
-          <Text style={styles.sectionTitle}>Categories</Text>
+          {/* Workout Plans Section */}
+          <View style={styles.sectionContainer}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>My Workout Plans</Text>
+              <TouchableOpacity 
+                style={styles.addButton}
+                onPress={() => setShowCreateModal(true)}
+              >
+                <Ionicons name="add" size={20} color="#A78BFA" />
+                <Text style={styles.addButtonText}>Create Plan</Text>
+              </TouchableOpacity>
+            </View>
+
+            {workoutPlans.length > 0 && renderWorkoutPlansStats()}
+
+            {loading ? (
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="large" color="#A78BFA" />
+                <Text style={styles.loadingText}>Loading workout plans...</Text>
+              </View>
+            ) : workoutPlans.length > 0 ? (
+              <View style={styles.plansContainer}>
+                {workoutPlans.map(renderWorkoutPlan)}
+              </View>
+            ) : (
+              renderEmptyWorkoutPlans()
+            )}
+          </View>
+
+          <Text style={styles.sectionTitle}>Exercise Categories</Text>
           {workoutCategories.map((category) => (
             <TouchableOpacity key={category.id} style={styles.categoryCard}>
               <Image source={{ uri: category.image }} style={styles.categoryImage} />
@@ -53,6 +249,20 @@ export default function WorkoutsScreen() {
             </TouchableOpacity>
           ))}
         </ScrollView>
+
+        {/* Modals */}
+        <CreateWorkoutPlanModal
+          visible={showCreateModal}
+          onClose={() => setShowCreateModal(false)}
+          onSuccess={fetchWorkoutPlans}
+        />
+
+        <WorkoutPlanDetailsModal
+          visible={showDetailsModal}
+          onClose={() => setShowDetailsModal(false)}
+          workoutPlanId={selectedPlanId}
+          onUpdate={fetchWorkoutPlans}
+        />
       </View>
     );
   } catch (error) {
@@ -105,6 +315,16 @@ const styles = StyleSheet.create({
     color: '#666',
     marginTop: 4,
   },
+  sectionContainer: {
+    marginHorizontal: 20,
+    marginBottom: 20,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
   sectionTitle: {
     fontSize: 20,
     fontWeight: 'bold',
@@ -112,6 +332,134 @@ const styles = StyleSheet.create({
     marginHorizontal: 20,
     marginTop: 20,
     marginBottom: 16,
+  },
+  addButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#A78BFA20',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+  },
+  addButtonText: {
+    color: '#A78BFA',
+    marginLeft: 4,
+    fontWeight: '600',
+  },
+  loadingContainer: {
+    padding: 40,
+    alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: 10,
+    color: '#666',
+  },
+  plansContainer: {
+    gap: 12,
+  },
+  planCard: {
+    backgroundColor: '#2a2a2a',
+    borderRadius: 16,
+    padding: 16,
+  },
+  planContent: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+  },
+  planInfo: {
+    flex: 1,
+    marginRight: 12,
+  },
+  planHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  planTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#fff',
+    flex: 1,
+    marginRight: 8,
+  },
+  statusBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 8,
+  },
+  statusText: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: '#fff',
+  },
+  planDescription: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 12,
+  },
+  planStats: {
+    flexDirection: 'row',
+    gap: 16,
+  },
+  statItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  statText: {
+    fontSize: 12,
+    color: '#666',
+  },
+  deleteButton: {
+    padding: 4,
+  },
+  emptyState: {
+    alignItems: 'center',
+    padding: 40,
+  },
+  emptyStateTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#fff',
+    marginTop: 12,
+    marginBottom: 8,
+  },
+  emptyStateText: {
+    fontSize: 14,
+    color: '#666',
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  emptyStateButton: {
+    backgroundColor: '#A78BFA',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 20,
+  },
+  emptyStateButtonText: {
+    color: '#fff',
+    fontWeight: '600',
+  },
+  plansStatsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    marginBottom: 16,
+    paddingHorizontal: 20,
+  },
+  planStatCard: {
+    alignItems: 'center',
+  },
+  planStatValue: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#fff',
+    marginBottom: 4,
+  },
+  planStatLabel: {
+    fontSize: 14,
+    color: '#666',
   },
   categoryCard: {
     margin: 20,

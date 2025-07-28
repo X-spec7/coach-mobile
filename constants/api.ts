@@ -32,4 +32,19 @@ export const API_ENDPOINTS = {
     GET_USER_INFO: `${API_BASE_URL}/users/client/profile/`,
     UPDATE_USER_INFO: `${API_BASE_URL}/users/client/profile/`,
   },
+  WORKOUTS: {
+    WORKOUT_PLANS: `${API_BASE_URL}/workouts/workout-plans/`,
+    WORKOUT_PLAN_DETAILS: (planId: number) => `${API_BASE_URL}/workouts/workout-plans/${planId}/`,
+    ADD_DAY: (planId: number) => `${API_BASE_URL}/workouts/workout-plans/${planId}/days/`,
+    REMOVE_DAY: (planId: number, dayId: number) => `${API_BASE_URL}/workouts/workout-plans/${planId}/days/${dayId}/`,
+    ADD_EXERCISE: (planId: number, dayId: number) => `${API_BASE_URL}/workouts/workout-plans/${planId}/days/${dayId}/exercises/`,
+    UPDATE_EXERCISE: (planId: number, dayId: number, exerciseId: number) => `${API_BASE_URL}/workouts/workout-plans/${planId}/days/${dayId}/exercises/${exerciseId}/`,
+    REMOVE_EXERCISE: (planId: number, dayId: number, exerciseId: number) => `${API_BASE_URL}/workouts/workout-plans/${planId}/days/${dayId}/exercises/${exerciseId}/`,
+  },
+  EXERCISES: {
+    GET_ALL: `${API_BASE_URL}/exercises/`,
+    CREATE: `${API_BASE_URL}/exercises/`,
+    UPDATE: `${API_BASE_URL}/exercises/update/`,
+    DELETE: (exerciseId: number) => `${API_BASE_URL}/exercises/${exerciseId}/`,
+  },
 };
