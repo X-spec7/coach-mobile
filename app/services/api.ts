@@ -76,6 +76,20 @@ export const getAuthHeaders = async () => {
   return headers;
 };
 
+export const getAuthHeadersForDelete = async () => {
+  const token = await getToken();
+
+  const headers: Record<string, string> = {};
+
+  if (token) {
+    headers["Authorization"] = `Bearer ${token.accessToken}`;
+  } else {
+    console.log("No token available, proceeding without authorization");
+  }
+
+  return headers;
+};
+
 export const fetchMealPlans = async (): Promise<MealPlan[]> => {
   try {
     const headers = await getAuthHeaders();
@@ -333,14 +347,11 @@ export const selectMealPlan = async (mealPlanId: number): Promise<void> => {
 
 export const deleteMealPlan = async (mealPlanId: number): Promise<void> => {
   try {
-    const headers = await getAuthHeaders();
+    const headers = await getAuthHeadersForDelete();
     const url = `${API_BASE_URL}/mealplan/${mealPlanId}/delete/`;
     const response = await fetch(url, {
       method: "DELETE",
-      headers: {
-        "Content-Type": "application/json",
-        ...headers,
-      },
+      headers, // Don't add Content-Type for DELETE requests
     });
 
     if (!response.ok) {

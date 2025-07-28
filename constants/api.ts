@@ -5,9 +5,9 @@ const getApiBaseUrl = () => {
     return process.env.EXPO_PUBLIC_BASE_URL;
   }
 
-  // For development, use localhost (works for iOS Simulator on same machine)
-  // For physical devices, you'll need to set EXPO_PUBLIC_BASE_URL to your computer's IP
-  return "http://localhost:8000/api";
+  // For Android emulator, use the remote server IP
+  // For physical devices, you may need to check network accessibility
+  return "http://52.15.195.49:8000/api";
 };
 
 export const API_BASE_URL = getApiBaseUrl();

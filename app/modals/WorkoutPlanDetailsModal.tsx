@@ -52,6 +52,7 @@ export const WorkoutPlanDetailsModal: React.FC<WorkoutPlanDetailsModalProps> = (
   const [expandedDay, setExpandedDay] = useState<number | null>(null);
   const [showExerciseBrowser, setShowExerciseBrowser] = useState(false);
   const [selectedDayForExercise, setSelectedDayForExercise] = useState<number | null>(null);
+  const [showDaySelector, setShowDaySelector] = useState(false);
 
   useEffect(() => {
     if (visible && workoutPlanId) {
@@ -74,27 +75,31 @@ export const WorkoutPlanDetailsModal: React.FC<WorkoutPlanDetailsModalProps> = (
     }
   };
 
+  const getAvailableDays = () => {
+    if (!workoutPlan) return [];
+    
+    const existingDays = workoutPlan.daily_plans?.map(dp => dp.day) || [];
+    return DAY_OPTIONS.filter(dayOption => !existingDays.includes(dayOption.key));
+  };
+
   const handleAddDay = async () => {
     if (!workoutPlan) return;
 
-    const existingDays = workoutPlan.daily_plans?.map(dp => dp.day) || [];
-    const nextDayNumber = existingDays.length + 1;
+    const availableDays = getAvailableDays();
     
-    if (nextDayNumber > 7) {
-      Alert.alert('Info', 'Maximum of 7 days reached for this workout plan');
+    if (availableDays.length === 0) {
+      Alert.alert('Info', 'All days have been added to this workout plan');
       return;
     }
 
-    const nextDay = `day${nextDayNumber}` as AddDayRequest['day'];
-    
-    try {
-      await WorkoutService.addDay(workoutPlan.id, { day: nextDay });
-      await fetchWorkoutPlan();
-      onUpdate();
-    } catch (error) {
-      console.error('Error adding day:', error);
-      Alert.alert('Error', 'Failed to add day');
+    // If only one day available, add it directly
+    if (availableDays.length === 1) {
+      await addDay(availableDays[0].key);
+      return;
     }
+
+    // Show day selector for multiple options
+    setShowDaySelector(true);
   };
 
   const addDay = async (day: AddDayRequest['day']) => {
@@ -392,6 +397,47 @@ export const WorkoutPlanDetailsModal: React.FC<WorkoutPlanDetailsModalProps> = (
         }}
         onSelectExercise={handleSelectExercise}
       />
+
+      {/* Day Selector Modal */}
+      <Modal
+        visible={showDaySelector}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowDaySelector(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={[styles.daySelectorContainer, { backgroundColor: Colors[colorScheme ?? 'light'].background }]}>
+            <View style={styles.daySelectorHeader}>
+              <Text style={[styles.daySelectorTitle, { color: Colors[colorScheme ?? 'light'].text }]}>
+                Select Day to Add
+              </Text>
+              <TouchableOpacity
+                onPress={() => setShowDaySelector(false)}
+                style={styles.closeButton}
+              >
+                <Ionicons name="close" size={24} color={Colors[colorScheme ?? 'light'].text} />
+              </TouchableOpacity>
+            </View>
+            
+            <View style={styles.dayOptionsContainer}>
+              {getAvailableDays().map((dayOption) => (
+                <TouchableOpacity
+                  key={dayOption.key}
+                  style={[styles.dayOptionButton, { borderColor: Colors[colorScheme ?? 'light'].text }]}
+                  onPress={async () => {
+                    setShowDaySelector(false);
+                    await addDay(dayOption.key);
+                  }}
+                >
+                  <Text style={[styles.dayOptionText, { color: Colors[colorScheme ?? 'light'].text }]}>
+                    {dayOption.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+        </View>
+      </Modal>
     </>
   );
 };
@@ -593,5 +639,49 @@ const styles = StyleSheet.create({
     color: '#666',
     textAlign: 'center',
     fontSize: 16,
+  },
+  modalOverlay: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+  },
+  daySelectorContainer: {
+    width: '80%',
+    borderRadius: 15,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  daySelectorHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: '#333',
+  },
+  daySelectorTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+  },
+  dayOptionsContainer: {
+    padding: 15,
+  },
+  dayOptionButton: {
+    paddingVertical: 12,
+    paddingHorizontal: 15,
+    borderRadius: 10,
+    borderWidth: 1,
+    marginBottom: 10,
+    alignItems: 'center',
+    backgroundColor: 'rgba(167, 139, 250, 0.1)',
+  },
+  dayOptionText: {
+    fontSize: 16,
+    fontWeight: '600',
   },
 }); 

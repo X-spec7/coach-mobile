@@ -52,7 +52,16 @@ export default function WorkoutsScreen() {
       setWorkoutPlans(response.workout_plans);
     } catch (error) {
       console.error('Error fetching workout plans:', error);
-      Alert.alert('Error', 'Failed to load workout plans');
+      
+      const errorMessage = error instanceof Error ? error.message : 'Failed to load workout plans';
+      
+      // Don't show alert for authentication required errors - user might not be logged in yet
+      if (errorMessage.includes('Authentication required')) {
+        console.log('User not authenticated, skipping workout plans fetch');
+        setWorkoutPlans([]); // Clear any existing plans
+      } else {
+        Alert.alert('Error', errorMessage);
+      }
     } finally {
       setLoading(false);
       setRefreshing(false);
