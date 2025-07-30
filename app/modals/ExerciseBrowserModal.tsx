@@ -8,7 +8,6 @@ import {
   ScrollView,
   TextInput,
   ActivityIndicator,
-  useColorScheme,
   Image,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -26,7 +25,6 @@ export const ExerciseBrowserModal: React.FC<ExerciseBrowserModalProps> = ({
   onClose,
   onSelectExercise,
 }) => {
-  const colorScheme = useColorScheme();
   const [exercises, setExercises] = useState<Exercise[]>([]);
   const [filteredExercises, setFilteredExercises] = useState<Exercise[]>([]);
   const [loading, setLoading] = useState(false);
@@ -58,6 +56,17 @@ export const ExerciseBrowserModal: React.FC<ExerciseBrowserModalProps> = ({
       setFilteredExercises(response.exercises);
     } catch (error) {
       console.error('Error fetching exercises:', error);
+      
+      const errorMessage = error instanceof Error ? error.message : 'Failed to load exercises';
+      
+      // Don't show alert for authentication required errors - user will be redirected to login
+      if (errorMessage.includes('Authentication required')) {
+        console.log('Authentication required, user will be redirected to login');
+        onClose();
+      } else {
+        // For other errors, we can show an alert or handle them silently
+        console.error('Failed to load exercises:', errorMessage);
+      }
     } finally {
       setLoading(false);
     }
@@ -71,34 +80,26 @@ export const ExerciseBrowserModal: React.FC<ExerciseBrowserModalProps> = ({
   const renderExercise = (exercise: Exercise) => (
     <TouchableOpacity
       key={exercise.id}
-      style={[
-        styles.exerciseCard,
-        { backgroundColor: Colors[colorScheme ?? 'light'].tabIconDefault + '20' }
-      ]}
+      style={styles.exerciseCard}
       onPress={() => handleSelectExercise(exercise)}
     >
       <View style={styles.exerciseContent}>
-        <Image
-          source={{ uri: exercise.exerciseIconUrl || undefined }}
-          style={styles.exerciseIcon}
-          defaultSource={require('@/assets/images/workout.png')}
-        />
+        {exercise.exerciseIconUrl ? (
+          <Image
+            source={{ uri: exercise.exerciseIconUrl }}
+            style={styles.exerciseIcon}
+            defaultSource={require('@/assets/images/workout.png')}
+          />
+        ) : (
+          <View style={styles.exerciseIconPlaceholder}>
+            <Ionicons name="fitness" size={24} color="#A78BFA" />
+          </View>
+        )}
         <View style={styles.exerciseInfo}>
-          <Text
-            style={[
-              styles.exerciseTitle,
-              { color: Colors[colorScheme ?? 'light'].text }
-            ]}
-          >
+          <Text style={styles.exerciseTitle}>
             {exercise.title}
           </Text>
-          <Text
-            style={[
-              styles.exerciseDescription,
-              { color: Colors[colorScheme ?? 'light'].tabIconDefault }
-            ]}
-            numberOfLines={2}
-          >
+          <Text style={styles.exerciseDescription} numberOfLines={2}>
             {exercise.description}
           </Text>
           <View style={styles.exerciseStats}>
@@ -109,16 +110,11 @@ export const ExerciseBrowserModal: React.FC<ExerciseBrowserModalProps> = ({
                 color="#A78BFA" 
               />
               <Text style={styles.statText}>
-                {exercise.caloriePerRound} cal/rep
+                {exercise.caloriePerRound} cal/round
               </Text>
             </View>
           </View>
         </View>
-        <Ionicons 
-          name="chevron-forward" 
-          size={20} 
-          color={Colors[colorScheme ?? 'light'].tabIconDefault} 
-        />
       </View>
     </TouchableOpacity>
   );
@@ -129,7 +125,7 @@ export const ExerciseBrowserModal: React.FC<ExerciseBrowserModalProps> = ({
         <View
           style={[
             styles.container,
-            { backgroundColor: Colors[colorScheme ?? 'light'].background }
+            { backgroundColor: Colors.light.background }
           ]}
         >
           {/* Header */}
@@ -138,13 +134,13 @@ export const ExerciseBrowserModal: React.FC<ExerciseBrowserModalProps> = ({
               <Ionicons 
                 name="close" 
                 size={24} 
-                color={Colors[colorScheme ?? 'light'].text} 
+                color={Colors.light.text} 
               />
             </TouchableOpacity>
             <Text
               style={[
                 styles.headerTitle,
-                { color: Colors[colorScheme ?? 'light'].text }
+                { color: Colors.light.text }
               ]}
             >
               Select Exercise
@@ -158,23 +154,23 @@ export const ExerciseBrowserModal: React.FC<ExerciseBrowserModalProps> = ({
               style={[
                 styles.searchInput,
                 {
-                  backgroundColor: Colors[colorScheme ?? 'light'].tabIconDefault + '20',
-                  borderColor: Colors[colorScheme ?? 'light'].tabIconDefault + '40',
+                  backgroundColor: Colors.light.tabIconDefault + '20',
+                  borderColor: Colors.light.tabIconDefault + '40',
                 }
               ]}
             >
               <Ionicons 
                 name="search" 
                 size={20} 
-                color={Colors[colorScheme ?? 'light'].tabIconDefault} 
+                color={Colors.light.tabIconDefault} 
               />
               <TextInput
                 style={[
                   styles.searchTextInput,
-                  { color: Colors[colorScheme ?? 'light'].text }
+                  { color: Colors.light.text }
                 ]}
                 placeholder="Search exercises..."
-                placeholderTextColor={Colors[colorScheme ?? 'light'].tabIconDefault}
+                placeholderTextColor={Colors.light.tabIconDefault}
                 value={searchQuery}
                 onChangeText={setSearchQuery}
               />
@@ -183,7 +179,7 @@ export const ExerciseBrowserModal: React.FC<ExerciseBrowserModalProps> = ({
                   <Ionicons 
                     name="close-circle" 
                     size={20} 
-                    color={Colors[colorScheme ?? 'light'].tabIconDefault} 
+                    color={Colors.light.tabIconDefault} 
                   />
                 </TouchableOpacity>
               )}
@@ -197,7 +193,7 @@ export const ExerciseBrowserModal: React.FC<ExerciseBrowserModalProps> = ({
               <Text
                 style={[
                   styles.loadingText,
-                  { color: Colors[colorScheme ?? 'light'].tabIconDefault }
+                  { color: Colors.light.tabIconDefault }
                 ]}
               >
                 Loading exercises...
@@ -214,12 +210,12 @@ export const ExerciseBrowserModal: React.FC<ExerciseBrowserModalProps> = ({
                   <Ionicons 
                     name="barbell-outline" 
                     size={48} 
-                    color={Colors[colorScheme ?? 'light'].tabIconDefault} 
+                    color={Colors.light.tabIconDefault} 
                   />
                   <Text
                     style={[
                       styles.emptyStateText,
-                      { color: Colors[colorScheme ?? 'light'].tabIconDefault }
+                      { color: Colors.light.tabIconDefault }
                     ]}
                   >
                     {searchQuery ? 'No exercises found' : 'No exercises available'}
@@ -228,7 +224,7 @@ export const ExerciseBrowserModal: React.FC<ExerciseBrowserModalProps> = ({
                     <Text
                       style={[
                         styles.emptyStateSubtext,
-                        { color: Colors[colorScheme ?? 'light'].tabIconDefault }
+                        { color: Colors.light.tabIconDefault }
                       ]}
                     >
                       Try adjusting your search terms
@@ -308,8 +304,17 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   exerciseCard: {
+    backgroundColor: '#fff',
     borderRadius: 12,
     padding: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   exerciseContent: {
     flexDirection: 'row',
@@ -321,18 +326,28 @@ const styles = StyleSheet.create({
     borderRadius: 25,
     marginRight: 12,
   },
+  exerciseIconPlaceholder: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    marginRight: 12,
+    backgroundColor: '#E0E0E0', // A light gray background for placeholder
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   exerciseInfo: {
     flex: 1,
   },
   exerciseTitle: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: 'bold',
     marginBottom: 4,
+    color: '#1a1a1a',
   },
   exerciseDescription: {
     fontSize: 14,
-    lineHeight: 20,
     marginBottom: 8,
+    color: '#666',
   },
   exerciseStats: {
     flexDirection: 'row',

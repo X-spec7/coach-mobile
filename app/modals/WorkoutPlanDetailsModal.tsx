@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -8,20 +8,14 @@ import {
   ScrollView,
   Alert,
   ActivityIndicator,
-  useColorScheme,
   Image,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '@/constants/Colors';
-import { 
-  WorkoutService, 
-  WorkoutPlan, 
-  DailyPlan, 
-  WorkoutExercise,
-  AddDayRequest,
-  Exercise 
-} from '../services/workoutService';
+import { WorkoutService, WorkoutPlan, DailyPlan, Exercise, AddDayRequest, WorkoutExercise } from '../services/workoutService';
 import { ExerciseBrowserModal } from './ExerciseBrowserModal';
+import { ExerciseConfigurationModal } from './ExerciseConfigurationModal';
+import { ApplyWorkoutPlanModal } from './ApplyWorkoutPlanModal';
 
 interface WorkoutPlanDetailsModalProps {
   visible: boolean;
@@ -46,13 +40,18 @@ export const WorkoutPlanDetailsModal: React.FC<WorkoutPlanDetailsModalProps> = (
   workoutPlanId,
   onUpdate,
 }) => {
-  const colorScheme = useColorScheme();
   const [workoutPlan, setWorkoutPlan] = useState<WorkoutPlan | null>(null);
   const [loading, setLoading] = useState(false);
   const [expandedDay, setExpandedDay] = useState<number | null>(null);
   const [showExerciseBrowser, setShowExerciseBrowser] = useState(false);
   const [selectedDayForExercise, setSelectedDayForExercise] = useState<number | null>(null);
   const [showDaySelector, setShowDaySelector] = useState(false);
+  const [showExerciseConfig, setShowExerciseConfig] = useState(false);
+  const [selectedExercise, setSelectedExercise] = useState<Exercise | null>(null);
+  const [showApplyWorkoutPlanModal, setShowApplyWorkoutPlanModal] = useState(false);
+  
+  // Ref to track if we're programmatically closing the exercise browser
+  const isProgrammaticCloseRef = useRef(false);
 
   useEffect(() => {
     if (visible && workoutPlanId) {
@@ -66,10 +65,21 @@ export const WorkoutPlanDetailsModal: React.FC<WorkoutPlanDetailsModalProps> = (
     setLoading(true);
     try {
       const response = await WorkoutService.getWorkoutPlan(workoutPlanId);
+      console.log('[fetchWorkoutPlan] Received workout plan with is_public:', response.workout_plan.is_public);
       setWorkoutPlan(response.workout_plan);
     } catch (error) {
       console.error('Error fetching workout plan:', error);
-      Alert.alert('Error', 'Failed to load workout plan details');
+      
+      const errorMessage = error instanceof Error ? error.message : 'Failed to load workout plan details';
+      
+      // Don't show alert for authentication required errors - user will be redirected to login
+      if (errorMessage.includes('Authentication required')) {
+        console.log('Authentication required, user will be redirected to login');
+        // Close the modal since user is being redirected
+        onClose();
+      } else {
+        Alert.alert('Error', errorMessage);
+      }
     } finally {
       setLoading(false);
     }
@@ -80,6 +90,28 @@ export const WorkoutPlanDetailsModal: React.FC<WorkoutPlanDetailsModalProps> = (
     
     const existingDays = workoutPlan.daily_plans?.map(dp => dp.day) || [];
     return DAY_OPTIONS.filter(dayOption => !existingDays.includes(dayOption.key));
+  };
+
+  const getSortedDailyPlans = () => {
+    if (!workoutPlan?.daily_plans) return [];
+    
+    // Create a mapping for day order
+    const dayOrder: Record<string, number> = {
+      'day1': 1,
+      'day2': 2,
+      'day3': 3,
+      'day4': 4,
+      'day5': 5,
+      'day6': 6,
+      'day7': 7,
+    };
+    
+    // Sort daily plans by day order
+    return [...workoutPlan.daily_plans].sort((a, b) => {
+      const orderA = dayOrder[a.day] || 999;
+      const orderB = dayOrder[b.day] || 999;
+      return orderA - orderB;
+    });
   };
 
   const handleAddDay = async () => {
@@ -111,7 +143,16 @@ export const WorkoutPlanDetailsModal: React.FC<WorkoutPlanDetailsModalProps> = (
       onUpdate();
     } catch (error) {
       console.error('Error adding day:', error);
-      Alert.alert('Error', 'Failed to add day');
+      
+      const errorMessage = error instanceof Error ? error.message : 'Failed to add day';
+      
+      // Don't show alert for authentication required errors - user will be redirected to login
+      if (errorMessage.includes('Authentication required')) {
+        console.log('Authentication required, user will be redirected to login');
+        onClose();
+      } else {
+        Alert.alert('Error', errorMessage);
+      }
     }
   };
 
@@ -133,7 +174,16 @@ export const WorkoutPlanDetailsModal: React.FC<WorkoutPlanDetailsModalProps> = (
               onUpdate();
             } catch (error) {
               console.error('Error removing day:', error);
-              Alert.alert('Error', 'Failed to remove day');
+              
+              const errorMessage = error instanceof Error ? error.message : 'Failed to remove day';
+              
+              // Don't show alert for authentication required errors - user will be redirected to login
+              if (errorMessage.includes('Authentication required')) {
+                console.log('Authentication required, user will be redirected to login');
+                onClose();
+              } else {
+                Alert.alert('Error', errorMessage);
+              }
             }
           },
         },
@@ -146,21 +196,72 @@ export const WorkoutPlanDetailsModal: React.FC<WorkoutPlanDetailsModalProps> = (
     setShowExerciseBrowser(true);
   };
 
+  const handleExerciseBrowserClose = () => {
+    // Check if this is a programmatic close
+    if (isProgrammaticCloseRef.current) {
+      // Reset the flag and don't clear selectedDayForExercise
+      isProgrammaticCloseRef.current = false;
+      setShowExerciseBrowser(false);
+      return;
+    }
+    
+    // Manual close - clear the day selection
+    setShowExerciseBrowser(false);
+    setSelectedDayForExercise(null);
+  };
+
   const handleSelectExercise = async (exercise: Exercise) => {
-    if (!workoutPlan || !selectedDayForExercise) return;
+    
+    // Set flag to indicate programmatic close
+    isProgrammaticCloseRef.current = true;
+    
+    // Close the exercise browser and show the configuration modal
+    setShowExerciseBrowser(false);
+    setSelectedExercise(exercise);
+    setShowExerciseConfig(true);
+  };
+
+  const handleExerciseConfigurationClose = () => {
+    // Manual close - clear all states
+    setShowExerciseConfig(false);
+    setSelectedExercise(null);
+    setSelectedDayForExercise(null);
+  };
+
+  const handleExerciseConfiguration = async (config: {
+    exercise_id: number;
+    set_count: number;
+    reps_count: number;
+    rest_duration: number;
+  }) => {
+    
+    if (!workoutPlan || !selectedDayForExercise) {
+      console.error('[handleExerciseConfiguration] Missing workoutPlan or selectedDayForExercise');
+      return;
+    }
 
     try {
-      await WorkoutService.addExercise(workoutPlan.id, selectedDayForExercise, {
-        exercise_id: exercise.id,
-        set_count: 3,
-        reps_count: 12,
-        rest_duration: 60,
-      });
+      const result = await WorkoutService.addExercise(workoutPlan.id, selectedDayForExercise, config);
+      
       await fetchWorkoutPlan();
       onUpdate();
+      
+      // Reset states after successful addition
+      setSelectedExercise(null);
+      setSelectedDayForExercise(null);
+      setShowExerciseConfig(false);
     } catch (error) {
-      console.error('Error adding exercise:', error);
-      Alert.alert('Error', 'Failed to add exercise');
+      console.error('[handleExerciseConfiguration] Error adding exercise:', error);
+      
+      const errorMessage = error instanceof Error ? error.message : 'Failed to add exercise';
+      
+      // Don't show alert for authentication required errors - user will be redirected to login
+      if (errorMessage.includes('Authentication required')) {
+        console.log('Authentication required, user will be redirected to login');
+        onClose();
+      } else {
+        Alert.alert('Error', errorMessage);
+      }
     }
   };
 
@@ -182,7 +283,16 @@ export const WorkoutPlanDetailsModal: React.FC<WorkoutPlanDetailsModalProps> = (
               onUpdate();
             } catch (error) {
               console.error('Error removing exercise:', error);
-              Alert.alert('Error', 'Failed to remove exercise');
+              
+              const errorMessage = error instanceof Error ? error.message : 'Failed to remove exercise';
+              
+              // Don't show alert for authentication required errors - user will be redirected to login
+              if (errorMessage.includes('Authentication required')) {
+                console.log('Authentication required, user will be redirected to login');
+                onClose();
+              } else {
+                Alert.alert('Error', errorMessage);
+              }
             }
           },
         },
@@ -210,7 +320,16 @@ export const WorkoutPlanDetailsModal: React.FC<WorkoutPlanDetailsModalProps> = (
               onUpdate();
             } catch (error) {
               console.error('Error updating workout plan:', error);
-              Alert.alert('Error', 'Failed to update workout plan');
+              
+              const errorMessage = error instanceof Error ? error.message : 'Failed to update workout plan';
+              
+              // Don't show alert for authentication required errors - user will be redirected to login
+              if (errorMessage.includes('Authentication required')) {
+                console.log('Authentication required, user will be redirected to login');
+                onClose();
+              } else {
+                Alert.alert('Error', errorMessage);
+              }
             }
           },
         },
@@ -218,16 +337,90 @@ export const WorkoutPlanDetailsModal: React.FC<WorkoutPlanDetailsModalProps> = (
     );
   };
 
+  const handleTogglePublic = async () => {
+    if (!workoutPlan) return;
+
+    console.log('[handleTogglePublic] Current is_public:', workoutPlan.is_public);
+    const newPublicStatus = !workoutPlan.is_public;
+    console.log('[handleTogglePublic] New is_public will be:', newPublicStatus);
+    const action = newPublicStatus ? 'make public' : 'make private';
+
+    Alert.alert(
+      `${action.charAt(0).toUpperCase() + action.slice(1)}`,
+      `Are you sure you want to ${action} this workout plan? ${newPublicStatus ? 'Other users will be able to discover and apply it.' : 'It will no longer be visible to other users.'}`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: action.charAt(0).toUpperCase() + action.slice(1),
+          onPress: async () => {
+            try {
+              console.log('[handleTogglePublic] Calling API with is_public:', newPublicStatus);
+              // Call the actual backend API to update is_public status
+              const response = await WorkoutService.updateWorkoutPlan(workoutPlan.id, { 
+                is_public: newPublicStatus 
+              });
+              console.log('[handleTogglePublic] API response:', response);
+              
+              // Refresh the workout plan to get updated data
+              await fetchWorkoutPlan();
+              onUpdate();
+              
+              // Show success message after UI has been updated
+              setTimeout(() => {
+                Alert.alert(
+                  'Success', 
+                  `Workout plan is now ${newPublicStatus ? 'public' : 'private'}.`
+                );
+              }, 100);
+            } catch (error) {
+              console.error('Error updating workout plan visibility:', error);
+              
+              const errorMessage = error instanceof Error ? error.message : 'Failed to update workout plan visibility';
+              
+              // Don't show alert for authentication required errors - user will be redirected to login
+              if (errorMessage.includes('Authentication required')) {
+                console.log('Authentication required, user will be redirected to login');
+                onClose();
+              } else {
+                Alert.alert('Error', errorMessage);
+              }
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const handleApplyWorkoutPlan = () => {
+    setShowApplyWorkoutPlanModal(true);
+  };
+
+  const handleApplyWorkoutPlanClose = () => {
+    setShowApplyWorkoutPlanModal(false);
+  };
+
+  const handleApplyWorkoutPlanSuccess = () => {
+    setShowApplyWorkoutPlanModal(false);
+    Alert.alert('Success', 'Workout plan applied successfully! Check your scheduled workouts.');
+    onUpdate();
+  };
+
   const renderExercise = (exercise: WorkoutExercise, dayId: number) => (
     <View key={exercise.id} style={styles.exerciseCard}>
       <View style={styles.exerciseHeader}>
-        <Image
-          source={{ uri: exercise.exercise.exerciseIconUrl || undefined }}
-          style={styles.exerciseIcon}
-          defaultSource={require('@/assets/images/workout.png')}
-        />
+        {exercise.exercise.exerciseIconUrl ? (
+          <Image
+            source={{ uri: exercise.exercise.exerciseIconUrl }}
+            style={styles.exerciseIcon}
+            defaultSource={require('@/assets/images/workout.png')}
+          />
+        ) : (
+          <View style={styles.exerciseIconPlaceholder}>
+            <Ionicons name="fitness" size={24} color="#A78BFA" />
+          </View>
+        )}
         <View style={styles.exerciseInfo}>
-          <Text style={[styles.exerciseTitle, { color: Colors[colorScheme ?? 'light'].text }]}>
+          <Text style={[styles.exerciseTitle, { color: Colors.light.text }]}>
             {exercise.exercise.title}
           </Text>
           <Text style={styles.exerciseStats}>
@@ -254,7 +447,7 @@ export const WorkoutPlanDetailsModal: React.FC<WorkoutPlanDetailsModalProps> = (
         onPress={() => setExpandedDay(expandedDay === day.id ? null : day.id)}
       >
         <View style={styles.dayInfo}>
-          <Text style={[styles.dayTitle, { color: Colors[colorScheme ?? 'light'].text }]}>
+          <Text style={[styles.dayTitle, { color: Colors.light.text }]}>
             {day.day_display}
           </Text>
           <Text style={styles.dayStats}>
@@ -277,7 +470,7 @@ export const WorkoutPlanDetailsModal: React.FC<WorkoutPlanDetailsModalProps> = (
           <Ionicons
             name={expandedDay === day.id ? "chevron-up" : "chevron-down"}
             size={20}
-            color={Colors[colorScheme ?? 'light'].tabIconDefault}
+            color={Colors.light.tabIconDefault}
           />
         </View>
       </TouchableOpacity>
@@ -285,7 +478,9 @@ export const WorkoutPlanDetailsModal: React.FC<WorkoutPlanDetailsModalProps> = (
       {expandedDay === day.id && (
         <View style={styles.exercisesList}>
           {day.workout_exercises.length > 0 ? (
-            day.workout_exercises.map(exercise => renderExercise(exercise, day.id))
+            [...day.workout_exercises]
+              .sort((a, b) => a.order - b.order)
+              .map(exercise => renderExercise(exercise, day.id))
           ) : (
             <Text style={styles.noExercisesText}>
               No exercises added yet. Tap + to add exercises.
@@ -304,24 +499,36 @@ export const WorkoutPlanDetailsModal: React.FC<WorkoutPlanDetailsModalProps> = (
     <>
       <Modal visible={visible} animationType="slide" transparent>
         <View style={styles.overlay}>
-          <View style={[styles.container, { backgroundColor: Colors[colorScheme ?? 'light'].background }]}>
+          <View style={[styles.container, { backgroundColor: Colors.light.background }]}>
             {/* Header */}
             <View style={styles.header}>
               <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-                <Ionicons name="close" size={24} color={Colors[colorScheme ?? 'light'].text} />
+                <Ionicons name="close" size={24} color={Colors.light.text} />
               </TouchableOpacity>
-              <Text style={[styles.headerTitle, { color: Colors[colorScheme ?? 'light'].text }]}>
+              <Text style={[styles.headerTitle, { color: Colors.light.text }]}>
                 Workout Plan
               </Text>
               {workoutPlan && (
-                <TouchableOpacity onPress={handlePublish} style={styles.publishButton}>
-                  <Text style={[
-                    styles.publishText,
-                    { color: workoutPlan.status === 'published' ? '#FF6B6B' : '#A78BFA' }
-                  ]}>
-                    {workoutPlan.status === 'published' ? 'Unpublish' : 'Publish'}
-                  </Text>
-                </TouchableOpacity>
+                <View style={styles.headerActions}>
+                  <TouchableOpacity onPress={handleTogglePublic} style={styles.actionButton}>
+                    <Ionicons 
+                      name={workoutPlan.is_public ? "globe" : "lock-closed"} 
+                      size={20} 
+                      color={workoutPlan.is_public ? "#4CAF50" : "#666"} 
+                    />
+                  </TouchableOpacity>
+                  <TouchableOpacity onPress={handlePublish} style={styles.actionButton}>
+                    <Text style={[
+                      styles.publishText,
+                      { color: workoutPlan.status === 'published' ? '#FF6B6B' : '#A78BFA' }
+                    ]}>
+                      {workoutPlan.status === 'published' ? 'Unpublish' : 'Publish'}
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity onPress={handleApplyWorkoutPlan} style={styles.actionButton}>
+                    <Ionicons name="calendar-outline" size={20} color="#A78BFA" />
+                  </TouchableOpacity>
+                </View>
               )}
             </View>
 
@@ -333,7 +540,7 @@ export const WorkoutPlanDetailsModal: React.FC<WorkoutPlanDetailsModalProps> = (
               <ScrollView style={styles.content}>
                 {/* Plan Info */}
                 <View style={styles.planInfo}>
-                  <Text style={[styles.planTitle, { color: Colors[colorScheme ?? 'light'].text }]}>
+                  <Text style={[styles.planTitle, { color: Colors.light.text }]}>
                     {workoutPlan.title}
                   </Text>
                   {workoutPlan.description && (
@@ -351,11 +558,25 @@ export const WorkoutPlanDetailsModal: React.FC<WorkoutPlanDetailsModalProps> = (
                       <Text style={styles.statLabel}>Days</Text>
                     </View>
                     <View style={styles.statItem}>
-                      <Text style={[styles.statusBadge, {
+                      <View style={[styles.statusBadge, {
                         backgroundColor: workoutPlan.status === 'published' ? '#4CAF50' : '#FFA726',
                       }]}>
-                        {workoutPlan.status_display}
-                      </Text>
+                        <Text style={styles.statusText}>{workoutPlan.status_display}</Text>
+                      </View>
+                    </View>
+                    <View style={styles.statItem}>
+                      <View style={[styles.visibilityBadge, {
+                        backgroundColor: workoutPlan.is_public ? '#4CAF50' : '#666',
+                      }]}>
+                        <Ionicons 
+                          name={workoutPlan.is_public ? "globe" : "lock-closed"} 
+                          size={12} 
+                          color="#fff" 
+                        />
+                        <Text style={styles.visibilityText}>
+                          {workoutPlan.is_public ? 'Public' : 'Private'}
+                        </Text>
+                      </View>
                     </View>
                   </View>
                 </View>
@@ -363,7 +584,7 @@ export const WorkoutPlanDetailsModal: React.FC<WorkoutPlanDetailsModalProps> = (
                 {/* Days Section */}
                 <View style={styles.daysSection}>
                   <View style={styles.sectionHeader}>
-                    <Text style={[styles.sectionTitle, { color: Colors[colorScheme ?? 'light'].text }]}>
+                    <Text style={[styles.sectionTitle, { color: Colors.light.text }]}>
                       Days ({workoutPlan.daily_plans?.length || 0}/7)
                     </Text>
                     <TouchableOpacity onPress={handleAddDay} style={styles.addDayButton}>
@@ -373,7 +594,7 @@ export const WorkoutPlanDetailsModal: React.FC<WorkoutPlanDetailsModalProps> = (
                   </View>
 
                   {workoutPlan.daily_plans && workoutPlan.daily_plans.length > 0 ? (
-                    workoutPlan.daily_plans.map(renderDay)
+                    getSortedDailyPlans().map(renderDay)
                   ) : (
                     <View style={styles.emptyState}>
                       <Text style={styles.emptyStateText}>
@@ -391,11 +612,16 @@ export const WorkoutPlanDetailsModal: React.FC<WorkoutPlanDetailsModalProps> = (
       {/* Exercise Browser Modal */}
       <ExerciseBrowserModal
         visible={showExerciseBrowser}
-        onClose={() => {
-          setShowExerciseBrowser(false);
-          setSelectedDayForExercise(null);
-        }}
+        onClose={handleExerciseBrowserClose}
         onSelectExercise={handleSelectExercise}
+      />
+
+      {/* Exercise Configuration Modal */}
+      <ExerciseConfigurationModal
+        visible={showExerciseConfig}
+        onClose={handleExerciseConfigurationClose}
+        exercise={selectedExercise}
+        onConfirm={handleExerciseConfiguration}
       />
 
       {/* Day Selector Modal */}
@@ -406,16 +632,16 @@ export const WorkoutPlanDetailsModal: React.FC<WorkoutPlanDetailsModalProps> = (
         onRequestClose={() => setShowDaySelector(false)}
       >
         <View style={styles.modalOverlay}>
-          <View style={[styles.daySelectorContainer, { backgroundColor: Colors[colorScheme ?? 'light'].background }]}>
+          <View style={[styles.daySelectorContainer, { backgroundColor: Colors.light.background }]}>
             <View style={styles.daySelectorHeader}>
-              <Text style={[styles.daySelectorTitle, { color: Colors[colorScheme ?? 'light'].text }]}>
+              <Text style={[styles.daySelectorTitle, { color: Colors.light.text }]}>
                 Select Day to Add
               </Text>
               <TouchableOpacity
                 onPress={() => setShowDaySelector(false)}
                 style={styles.closeButton}
               >
-                <Ionicons name="close" size={24} color={Colors[colorScheme ?? 'light'].text} />
+                <Ionicons name="close" size={24} color={Colors.light.text} />
               </TouchableOpacity>
             </View>
             
@@ -423,13 +649,13 @@ export const WorkoutPlanDetailsModal: React.FC<WorkoutPlanDetailsModalProps> = (
               {getAvailableDays().map((dayOption) => (
                 <TouchableOpacity
                   key={dayOption.key}
-                  style={[styles.dayOptionButton, { borderColor: Colors[colorScheme ?? 'light'].text }]}
+                  style={[styles.dayOptionButton, { borderColor: Colors.light.text }]}
                   onPress={async () => {
                     setShowDaySelector(false);
                     await addDay(dayOption.key);
                   }}
                 >
-                  <Text style={[styles.dayOptionText, { color: Colors[colorScheme ?? 'light'].text }]}>
+                  <Text style={[styles.dayOptionText, { color: Colors.light.text }]}>
                     {dayOption.label}
                   </Text>
                 </TouchableOpacity>
@@ -438,6 +664,17 @@ export const WorkoutPlanDetailsModal: React.FC<WorkoutPlanDetailsModalProps> = (
           </View>
         </View>
       </Modal>
+
+      {/* Apply Workout Plan Modal */}
+      <ApplyWorkoutPlanModal
+        visible={showApplyWorkoutPlanModal}
+        onClose={handleApplyWorkoutPlanClose}
+        workoutPlan={workoutPlan ? {
+          ...workoutPlan,
+          applications_count: workoutPlan.applications_count || 0
+        } : null}
+        onSuccess={handleApplyWorkoutPlanSuccess}
+      />
     </>
   );
 };
@@ -468,8 +705,16 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
   },
-  publishButton: {
-    padding: 4,
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  actionButton: {
+    padding: 8,
+    minHeight: 32,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   publishText: {
     fontSize: 16,
@@ -524,6 +769,27 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#fff',
   },
+  statusText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#fff',
+  },
+  visibilityBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 12,
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#fff',
+  },
+  visibilityText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#fff',
+    marginLeft: 4,
+  },
   daysSection: {
     padding: 20,
   },
@@ -551,10 +817,17 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   dayCard: {
-    backgroundColor: '#2a2a2a',
+    backgroundColor: '#fff',
     borderRadius: 12,
     marginBottom: 12,
     overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   dayHeader: {
     flexDirection: 'row',
@@ -590,10 +863,17 @@ const styles = StyleSheet.create({
     paddingTop: 0,
   },
   exerciseCard: {
-    backgroundColor: '#333',
+    backgroundColor: '#fff',
     borderRadius: 8,
     padding: 12,
     marginBottom: 8,
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   exerciseHeader: {
     flexDirection: 'row',
@@ -604,6 +884,15 @@ const styles = StyleSheet.create({
     height: 40,
     borderRadius: 20,
     marginRight: 12,
+  },
+  exerciseIconPlaceholder: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    marginRight: 12,
+    backgroundColor: '#f0f0f0',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   exerciseInfo: {
     flex: 1,

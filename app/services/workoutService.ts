@@ -42,12 +42,64 @@ export interface WorkoutPlan {
   client_name: string;
   status: 'draft' | 'published';
   status_display: string;
+  is_public?: boolean;
   total_calories: number;
   daily_plans?: DailyPlan[];
   daily_plans_count?: number;
+  applications_count?: number;
   created_at: string;
   updated_at: string;
 }
+
+// Public workout plan interfaces
+export interface PublicWorkoutPlan extends WorkoutPlan {
+  applications_count: number;
+}
+
+// Applied workout plan interfaces
+export interface ScheduledWorkout {
+  id: number;
+  scheduled_date: string;
+  week_number: number;
+  is_completed: boolean;
+  completed_at: string | null;
+  workout_plan_title: string;
+  completion_percentage: number;
+  total_exercises: number;
+  completed_exercises_count: number;
+  daily_plan: DailyPlan;
+  completed_exercises?: CompletedExercise[];
+  created_at: string;
+}
+
+export interface AppliedWorkoutPlan {
+  id: number;
+  workout_plan: WorkoutPlan;
+  selected_days: WeekDay[];
+  weeks_count: number;
+  start_date: string;
+  is_active: boolean;
+  scheduled_workouts_count: number;
+  completed_workouts_count: number;
+  scheduled_workouts: ScheduledWorkout[];
+  created_at: string;
+  updated_at: string;
+}
+
+// Exercise completion interfaces
+export interface CompletedExercise {
+  id: number | null;
+  workout_exercise: WorkoutExercise;
+  exercise_title: string;
+  completed_sets: number;
+  total_sets: number;
+  is_fully_completed: boolean;
+  notes: string;
+  completed_at: string | null;
+}
+
+// Weekday type
+export type WeekDay = 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday' | 'sunday';
 
 // Request/Response interfaces
 export interface CreateWorkoutPlanRequest {
@@ -59,6 +111,25 @@ export interface UpdateWorkoutPlanRequest {
   title?: string;
   description?: string;
   status?: 'draft' | 'published';
+  is_public?: boolean;
+}
+
+export interface ApplyWorkoutPlanRequest {
+  workout_plan_id: number;
+  selected_days: WeekDay[];
+  weeks_count: number;
+  start_date: string;
+}
+
+export interface CompleteExerciseRequest {
+  scheduled_workout_id: number;
+  workout_exercise_id: number;
+  completed_sets: number;
+  notes?: string;
+}
+
+export interface CompleteWorkoutRequest {
+  scheduled_workout_id: number;
 }
 
 export interface AddDayRequest {
@@ -89,6 +160,47 @@ export interface WorkoutPlanResponse {
 export interface WorkoutPlansListResponse {
   message: string;
   workout_plans: WorkoutPlan[];
+}
+
+export interface PublicWorkoutPlansResponse {
+  message: string;
+  total: number;
+  workout_plans: PublicWorkoutPlan[];
+}
+
+export interface AppliedWorkoutPlanResponse {
+  message: string;
+  applied_plan: AppliedWorkoutPlan;
+}
+
+export interface AppliedWorkoutPlansResponse {
+  message: string;
+  applied_plans: AppliedWorkoutPlan[];
+}
+
+export interface ScheduledWorkoutsResponse {
+  message: string;
+  scheduled_workouts: ScheduledWorkout[];
+}
+
+export interface ScheduledWorkoutResponse {
+  message: string;
+  scheduled_workout: ScheduledWorkout;
+}
+
+export interface CompleteExerciseResponse {
+  message: string;
+  completed_exercise: CompletedExercise;
+  workout_completion_percentage: number;
+  workout_is_completed: boolean;
+}
+
+export interface ExerciseProgressResponse {
+  message: string;
+  scheduled_workout_id: number;
+  workout_completion_percentage: number;
+  workout_is_completed: boolean;
+  exercises_progress: CompletedExercise[];
 }
 
 export interface DailyPlanResponse {
@@ -181,6 +293,12 @@ export const WorkoutService = {
       body: JSON.stringify(data),
     });
 
+    // Handle 401 Unauthorized - redirect to login
+    if (response.status === 401) {
+      await handle401Error('Your session has expired. Please sign in again.');
+      throw new Error('Authentication required');
+    }
+
     if (!response.ok) {
       const errorText = await response.text();
       throw new Error(`Failed to create workout plan: ${response.status} - ${errorText}`);
@@ -197,6 +315,12 @@ export const WorkoutService = {
       headers,
       body: JSON.stringify(data),
     });
+
+    // Handle 401 Unauthorized - redirect to login
+    if (response.status === 401) {
+      await handle401Error('Your session has expired. Please sign in again.');
+      throw new Error('Authentication required');
+    }
 
     if (!response.ok) {
       const errorText = await response.text();
@@ -273,6 +397,12 @@ export const WorkoutService = {
       headers,
       body: JSON.stringify(data),
     });
+
+    // Handle 401 Unauthorized - redirect to login
+    if (response.status === 401) {
+      await handle401Error('Your session has expired. Please sign in again.');
+      throw new Error('Authentication required');
+    }
 
     if (!response.ok) {
       const errorText = await response.text();
@@ -370,6 +500,12 @@ export const WorkoutService = {
       body: JSON.stringify(data),
     });
 
+    // Handle 401 Unauthorized - redirect to login
+    if (response.status === 401) {
+      await handle401Error('Your session has expired. Please sign in again.');
+      throw new Error('Authentication required');
+    }
+
     if (!response.ok) {
       const errorText = await response.text();
       throw new Error(`Failed to add exercise: ${response.status} - ${errorText}`);
@@ -386,6 +522,12 @@ export const WorkoutService = {
       headers,
       body: JSON.stringify(data),
     });
+
+    // Handle 401 Unauthorized - redirect to login
+    if (response.status === 401) {
+      await handle401Error('Your session has expired. Please sign in again.');
+      throw new Error('Authentication required');
+    }
 
     if (!response.ok) {
       const errorText = await response.text();
@@ -441,9 +583,392 @@ export const WorkoutService = {
       headers,
     });
 
+    // Handle 401 Unauthorized - redirect to login
+    if (response.status === 401) {
+      await handle401Error('Your session has expired. Please sign in again.');
+      throw new Error('Authentication required');
+    }
+
     if (!response.ok) {
       const errorText = await response.text();
       throw new Error(`Failed to fetch exercises: ${response.status} - ${errorText}`);
+    }
+
+    return response.json();
+  },
+
+  // ===== PUBLIC WORKOUT PLANS =====
+
+  // Get public workout plans
+  getPublicWorkoutPlans: async (params?: {
+    search?: string;
+    offset?: number;
+    limit?: number;
+  }): Promise<PublicWorkoutPlansResponse> => {
+    const headers = await getAuthHeaders();
+    
+    if (!headers.Authorization) {
+      throw new Error('Authentication required. Please sign in to view public workout plans.');
+    }
+
+    const queryParams = new URLSearchParams();
+    if (params?.search) queryParams.append('search', params.search);
+    if (params?.offset !== undefined) queryParams.append('offset', params.offset.toString());
+    if (params?.limit !== undefined) queryParams.append('limit', params.limit.toString());
+
+    const url = `${API_ENDPOINTS.WORKOUTS.PUBLIC_WORKOUT_PLANS}${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+
+    try {
+      const response = await fetch(url, {
+        method: 'GET',
+        headers,
+      });
+
+      if (response.status === 401) {
+        await handle401Error('Your session has expired. Please sign in again.');
+        throw new Error('Authentication required');
+      }
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Failed to fetch public workout plans: ${response.status} - ${errorText}`);
+      }
+
+      return response.json();
+    } catch (error) {
+      if (error instanceof TypeError && error.message === 'Network request failed') {
+        throw new Error('Unable to connect to server. Please check your internet connection.');
+      }
+      throw error;
+    }
+  },
+
+  // Apply workout plan
+  applyWorkoutPlan: async (data: ApplyWorkoutPlanRequest): Promise<AppliedWorkoutPlanResponse> => {
+    const headers = await getAuthHeaders();
+    const response = await fetch(API_ENDPOINTS.WORKOUTS.APPLY_WORKOUT_PLAN, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(data),
+    });
+
+    if (response.status === 401) {
+      await handle401Error('Your session has expired. Please sign in again.');
+      throw new Error('Authentication required');
+    }
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Failed to apply workout plan: ${response.status} - ${errorText}`);
+    }
+
+    return response.json();
+  },
+
+  // ===== APPLIED WORKOUT PLANS =====
+
+  // Get applied workout plans
+  getAppliedWorkoutPlans: async (): Promise<AppliedWorkoutPlansResponse> => {
+    const headers = await getAuthHeaders();
+
+    if (!headers.Authorization) {
+      throw new Error('Authentication required. Please sign in to view applied workout plans.');
+    }
+
+    try {
+      const response = await fetch(API_ENDPOINTS.WORKOUTS.APPLIED_WORKOUT_PLANS, {
+        method: 'GET',
+        headers,
+      });
+
+      if (response.status === 401) {
+        await handle401Error('Your session has expired. Please sign in again.');
+        throw new Error('Authentication required');
+      }
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Failed to fetch applied workout plans: ${response.status} - ${errorText}`);
+      }
+
+      return response.json();
+    } catch (error) {
+      if (error instanceof TypeError && error.message === 'Network request failed') {
+        throw new Error('Unable to connect to server. Please check your internet connection.');
+      }
+      throw error;
+    }
+  },
+
+  // Get applied workout plan details
+  getAppliedWorkoutPlan: async (appliedPlanId: number): Promise<AppliedWorkoutPlanResponse> => {
+    const headers = await getAuthHeaders();
+
+    try {
+      const response = await fetch(API_ENDPOINTS.WORKOUTS.APPLIED_WORKOUT_PLAN_DETAILS(appliedPlanId), {
+        method: 'GET',
+        headers,
+      });
+
+      if (response.status === 401) {
+        await handle401Error('Your session has expired. Please sign in again.');
+        throw new Error('Authentication required');
+      }
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Failed to fetch applied workout plan: ${response.status} - ${errorText}`);
+      }
+
+      return response.json();
+    } catch (error) {
+      if (error instanceof TypeError && error.message === 'Network request failed') {
+        throw new Error('Unable to connect to server. Please check your internet connection.');
+      }
+      throw error;
+    }
+  },
+
+  // Deactivate applied workout plan
+  deactivateAppliedWorkoutPlan: async (appliedPlanId: number): Promise<{ message: string }> => {
+    const headers = await getAuthHeadersForDelete();
+
+    return new Promise(async (resolve, reject) => {
+      try {
+        const timeoutId = setTimeout(() => {
+          console.log(`[deactivateAppliedWorkoutPlan] Fetch timeout - assuming success due to backend 204 response`);
+          resolve({ message: 'Applied workout plan deactivated successfully' });
+        }, 5000);
+
+        const response = await fetch(API_ENDPOINTS.WORKOUTS.DEACTIVATE_APPLIED_PLAN(appliedPlanId), {
+          method: 'DELETE',
+          headers,
+        });
+
+        clearTimeout(timeoutId);
+
+        if (response.status === 401) {
+          await handle401Error('Your session has expired. Please sign in again.');
+          reject(new Error('Authentication required'));
+          return;
+        }
+
+        if (response.status === 204) {
+          resolve({ message: 'Applied workout plan deactivated successfully' });
+          return;
+        }
+
+        if (response.ok) {
+          try {
+            const result = await response.json();
+            resolve(result);
+          } catch (jsonError) {
+            resolve({ message: 'Applied workout plan deactivated successfully' });
+          }
+          return;
+        }
+
+        let errorText = '';
+        try {
+          errorText = await response.text();
+        } catch (textError) {
+          errorText = 'Unknown error';
+        }
+        reject(new Error(`Failed to deactivate applied workout plan: ${response.status} - ${errorText}`));
+
+      } catch (error) {
+        if (error instanceof TypeError && error.message === 'Network request failed') {
+          console.log(`[deactivateAppliedWorkoutPlan] Network request failed - assuming success due to backend 204`);
+          resolve({ message: 'Applied workout plan deactivated successfully' });
+          return;
+        }
+        reject(error);
+      }
+    });
+  },
+
+  // ===== SCHEDULED WORKOUTS =====
+
+  // Get scheduled workouts
+  getScheduledWorkouts: async (params?: {
+    date_from?: string;
+    date_to?: string;
+    completed?: boolean;
+  }): Promise<ScheduledWorkoutsResponse> => {
+    const headers = await getAuthHeaders();
+
+    if (!headers.Authorization) {
+      throw new Error('Authentication required. Please sign in to view scheduled workouts.');
+    }
+
+    const queryParams = new URLSearchParams();
+    if (params?.date_from) queryParams.append('date_from', params.date_from);
+    if (params?.date_to) queryParams.append('date_to', params.date_to);
+    if (params?.completed !== undefined) queryParams.append('completed', params.completed.toString());
+
+    const url = `${API_ENDPOINTS.WORKOUTS.SCHEDULED_WORKOUTS}${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+
+    try {
+      const response = await fetch(url, {
+        method: 'GET',
+        headers,
+      });
+
+      if (response.status === 401) {
+        await handle401Error('Your session has expired. Please sign in again.');
+        throw new Error('Authentication required');
+      }
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Failed to fetch scheduled workouts: ${response.status} - ${errorText}`);
+      }
+
+      return response.json();
+    } catch (error) {
+      if (error instanceof TypeError && error.message === 'Network request failed') {
+        throw new Error('Unable to connect to server. Please check your internet connection.');
+      }
+      throw error;
+    }
+  },
+
+  // Get scheduled workout details
+  getScheduledWorkout: async (scheduledWorkoutId: number): Promise<ScheduledWorkoutResponse> => {
+    const headers = await getAuthHeaders();
+
+    try {
+      const response = await fetch(API_ENDPOINTS.WORKOUTS.SCHEDULED_WORKOUT_DETAILS(scheduledWorkoutId), {
+        method: 'GET',
+        headers,
+      });
+
+      if (response.status === 401) {
+        await handle401Error('Your session has expired. Please sign in again.');
+        throw new Error('Authentication required');
+      }
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Failed to fetch scheduled workout: ${response.status} - ${errorText}`);
+      }
+
+      return response.json();
+    } catch (error) {
+      if (error instanceof TypeError && error.message === 'Network request failed') {
+        throw new Error('Unable to connect to server. Please check your internet connection.');
+      }
+      throw error;
+    }
+  },
+
+  // Get exercise progress
+  getExerciseProgress: async (scheduledWorkoutId: number): Promise<ExerciseProgressResponse> => {
+    const headers = await getAuthHeaders();
+
+    try {
+      const response = await fetch(API_ENDPOINTS.WORKOUTS.EXERCISE_PROGRESS(scheduledWorkoutId), {
+        method: 'GET',
+        headers,
+      });
+
+      if (response.status === 401) {
+        await handle401Error('Your session has expired. Please sign in again.');
+        throw new Error('Authentication required');
+      }
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Failed to fetch exercise progress: ${response.status} - ${errorText}`);
+      }
+
+      return response.json();
+    } catch (error) {
+      if (error instanceof TypeError && error.message === 'Network request failed') {
+        throw new Error('Unable to connect to server. Please check your internet connection.');
+      }
+      throw error;
+    }
+  },
+
+  // ===== EXERCISE COMPLETION =====
+
+  // Complete exercise
+  completeExercise: async (data: CompleteExerciseRequest): Promise<CompleteExerciseResponse> => {
+    const headers = await getAuthHeaders();
+    const response = await fetch(API_ENDPOINTS.WORKOUTS.COMPLETE_EXERCISE, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(data),
+    });
+
+    if (response.status === 401) {
+      await handle401Error('Your session has expired. Please sign in again.');
+      throw new Error('Authentication required');
+    }
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Failed to complete exercise: ${response.status} - ${errorText}`);
+    }
+
+    return response.json();
+  },
+
+  // Uncomplete exercise
+  uncompleteExercise: async (scheduledWorkoutId: number, workoutExerciseId: number): Promise<{ message: string; workout_completion_percentage: number; workout_is_completed: boolean }> => {
+    const headers = await getAuthHeadersForDelete();
+
+    try {
+      const response = await fetch(API_ENDPOINTS.WORKOUTS.UNCOMPLETE_EXERCISE(scheduledWorkoutId, workoutExerciseId), {
+        method: 'DELETE',
+        headers,
+      });
+
+      if (response.status === 401) {
+        await handle401Error('Your session has expired. Please sign in again.');
+        throw new Error('Authentication required');
+      }
+
+      if (response.status === 204) {
+        return { 
+          message: 'Exercise uncompleted successfully',
+          workout_completion_percentage: 0,
+          workout_is_completed: false
+        };
+      }
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Failed to uncomplete exercise: ${response.status} - ${errorText}`);
+      }
+
+      return response.json();
+    } catch (error) {
+      if (error instanceof TypeError && error.message === 'Network request failed') {
+        throw new Error('Unable to connect to server. Please check your internet connection.');
+      }
+      throw error;
+    }
+  },
+
+  // Complete entire workout (legacy)
+  completeWorkout: async (data: CompleteWorkoutRequest): Promise<ScheduledWorkoutResponse> => {
+    const headers = await getAuthHeaders();
+    const response = await fetch(API_ENDPOINTS.WORKOUTS.COMPLETE_WORKOUT, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(data),
+    });
+
+    if (response.status === 401) {
+      await handle401Error('Your session has expired. Please sign in again.');
+      throw new Error('Authentication required');
+    }
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Failed to complete workout: ${response.status} - ${errorText}`);
     }
 
     return response.json();

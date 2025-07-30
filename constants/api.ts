@@ -40,6 +40,25 @@ export const API_ENDPOINTS = {
     ADD_EXERCISE: (planId: number, dayId: number) => `${API_BASE_URL}/workouts/workout-plans/${planId}/days/${dayId}/exercises/`,
     UPDATE_EXERCISE: (planId: number, dayId: number, exerciseId: number) => `${API_BASE_URL}/workouts/workout-plans/${planId}/days/${dayId}/exercises/${exerciseId}/`,
     REMOVE_EXERCISE: (planId: number, dayId: number, exerciseId: number) => `${API_BASE_URL}/workouts/workout-plans/${planId}/days/${dayId}/exercises/${exerciseId}/`,
+    
+    // Public workout plans
+    PUBLIC_WORKOUT_PLANS: `${API_BASE_URL}/workouts/public-workout-plans/`,
+    APPLY_WORKOUT_PLAN: `${API_BASE_URL}/workouts/apply-workout-plan/`,
+    
+    // Applied workout plans
+    APPLIED_WORKOUT_PLANS: `${API_BASE_URL}/workouts/applied-workout-plans/`,
+    APPLIED_WORKOUT_PLAN_DETAILS: (appliedPlanId: number) => `${API_BASE_URL}/workouts/applied-workout-plans/${appliedPlanId}/`,
+    DEACTIVATE_APPLIED_PLAN: (appliedPlanId: number) => `${API_BASE_URL}/workouts/applied-workout-plans/${appliedPlanId}/`,
+    
+    // Scheduled workouts
+    SCHEDULED_WORKOUTS: `${API_BASE_URL}/workouts/scheduled-workouts/`,
+    SCHEDULED_WORKOUT_DETAILS: (scheduledWorkoutId: number) => `${API_BASE_URL}/workouts/scheduled-workouts/${scheduledWorkoutId}/`,
+    EXERCISE_PROGRESS: (scheduledWorkoutId: number) => `${API_BASE_URL}/workouts/scheduled-workouts/${scheduledWorkoutId}/progress/`,
+    UNCOMPLETE_EXERCISE: (scheduledWorkoutId: number, workoutExerciseId: number) => `${API_BASE_URL}/workouts/scheduled-workouts/${scheduledWorkoutId}/exercises/${workoutExerciseId}/uncomplete/`,
+    
+    // Exercise completion
+    COMPLETE_EXERCISE: `${API_BASE_URL}/workouts/complete-exercise/`,
+    COMPLETE_WORKOUT: `${API_BASE_URL}/workouts/complete-workout/`,
   },
   EXERCISES: {
     GET_ALL: `${API_BASE_URL}/exercises/`,

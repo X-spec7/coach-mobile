@@ -48,7 +48,7 @@ export default function TermsScreen() {
           { justifyContent: "center", alignItems: "center" },
         ]}
       >
-        <Text style={{ color: "#fff" }}>{error}</Text>
+        <Text style={{ color: "#1a1a1a" }}>{error}</Text>
       </View>
     );
   }
@@ -92,7 +92,7 @@ export default function TermsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#1a1a1a",
+    backgroundColor: "#f8f9fa",
   },
   scrollView: {
     flex: 1,
@@ -104,9 +104,18 @@ const styles = StyleSheet.create({
     padding: 16,
     borderBottomWidth: 1,
     borderBottomColor: "#E0E0E0",
+    backgroundColor: "#fff",
+    borderRadius: 12,
+    marginBottom: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   menuTitle: {
     fontSize: 16,
-    color: "#fff",
+    color: "#1a1a1a",
+    fontWeight: '600',
   },
 });

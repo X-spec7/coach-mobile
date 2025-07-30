@@ -116,6 +116,15 @@ export default function WorkoutsScreen() {
             ]}>
               <Text style={styles.statusText}>{plan.status_display}</Text>
             </View>
+            <TouchableOpacity
+              style={styles.deleteButton}
+              onPress={(e) => {
+                e.stopPropagation();
+                handleDeletePlan(plan.id, plan.title);
+              }}
+            >
+              <Ionicons name="trash-outline" size={20} color="#FF6B6B" />
+            </TouchableOpacity>
           </View>
           {plan.description && (
             <Text style={styles.planDescription} numberOfLines={2}>
@@ -143,12 +152,6 @@ export default function WorkoutsScreen() {
             </View>
           </View>
         </View>
-        <TouchableOpacity
-          style={styles.deleteButton}
-          onPress={() => handleDeletePlan(plan.id, plan.title)}
-        >
-          <Ionicons name="trash-outline" size={20} color="#FF6B6B" />
-        </TouchableOpacity>
       </View>
     </TouchableOpacity>
   );
@@ -192,104 +195,93 @@ export default function WorkoutsScreen() {
     );
   };
   
-  try {
-    return (
-      <View style={styles.container}>
-        <ScrollView 
-          style={styles.scrollView}
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={handleRefresh}
-              tintColor="#A78BFA"
-            />
-          }
-        >
-          <Text style={styles.title}>Workouts & Plans</Text>
-          
-          <View style={styles.statsContainer}>
-            <View style={styles.statCard}>
-              <Text style={styles.statValue}>148</Text>
-              <Text style={styles.statLabel}>Minutes</Text>
-            </View>
-            <View style={styles.statCard}>
-              <Text style={styles.statValue}>1,850</Text>
-              <Text style={styles.statLabel}>Calories</Text>
-            </View>
+  return (
+    <View style={styles.container}>
+      <ScrollView 
+        style={styles.scrollView}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+            tintColor="#A78BFA"
+          />
+        }
+      >
+        <Text style={styles.title}>Workouts & Plans</Text>
+        
+        <View style={styles.statsContainer}>
+          <View style={styles.statCard}>
+            <Text style={styles.statValue}>148</Text>
+            <Text style={styles.statLabel}>Minutes</Text>
           </View>
-
-          {/* Workout Plans Section */}
-          <View style={styles.sectionContainer}>
-            <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>My Workout Plans</Text>
-              <TouchableOpacity 
-                style={styles.addButton}
-                onPress={() => setShowCreateModal(true)}
-              >
-                <Ionicons name="add" size={20} color="#A78BFA" />
-                <Text style={styles.addButtonText}>Create Plan</Text>
-              </TouchableOpacity>
-            </View>
-
-            {workoutPlans.length > 0 && renderWorkoutPlansStats()}
-
-            {loading ? (
-              <View style={styles.loadingContainer}>
-                <ActivityIndicator size="large" color="#A78BFA" />
-                <Text style={styles.loadingText}>Loading workout plans...</Text>
-              </View>
-            ) : workoutPlans.length > 0 ? (
-              <View style={styles.plansContainer}>
-                {workoutPlans.map(renderWorkoutPlan)}
-              </View>
-            ) : (
-              renderEmptyWorkoutPlans()
-            )}
+          <View style={styles.statCard}>
+            <Text style={styles.statValue}>1,850</Text>
+            <Text style={styles.statLabel}>Calories</Text>
           </View>
+        </View>
 
-          <Text style={styles.sectionTitle}>Exercise Categories</Text>
-          {workoutCategories.map((category) => (
-            <TouchableOpacity key={category.id} style={styles.categoryCard}>
-              <Image source={{ uri: category.image }} style={styles.categoryImage} />
-              <View style={styles.categoryContent}>
-                <Text style={styles.categoryTitle}>{category.title}</Text>
-                <Text style={styles.categoryWorkouts}>{category.workouts} workouts</Text>
-              </View>
+        {/* Workout Plans Section */}
+        <View style={styles.sectionContainer}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>My Workout Plans</Text>
+            <TouchableOpacity 
+              style={styles.addButton}
+              onPress={() => setShowCreateModal(true)}
+            >
+              <Ionicons name="add" size={20} color="#A78BFA" />
+              <Text style={styles.addButtonText}>Create Plan</Text>
             </TouchableOpacity>
-          ))}
-        </ScrollView>
+          </View>
 
-        {/* Modals */}
-        <CreateWorkoutPlanModal
-          visible={showCreateModal}
-          onClose={() => setShowCreateModal(false)}
-          onSuccess={fetchWorkoutPlans}
-        />
+          {workoutPlans.length > 0 && renderWorkoutPlansStats()}
 
-        <WorkoutPlanDetailsModal
-          visible={showDetailsModal}
-          onClose={() => setShowDetailsModal(false)}
-          workoutPlanId={selectedPlanId}
-          onUpdate={fetchWorkoutPlans}
-        />
-      </View>
-    );
-  } catch (error) {
-    console.error('WorkoutsScreen error:', error);
-    return (
-      <View style={styles.container}>
-        <Text style={{color: '#fff', textAlign: 'center', marginTop: 50}}>
-          Error loading workouts
-        </Text>
-      </View>
-    );
-  }
+          {loading ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color="#A78BFA" />
+              <Text style={styles.loadingText}>Loading workout plans...</Text>
+            </View>
+          ) : workoutPlans.length > 0 ? (
+            <View style={styles.plansContainer}>
+              {workoutPlans.map(renderWorkoutPlan)}
+            </View>
+          ) : (
+            renderEmptyWorkoutPlans()
+          )}
+        </View>
+
+        <Text style={styles.sectionTitle}>Exercise Categories</Text>
+        {workoutCategories.map((category) => (
+          <TouchableOpacity key={category.id} style={styles.categoryCard}>
+            <Image source={{ uri: category.image }} style={styles.categoryImage} />
+            <View style={styles.categoryContent}>
+              <Text style={styles.categoryTitle}>{category.title}</Text>
+              <Text style={styles.categoryWorkouts}>{category.workouts} workouts</Text>
+            </View>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
+
+      {/* Modals */}
+      <CreateWorkoutPlanModal
+        visible={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+        onSuccess={fetchWorkoutPlans}
+      />
+
+      <WorkoutPlanDetailsModal
+        visible={showDetailsModal}
+        onClose={() => setShowDetailsModal(false)}
+        workoutPlanId={selectedPlanId}
+        onUpdate={fetchWorkoutPlans}
+      />
+    </View>
+  );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#1a1a1a',
+    backgroundColor: '#f8f9fa',
   },
   scrollView: {
     flex: 1,
@@ -297,7 +289,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: '#fff',
+    color: '#1a1a1a',
     margin: 20,
     marginTop: 40,
   },
@@ -308,15 +300,22 @@ const styles = StyleSheet.create({
   },
   statCard: {
     flex: 1,
-    backgroundColor: '#2a2a2a',
+    backgroundColor: '#fff',
     borderRadius: 16,
     padding: 20,
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   statValue: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#fff',
+    color: '#1a1a1a',
     marginTop: 12,
   },
   statLabel: {
@@ -337,7 +336,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#fff',
+    color: '#1a1a1a',
     marginHorizontal: 20,
     marginTop: 20,
     marginBottom: 16,
@@ -367,9 +366,16 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   planCard: {
-    backgroundColor: '#2a2a2a',
+    backgroundColor: '#fff',
     borderRadius: 16,
     padding: 16,
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   planContent: {
     flexDirection: 'row',
@@ -385,11 +391,12 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 8,
+    gap: 8,
   },
   planTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#fff',
+    color: '#1a1a1a',
     flex: 1,
     marginRight: 8,
   },
@@ -422,7 +429,7 @@ const styles = StyleSheet.create({
     color: '#666',
   },
   deleteButton: {
-    padding: 4,
+    padding: 8,
   },
   emptyState: {
     alignItems: 'center',
@@ -431,7 +438,7 @@ const styles = StyleSheet.create({
   emptyStateTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#fff',
+    color: '#1a1a1a',
     marginTop: 12,
     marginBottom: 8,
   },
@@ -463,7 +470,7 @@ const styles = StyleSheet.create({
   planStatValue: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#fff',
+    color: '#1a1a1a',
     marginBottom: 4,
   },
   planStatLabel: {
@@ -473,9 +480,16 @@ const styles = StyleSheet.create({
   categoryCard: {
     margin: 20,
     marginVertical: 10,
-    backgroundColor: '#2a2a2a',
+    backgroundColor: '#fff',
     borderRadius: 16,
     overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   categoryImage: {
     width: '100%',
@@ -487,7 +501,7 @@ const styles = StyleSheet.create({
   categoryTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#fff',
+    color: '#1a1a1a',
     marginBottom: 4,
   },
   categoryWorkouts: {

@@ -7,6 +7,7 @@ import {
   StyleSheet,
   ScrollView,
   Image,
+  Alert,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { Feather, Ionicons } from "@expo/vector-icons";
@@ -21,7 +22,9 @@ const AVATAR_PLACEHOLDER = "https://randomuser.me/api/portraits/women/44.jpg";
 export const SignUpScreen: React.FC = () => {
   const router = useRouter();
   const { setTempAuth } = useAuthTemp();
-  const [user, setUser] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [userType, setUserType] = useState("Client"); // "Client", "Provider", "Admin"
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [phone, setPhone] = useState("");
@@ -34,15 +37,19 @@ export const SignUpScreen: React.FC = () => {
       setLoading(true);
       setError(null);
 
-      if (!user || !email || !password) {
-        throw new Error("User, email, and password are required");
+      if (!firstName || !email || !password) {
+        throw new Error("First Name, Email, and Password are required");
+      }
+
+      if (lastName.trim() === "") {
+        throw new Error("Last Name is required");
       }
 
       const formData = {
-        firstName: user,
-        lastName: "Kadaini", // TODO: remove this
-        userType: "Client", // TODO: remove this
-        confirmPassword: password, // TODO: remove this
+        firstName,
+        lastName,
+        userType,
+        confirmPassword: password,
         email,
         password,
         phone,
@@ -107,14 +114,73 @@ export const SignUpScreen: React.FC = () => {
             <Feather name="user" size={20} color="#A3A3A3" />
             <TextInput
               style={styles.input}
-              placeholder="User"
+              placeholder="First Name"
               placeholderTextColor="#A3A3A3"
-              value={user}
-              onChangeText={setUser}
+              value={firstName}
+              onChangeText={setFirstName}
               autoCapitalize="words"
               returnKeyType="next"
             />
           </View>
+          <View style={styles.inputRow}>
+            <Feather name="user" size={20} color="#A3A3A3" />
+            <TextInput
+              style={styles.input}
+              placeholder="Last Name"
+              placeholderTextColor="#A3A3A3"
+              value={lastName}
+              onChangeText={setLastName}
+              autoCapitalize="words"
+              returnKeyType="next"
+            />
+          </View>
+          
+          {/* Role Selection */}
+          <View style={styles.roleSection}>
+            <Text style={styles.roleLabel}>Select Your Role</Text>
+            <View style={styles.roleButtons}>
+              <TouchableOpacity
+                style={[
+                  styles.roleButton,
+                  userType === "Client" && styles.roleButtonActive
+                ]}
+                onPress={() => setUserType("Client")}
+              >
+                <Ionicons 
+                  name="person" 
+                  size={20} 
+                  color={userType === "Client" ? "#fff" : "#A78BFA"} 
+                />
+                <Text style={[
+                  styles.roleButtonText,
+                  userType === "Client" && styles.roleButtonTextActive
+                ]}>
+                  Client
+                </Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity
+                style={[
+                  styles.roleButton,
+                  userType === "Coach" && styles.roleButtonActive
+                ]}
+                onPress={() => setUserType("Coach")}
+              >
+                <Ionicons 
+                  name="fitness" 
+                  size={20} 
+                  color={userType === "Coach" ? "#fff" : "#A78BFA"} 
+                />
+                <Text style={[
+                  styles.roleButtonText,
+                  userType === "Coach" && styles.roleButtonTextActive
+                ]}>
+                  Coach
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+
           <View style={styles.inputRow}>
             <Feather name="mail" size={20} color="#A3A3A3" />
             <TextInput
@@ -311,6 +377,41 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   errorText: { color: "#ff4444", fontSize: 14 },
+  roleSection: {
+    marginBottom: 24,
+  },
+  roleLabel: {
+    color: "#222",
+    fontSize: 16,
+    fontWeight: "bold",
+    marginBottom: 8,
+  },
+  roleButtons: {
+    flexDirection: "row",
+    justifyContent: "space-around",
+    backgroundColor: "#F5F5F5",
+    borderRadius: 8,
+    paddingVertical: 8,
+  },
+  roleButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 15,
+    paddingVertical: 10,
+    borderRadius: 20,
+  },
+  roleButtonActive: {
+    backgroundColor: "#A78BFA",
+  },
+  roleButtonText: {
+    color: "#A78BFA",
+    fontSize: 14,
+    fontWeight: "bold",
+    marginLeft: 8,
+  },
+  roleButtonTextActive: {
+    color: "#fff",
+  },
 });
 
 export default SignUpScreen;
