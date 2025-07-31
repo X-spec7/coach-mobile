@@ -6,7 +6,6 @@ import {
   FlatList,
   TouchableOpacity,
   ActivityIndicator,
-  useColorScheme,
   Alert,
   RefreshControl,
 } from 'react-native';
@@ -17,7 +16,6 @@ import { WorkoutService, ScheduledWorkout } from '../services/workoutService';
 import { WorkoutSessionModal } from '../modals/WorkoutSessionModal';
 
 export default function ScheduledWorkoutsScreen() {
-  const colorScheme = useColorScheme();
   const [scheduledWorkouts, setScheduledWorkouts] = useState<ScheduledWorkout[]>([]);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -103,12 +101,12 @@ export default function ScheduledWorkoutsScreen() {
 
   const renderWorkout = ({ item }: { item: ScheduledWorkout }) => (
     <TouchableOpacity
-      style={[styles.workoutCard, { backgroundColor: Colors[colorScheme ?? 'light'].background }]}
+      style={[styles.workoutCard, { backgroundColor: Colors.light.background }]}
       onPress={() => handleWorkoutPress(item)}
     >
       <View style={styles.workoutHeader}>
         <View style={styles.workoutInfo}>
-          <Text style={[styles.workoutTitle, { color: Colors[colorScheme ?? 'light'].text }]}>
+          <Text style={[styles.workoutTitle, { color: Colors.light.text }]}>
             {item.workout_plan_title}
           </Text>
           <Text style={styles.workoutDay}>{item.daily_plan.day_display}</Text>
@@ -123,7 +121,7 @@ export default function ScheduledWorkoutsScreen() {
             </View>
           ) : (
             <View style={styles.progressContainer}>
-              <View style={[styles.progressBar, { backgroundColor: '#333' }]}>
+              <View style={[styles.progressBar, { backgroundColor: '#e0e0e0' }]}>
                 <View
                   style={[
                     styles.progressFill,
@@ -162,14 +160,14 @@ export default function ScheduledWorkoutsScreen() {
   );
 
   return (
-    <View style={[styles.container, { backgroundColor: Colors[colorScheme ?? 'light'].background }]}>
+    <View style={[styles.container, { backgroundColor: Colors.light.background }]}>
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color={Colors[colorScheme ?? 'light'].text} />
+          <Ionicons name="arrow-back" size={24} color={Colors.light.text} />
         </TouchableOpacity>
         <View style={styles.headerContent}>
-          <Text style={[styles.headerTitle, { color: Colors[colorScheme ?? 'light'].text }]}>
+          <Text style={[styles.headerTitle, { color: Colors.light.text }]}>
             My Workouts
           </Text>
           <Text style={styles.headerSubtitle}>
@@ -205,7 +203,7 @@ export default function ScheduledWorkoutsScreen() {
       {loading && !refreshing ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#A78BFA" />
-          <Text style={[styles.loadingText, { color: Colors[colorScheme ?? 'light'].tabIconDefault }]}>
+          <Text style={[styles.loadingText, { color: Colors.light.tabIconDefault }]}>
             Loading your workouts...
           </Text>
         </View>
@@ -228,9 +226,9 @@ export default function ScheduledWorkoutsScreen() {
               <Ionicons 
                 name="calendar-outline" 
                 size={64} 
-                color={Colors[colorScheme ?? 'light'].tabIconDefault} 
+                color={Colors.light.tabIconDefault} 
               />
-              <Text style={[styles.emptyStateText, { color: Colors[colorScheme ?? 'light'].tabIconDefault }]}>
+              <Text style={[styles.emptyStateText, { color: Colors.light.tabIconDefault }]}>
                 {filter === 'upcoming' 
                   ? 'No upcoming workouts scheduled'
                   : filter === 'completed'
@@ -238,7 +236,7 @@ export default function ScheduledWorkoutsScreen() {
                   : 'No workouts found'
                 }
               </Text>
-              <Text style={[styles.emptyStateSubtext, { color: Colors[colorScheme ?? 'light'].tabIconDefault }]}>
+              <Text style={[styles.emptyStateSubtext, { color: Colors.light.tabIconDefault }]}>
                 {filter === 'upcoming' 
                   ? 'Apply a workout plan to get started!'
                   : 'Complete some workouts to see them here'
@@ -273,7 +271,7 @@ const styles = StyleSheet.create({
     padding: 20,
     paddingTop: 60,
     borderBottomWidth: 1,
-    borderBottomColor: '#333',
+    borderBottomColor: '#e0e0e0',
   },
   backButton: {
     padding: 4,
@@ -302,10 +300,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     borderRadius: 20,
     alignItems: 'center',
-    backgroundColor: '#333',
+    backgroundColor: '#f0f0f0',
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
   },
   filterTabActive: {
     backgroundColor: '#A78BFA',
+    borderColor: '#A78BFA',
   },
   filterTabText: {
     fontSize: 14,
@@ -386,6 +387,7 @@ const styles = StyleSheet.create({
     height: 4,
     borderRadius: 2,
     marginBottom: 4,
+    backgroundColor: '#e0e0e0',
   },
   progressFill: {
     height: '100%',

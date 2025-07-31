@@ -64,7 +64,7 @@ export default function ProfileScreen() {
             { justifyContent: "center", alignItems: "center" },
           ]}
         >
-          <Text style={{ color: "#fff" }}>{error}</Text>
+          <Text style={{ color: "#1a1a1a" }}>{error}</Text>
         </View>
       );
     }
@@ -112,7 +112,7 @@ export default function ProfileScreen() {
                 />
               ) : (
                 <View style={[styles.avatar, styles.defaultAvatar]}>
-                  <Text style={{color: '#A26FFD', fontSize: 20}}>👤</Text>
+                  <Text style={{color: '#fff', fontSize: 20}}>👤</Text>
                 </View>
               )}
               <View style={styles.userInfo}>
@@ -124,7 +124,7 @@ export default function ProfileScreen() {
               style={styles.settingsButton}
               onPress={() => setMenuVisible(true)}
             >
-              <Text style={{color: '#fff', fontSize: 20}}>⚙️</Text>
+              <Text style={{color: '#000', fontSize: 20}}>⚙️</Text>
             </TouchableOpacity>
           </View>
 
@@ -187,7 +187,7 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#1a1a1a",
+    backgroundColor: "#f8f9fa",
   },
   scrollView: {
     flex: 1,
@@ -214,7 +214,7 @@ const styles = StyleSheet.create({
   name: {
     fontSize: 24,
     fontWeight: "bold",
-    color: "#fff",
+    color: "#1a1a1a",
     marginBottom: 4,
   },
   email: {
@@ -224,18 +224,32 @@ const styles = StyleSheet.create({
   settingsButton: {
     width: 48,
     height: 48,
-    backgroundColor: "#2a2a2a",
+    backgroundColor: "#fff",
     borderRadius: 24,
     alignItems: "center",
     justifyContent: "center",
+    borderWidth: 1,
+    borderColor: "#e0e0e0",
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   statsContainer: {
     flexDirection: "row",
-    backgroundColor: "#2a2a2a",
+    backgroundColor: "#fff",
     margin: 20,
     padding: 20,
     borderRadius: 16,
     justifyContent: "space-between",
+    borderWidth: 1,
+    borderColor: "#e0e0e0",
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   statItem: {
     alignItems: "center",
@@ -244,7 +258,7 @@ const styles = StyleSheet.create({
   statValue: {
     fontSize: 24,
     fontWeight: "bold",
-    color: "#fff",
+    color: "#1a1a1a",
     marginBottom: 4,
   },
   statLabel: {
@@ -254,7 +268,7 @@ const styles = StyleSheet.create({
   statDivider: {
     width: 1,
     height: "100%",
-    backgroundColor: "#333",
+    backgroundColor: "#e0e0e0",
   },
   menuContainer: {
     margin: 20,
@@ -264,19 +278,31 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: "#2a2a2a",
+    paddingHorizontal: 16,
+    backgroundColor: "#fff",
+    borderRadius: 12,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: "#e0e0e0",
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   menuTitle: {
     fontSize: 16,
-    color: "#fff",
+    color: "#1a1a1a",
+    fontWeight: '600',
   },
   logoutButton: {
     margin: 20,
     padding: 16,
-    backgroundColor: "#2a2a2a",
+    backgroundColor: "#fff",
     borderRadius: 12,
     alignItems: "center",
+    borderWidth: 2,
+    borderColor: "#FF4444",
   },
   logoutText: {
     fontSize: 16,
@@ -284,17 +310,17 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
   },
   defaultAvatar: {
-    backgroundColor: "#ede2ff",
+    backgroundColor: "#A78BFA",
     alignItems: "center",
     justifyContent: "center",
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.3)",
+    backgroundColor: "rgba(0,0,0,0.5)",
     justifyContent: "flex-end",
   },
   menuModal: {
-    backgroundColor: "#222",
+    backgroundColor: "#fff",
     borderTopLeftRadius: 16,
     borderTopRightRadius: 16,
     paddingBottom: 32,
@@ -304,10 +330,10 @@ const styles = StyleSheet.create({
   menuModalItem: {
     paddingVertical: 18,
     borderBottomWidth: 1,
-    borderBottomColor: "#333",
+    borderBottomColor: "#e0e0e0",
   },
   menuModalText: {
-    color: "#fff",
+    color: "#1a1a1a",
     fontSize: 18,
     fontWeight: "500",
   },

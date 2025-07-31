@@ -8,7 +8,6 @@ import {
   ScrollView,
   Alert,
   ActivityIndicator,
-  useColorScheme,
   Image,
   TextInput,
 } from 'react-native';
@@ -34,7 +33,6 @@ export const WorkoutSessionModal: React.FC<WorkoutSessionModalProps> = ({
   scheduledWorkout,
   onUpdate,
 }) => {
-  const colorScheme = useColorScheme();
   const [loading, setLoading] = useState(false);
   const [exerciseProgress, setExerciseProgress] = useState<CompletedExercise[]>([]);
   const [expandedExercise, setExpandedExercise] = useState<number | null>(null);
@@ -204,13 +202,19 @@ export const WorkoutSessionModal: React.FC<WorkoutSessionModalProps> = ({
           style={styles.exerciseHeader}
           onPress={() => setExpandedExercise(isExpanded ? null : workout_exercise.id)}
         >
-          <Image
-            source={{ uri: workout_exercise.exercise.exerciseIconUrl || undefined }}
-            style={styles.exerciseIcon}
-            defaultSource={require('@/assets/images/workout.png')}
-          />
+          {workout_exercise.exercise.exerciseIconUrl ? (
+            <Image
+              source={{ uri: workout_exercise.exercise.exerciseIconUrl }}
+              style={styles.exerciseIcon}
+              defaultSource={require('@/assets/images/workout.png')}
+            />
+          ) : (
+            <View style={styles.exerciseIconPlaceholder}>
+              <Ionicons name="fitness" size={24} color="#A78BFA" />
+            </View>
+          )}
           <View style={styles.exerciseInfo}>
-            <Text style={[styles.exerciseTitle, { color: Colors[colorScheme ?? 'light'].text }]}>
+            <Text style={[styles.exerciseTitle, { color: Colors.light.text }]}>
               {workout_exercise.exercise.title}
             </Text>
             <Text style={styles.exerciseDetails}>
@@ -235,20 +239,20 @@ export const WorkoutSessionModal: React.FC<WorkoutSessionModalProps> = ({
             <Ionicons
               name={isExpanded ? "chevron-up" : "chevron-down"}
               size={20}
-              color={Colors[colorScheme ?? 'light'].tabIconDefault}
+              color={Colors.light.tabIconDefault}
             />
           </View>
         </TouchableOpacity>
 
         {isExpanded && (
           <View style={styles.exerciseDetailsContainer}>
-            <Text style={[styles.exerciseDescription, { color: Colors[colorScheme ?? 'light'].text }]}>
+            <Text style={[styles.exerciseDescription, { color: Colors.light.text }]}>
               {workout_exercise.exercise.description}
             </Text>
 
             {/* Sets Counter */}
             <View style={styles.setsContainer}>
-              <Text style={[styles.setsLabel, { color: Colors[colorScheme ?? 'light'].text }]}>
+              <Text style={[styles.setsLabel, { color: Colors.light.text }]}>
                 Completed Sets
               </Text>
               <View style={styles.setsCounter}>
@@ -259,7 +263,7 @@ export const WorkoutSessionModal: React.FC<WorkoutSessionModalProps> = ({
                 >
                   <Ionicons name="remove" size={20} color="#A78BFA" />
                 </TouchableOpacity>
-                <Text style={[styles.setsCount, { color: Colors[colorScheme ?? 'light'].text }]}>
+                <Text style={[styles.setsCount, { color: Colors.light.text }]}>
                   {completedSetsCount} / {workout_exercise.set_count}
                 </Text>
                 <TouchableOpacity
@@ -274,16 +278,16 @@ export const WorkoutSessionModal: React.FC<WorkoutSessionModalProps> = ({
 
             {/* Notes */}
             <View style={styles.notesContainer}>
-              <Text style={[styles.notesLabel, { color: Colors[colorScheme ?? 'light'].text }]}>
+              <Text style={[styles.notesLabel, { color: Colors.light.text }]}>
                 Notes (optional)
               </Text>
               <TextInput
                 style={[
                   styles.notesInput,
                   {
-                    backgroundColor: Colors[colorScheme ?? 'light'].background,
-                    color: Colors[colorScheme ?? 'light'].text,
-                    borderColor: Colors[colorScheme ?? 'light'].tabIconDefault + '40',
+                    backgroundColor: Colors.light.background,
+                    color: Colors.light.text,
+                    borderColor: Colors.light.tabIconDefault + '40',
                   },
                 ]}
                 value={completionNotes[workout_exercise.id] || ''}
@@ -292,7 +296,7 @@ export const WorkoutSessionModal: React.FC<WorkoutSessionModalProps> = ({
                   [workout_exercise.id]: text,
                 }))}
                 placeholder="How did this exercise feel?"
-                placeholderTextColor={Colors[colorScheme ?? 'light'].tabIconDefault}
+                placeholderTextColor={Colors.light.tabIconDefault}
                 multiline
                 numberOfLines={2}
               />
@@ -333,13 +337,13 @@ export const WorkoutSessionModal: React.FC<WorkoutSessionModalProps> = ({
   return (
     <Modal visible={visible} animationType="slide" transparent>
       <View style={styles.overlay}>
-        <View style={[styles.container, { backgroundColor: Colors[colorScheme ?? 'light'].background }]}>
+        <View style={[styles.container, { backgroundColor: Colors.light.background }]}>
           {/* Header */}
           <View style={styles.header}>
             <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-              <Ionicons name="close" size={24} color={Colors[colorScheme ?? 'light'].text} />
+              <Ionicons name="close" size={24} color={Colors.light.text} />
             </TouchableOpacity>
-            <Text style={[styles.headerTitle, { color: Colors[colorScheme ?? 'light'].text }]}>
+            <Text style={[styles.headerTitle, { color: Colors.light.text }]}>
               Workout Session
             </Text>
             <TouchableOpacity onPress={handleCompleteWorkout} style={styles.completeAllButton}>
@@ -355,7 +359,7 @@ export const WorkoutSessionModal: React.FC<WorkoutSessionModalProps> = ({
             <ScrollView style={styles.content}>
               {/* Workout Info */}
               <View style={styles.workoutInfo}>
-                <Text style={[styles.workoutTitle, { color: Colors[colorScheme ?? 'light'].text }]}>
+                <Text style={[styles.workoutTitle, { color: Colors.light.text }]}>
                   {scheduledWorkout.workout_plan_title}
                 </Text>
                 <Text style={styles.workoutDay}>{scheduledWorkout.daily_plan.day_display}</Text>
@@ -378,7 +382,7 @@ export const WorkoutSessionModal: React.FC<WorkoutSessionModalProps> = ({
 
               {/* Exercises List */}
               <View style={styles.exercisesSection}>
-                <Text style={[styles.sectionTitle, { color: Colors[colorScheme ?? 'light'].text }]}>
+                <Text style={[styles.sectionTitle, { color: Colors.light.text }]}>
                   Exercises ({exerciseProgress.filter(e => e.is_fully_completed).length}/{exerciseProgress.length})
                 </Text>
                 
@@ -437,7 +441,7 @@ const styles = StyleSheet.create({
   workoutInfo: {
     padding: 20,
     borderBottomWidth: 1,
-    borderBottomColor: '#333',
+    borderBottomColor: '#e0e0e0',
   },
   workoutTitle: {
     fontSize: 24,
@@ -460,7 +464,7 @@ const styles = StyleSheet.create({
   progressBar: {
     width: '100%',
     height: 8,
-    backgroundColor: '#333',
+    backgroundColor: '#e0e0e0',
     borderRadius: 4,
     marginBottom: 8,
   },
@@ -483,10 +487,17 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   exerciseCard: {
-    backgroundColor: '#2a2a2a',
+    backgroundColor: '#fff',
     borderRadius: 12,
     marginBottom: 12,
     overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   exerciseHeader: {
     flexDirection: 'row',
@@ -498,6 +509,15 @@ const styles = StyleSheet.create({
     height: 50,
     borderRadius: 25,
     marginRight: 12,
+  },
+  exerciseIconPlaceholder: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    marginRight: 12,
+    backgroundColor: '#E0E0E0',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   exerciseInfo: {
     flex: 1,

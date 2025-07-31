@@ -42,11 +42,35 @@ export default function ActivityScreen() {
       onPress: () => router.push('/public-workouts'),
     },
     {
+      id: 'connections',
+      title: 'My Connections',
+      subtitle: 'Manage coach-client relationships',
+      icon: 'people' as const,
+      color: '#FF6B6B',
+      onPress: () => router.push('/connections'),
+    },
+    {
+      id: 'find-coaches',
+      title: 'Find Coaches',
+      subtitle: 'Connect with fitness professionals',
+      icon: 'search' as const,
+      color: '#29B6F6',
+      onPress: () => router.push('/find-coaches'),
+    },
+    {
+      id: 'workout-assignments',
+      title: 'Workout Assignments',
+      subtitle: 'View assigned workout plans',
+      icon: 'clipboard' as const,
+      color: '#FFA726',
+      onPress: () => router.push('/workout-assignments'),
+    },
+    {
       id: 'workout-history',
       title: 'Workout History',
       subtitle: 'View your workout performance over time',
       icon: 'bar-chart' as const,
-      color: '#29B6F6',
+      color: '#9C27B0',
       onPress: () => {
         // TODO: Implement workout history view
         console.log('Workout history pressed');
@@ -57,7 +81,7 @@ export default function ActivityScreen() {
       title: 'Achievements',
       subtitle: 'View your fitness milestones and badges',
       icon: 'trophy' as const,
-      color: '#FFA726',
+      color: '#4CAF50',
       onPress: () => {
         // TODO: Implement achievements view
         console.log('Achievements pressed');

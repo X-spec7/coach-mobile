@@ -120,7 +120,7 @@ export const ExerciseConfigurationModal: React.FC<ExerciseConfigurationModalProp
               />
             ) : (
               <View style={styles.exerciseIconPlaceholder}>
-                <Ionicons name="fitness" size={32} color="#A78BFA" />
+                <Ionicons name="fitness" size={32} color="#fff" />
               </View>
             )}
             <View style={styles.exerciseDetails}>
@@ -151,7 +151,7 @@ export const ExerciseConfigurationModal: React.FC<ExerciseConfigurationModalProp
                     if (current > 1) setSetCount((current - 1).toString());
                   }}
                 >
-                  <Ionicons name="remove" size={20} color="#A78BFA" />
+                  <Ionicons name="remove" size={20} color="#fff" />
                 </TouchableOpacity>
                 <TextInput
                   style={[
@@ -174,7 +174,7 @@ export const ExerciseConfigurationModal: React.FC<ExerciseConfigurationModalProp
                     if (current < 10) setSetCount((current + 1).toString());
                   }}
                 >
-                  <Ionicons name="add" size={20} color="#A78BFA" />
+                  <Ionicons name="add" size={20} color="#fff" />
                 </TouchableOpacity>
               </View>
             </View>
@@ -192,7 +192,7 @@ export const ExerciseConfigurationModal: React.FC<ExerciseConfigurationModalProp
                     if (current > 1) setRepsCount((current - 1).toString());
                   }}
                 >
-                  <Ionicons name="remove" size={20} color="#A78BFA" />
+                  <Ionicons name="remove" size={20} color="#fff" />
                 </TouchableOpacity>
                 <TextInput
                   style={[
@@ -215,7 +215,7 @@ export const ExerciseConfigurationModal: React.FC<ExerciseConfigurationModalProp
                     if (current < 100) setRepsCount((current + 1).toString());
                   }}
                 >
-                  <Ionicons name="add" size={20} color="#A78BFA" />
+                  <Ionicons name="add" size={20} color="#fff" />
                 </TouchableOpacity>
               </View>
             </View>
@@ -233,7 +233,7 @@ export const ExerciseConfigurationModal: React.FC<ExerciseConfigurationModalProp
                     if (current > 10) setRestDuration((current - 10).toString());
                   }}
                 >
-                  <Ionicons name="remove" size={20} color="#A78BFA" />
+                  <Ionicons name="remove" size={20} color="#fff" />
                 </TouchableOpacity>
                 <TextInput
                   style={[
@@ -256,7 +256,7 @@ export const ExerciseConfigurationModal: React.FC<ExerciseConfigurationModalProp
                     if (current < 600) setRestDuration((current + 10).toString());
                   }}
                 >
-                  <Ionicons name="add" size={20} color="#A78BFA" />
+                  <Ionicons name="add" size={20} color="#fff" />
                 </TouchableOpacity>
               </View>
             </View>
@@ -280,140 +280,178 @@ export const ExerciseConfigurationModal: React.FC<ExerciseConfigurationModalProp
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
     justifyContent: 'center',
     alignItems: 'center',
   },
   container: {
     backgroundColor: '#fff',
-    borderRadius: 20,
-    padding: 20,
+    borderRadius: 24,
+    padding: 24,
     margin: 20,
     width: '90%',
     maxWidth: 500,
     alignSelf: 'center',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 5,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 16,
+    elevation: 8,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: 24,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
   },
   title: {
-    fontSize: 20,
-    fontWeight: 'bold',
+    fontSize: 22,
+    fontWeight: '700',
+    color: '#1a1a1a',
   },
   closeButton: {
-    padding: 4,
+    padding: 8,
+    borderRadius: 20,
+    backgroundColor: '#f5f5f5',
   },
   exerciseInfo: {
     flexDirection: 'row',
-    marginBottom: 24,
-    padding: 16,
+    marginBottom: 32,
+    padding: 20,
     backgroundColor: '#f8f9fa',
-    borderRadius: 12,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#e9ecef',
   },
   exerciseIcon: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
+    width: 64,
+    height: 64,
+    borderRadius: 32,
     marginRight: 16,
   },
   exerciseIconPlaceholder: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
+    width: 64,
+    height: 64,
+    borderRadius: 32,
     marginRight: 16,
-    backgroundColor: '#A78BFA20',
+    backgroundColor: '#A78BFA',
     justifyContent: 'center',
     alignItems: 'center',
+    shadowColor: '#A78BFA',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
   },
   exerciseDetails: {
     flex: 1,
+    justifyContent: 'center',
   },
   exerciseTitle: {
     fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 4,
+    fontWeight: '600',
+    marginBottom: 6,
+    color: '#1a1a1a',
   },
   exerciseDescription: {
     fontSize: 14,
-    color: '#666',
-    marginBottom: 4,
+    color: '#6c757d',
+    marginBottom: 6,
+    lineHeight: 20,
   },
   exerciseCalories: {
-    fontSize: 12,
+    fontSize: 13,
     color: '#A78BFA',
+    fontWeight: '600',
   },
   formContainer: {
-    marginBottom: 24,
+    marginBottom: 32,
     alignItems: 'center',
   },
   inputGroup: {
-    marginBottom: 20,
+    marginBottom: 24,
     alignItems: 'center',
     width: '100%',
   },
   label: {
     fontSize: 16,
     fontWeight: '600',
-    marginBottom: 8,
+    marginBottom: 12,
+    color: '#495057',
   },
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 12,
+    gap: 16,
+    backgroundColor: '#f8f9fa',
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#e9ecef',
   },
   adjustButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#A78BFA20',
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#A78BFA',
     justifyContent: 'center',
     alignItems: 'center',
+    shadowColor: '#A78BFA',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 2,
   },
   input: {
     width: 80,
-    height: 40,
-    borderWidth: 1,
-    borderRadius: 8,
+    height: 44,
+    borderWidth: 2,
+    borderColor: '#A78BFA',
+    borderRadius: 12,
     textAlign: 'center',
-    fontSize: 16,
-    fontWeight: 'bold',
+    fontSize: 18,
+    fontWeight: '700',
+    backgroundColor: '#fff',
+    color: '#1a1a1a',
   },
   buttonContainer: {
     flexDirection: 'row',
-    gap: 12,
+    gap: 16,
   },
   cancelButton: {
     flex: 1,
-    paddingVertical: 12,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#666',
+    paddingVertical: 16,
+    borderRadius: 16,
+    borderWidth: 2,
+    borderColor: '#dee2e6',
     alignItems: 'center',
+    backgroundColor: '#f8f9fa',
   },
   cancelButtonText: {
-    color: '#666',
+    color: '#6c757d',
     fontSize: 16,
     fontWeight: '600',
   },
   confirmButton: {
     flex: 1,
-    paddingVertical: 12,
-    borderRadius: 8,
+    paddingVertical: 16,
+    borderRadius: 16,
     backgroundColor: '#A78BFA',
     alignItems: 'center',
+    shadowColor: '#A78BFA',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
   },
   confirmButtonText: {
     color: '#fff',
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '700',
   },
 }); 
