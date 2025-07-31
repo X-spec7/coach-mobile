@@ -14,14 +14,14 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { Colors } from '@/constants/Colors';
-import { CoachClientService, Coach } from '../services/coachClientService';
+import { CoachClientService, Coach, Client } from '../services/coachClientService';
 import { getAuthHeaders } from '../services/api';
 import { API_BASE_URL } from '../constants/api';
 import { useAuth } from '../contexts/AuthContext';
 
 export default function FindCoachesScreen() {
   const { user } = useAuth();
-  const [coaches, setCoaches] = useState<Coach[]>([]);
+  const [users, setUsers] = useState<Coach[] | Client[]>([]);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -29,6 +29,14 @@ export default function FindCoachesScreen() {
   const [totalCount, setTotalCount] = useState(0);
   const [offset, setOffset] = useState(0);
   const [hasMore, setHasMore] = useState(true);
+
+  // Role-based configuration
+  const isCoach = user?.userType === 'Coach';
+  const targetUserType = isCoach ? 'Client' : 'Coach';
+  const pageTitle = isCoach ? 'Find Clients' : 'Find Coaches';
+  const searchPlaceholder = isCoach ? 'Search clients by name...' : 'Search coaches by name...';
+  const emptyStateText = isCoach ? 'No clients found' : 'No coaches found';
+  const connectButtonText = isCoach ? 'Connect' : 'Request Connection';
 
   const specializations = [
     'All',
@@ -46,28 +54,16 @@ export default function FindCoachesScreen() {
     const headers = await getAuthHeaders();
     
     try {
-      // Test 1: General users endpoint
-      console.log('Testing /api/users/...');
-      const usersResponse = await fetch(`${API_BASE_URL}/api/users/`, {
+      // Test: General users endpoint with role filter
+      console.log(`Testing /api/users/ with ${targetUserType} filter...`);
+      const usersResponse = await fetch(`${API_BASE_URL}/api/users/?user_type=${targetUserType}`, {
         method: 'GET',
         headers,
       });
-      console.log('Users endpoint status:', usersResponse.status);
+      console.log(`${targetUserType} endpoint status:`, usersResponse.status);
       if (usersResponse.ok) {
         const usersData = await usersResponse.json();
-        console.log('Users data structure:', usersData);
-      }
-      
-      // Test 2: Users endpoint with Coach filter
-      console.log('Testing /api/users/ with Coach filter...');
-      const coachResponse = await fetch(`${API_BASE_URL}/api/users/?user_type=Coach`, {
-        method: 'GET',
-        headers,
-      });
-      console.log('Coach filter endpoint status:', coachResponse.status);
-      if (coachResponse.ok) {
-        const coachData = await coachResponse.json();
-        console.log('Coach data structure:', coachData);
+        console.log(`${targetUserType} data structure:`, usersData);
       }
       
     } catch (error) {
@@ -76,13 +72,13 @@ export default function FindCoachesScreen() {
   };
 
   useEffect(() => {
-    fetchCoaches(true);
+    fetchUsers(true);
     // Uncomment this line to test backend endpoints
     // testBackendEndpoints();
   }, [searchQuery, selectedSpecialization]);
 
-  const fetchCoaches = async (reset = false) => {
-    if (loading) return;
+  const fetchUsers = async (reset = false) => {
+    if (loading || !user?.userType) return;
     
     const currentOffset = reset ? 0 : offset;
     setLoading(true);
@@ -96,39 +92,41 @@ export default function FindCoachesScreen() {
         limit: 20,
       };
 
-      const response = await CoachClientService.getCoaches(params);
+      const response = await CoachClientService.findUsersForRole(user.userType, params);
+      
+      const responseUsers = 'coaches' in response ? response.coaches : response.users as Client[];
+      const responseCount = 'totalCoachesCount' in response ? response.totalCoachesCount : response.totalUsersCount;
       
       if (reset) {
-        setCoaches(response.coaches);
+        setUsers(responseUsers as Coach[] | Client[]);
         setOffset(20);
       } else {
-        setCoaches(prev => [...prev, ...response.coaches]);
+        setUsers(prev => [...prev, ...responseUsers] as Coach[] | Client[]);
         setOffset(currentOffset + 20);
       }
       
-      setTotalCount(response.totalCoachesCount);
-      setHasMore(response.coaches.length === 20);
+      setTotalCount(responseCount);
+      setHasMore(responseUsers.length === 20);
       
     } catch (error) {
-      console.error('Error fetching coaches:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Failed to load coaches';
+      console.error(`Error fetching ${targetUserType}s:`, error);
+      const errorMessage = error instanceof Error ? error.message : `Failed to load ${targetUserType}s`;
       
       if (errorMessage.includes('Authentication required')) {
         console.log('User not authenticated, skipping fetch');
-        setCoaches([]);
+        setUsers([]);
       } else if (errorMessage.includes('404') || errorMessage.includes('not found')) {
-        // Backend doesn't support coach endpoints yet
         Alert.alert(
           'Feature Not Available', 
-          'The coach-client connection feature is not yet available on this server. Please check back later or contact support.'
+          `The ${targetUserType.toLowerCase()}-discovery feature is not yet available on this server. Please check back later or contact support.`
         );
-        setCoaches([]);
+        setUsers([]);
       } else if (errorMessage.includes('500') || errorMessage.includes('Internal Server Error')) {
         Alert.alert(
           'Server Error', 
           'The server is experiencing issues. Please try again later.'
         );
-        setCoaches([]);
+        setUsers([]);
       } else {
         Alert.alert('Error', errorMessage);
       }
@@ -139,32 +137,38 @@ export default function FindCoachesScreen() {
 
   const handleRefresh = async () => {
     setRefreshing(true);
-    await fetchCoaches(true);
+    await fetchUsers(true);
     setRefreshing(false);
   };
 
-  const handleRequestConnection = async (coach: Coach) => {
+  const handleRequestConnection = async (targetUser: Coach | Client) => {
     if (!user?.id) {
-      Alert.alert('Error', 'Please sign in to connect with coaches');
+      Alert.alert('Error', 'Please sign in to connect with users');
       return;
     }
 
+    const connectionData = isCoach ? {
+      coach_id: user.id,
+      client_id: targetUser.id,
+      status: 'pending',
+      notes: `Hi ${targetUser.firstName}! I would like to work with you as your coach.`,
+    } : {
+      coach_id: targetUser.id,
+      client_id: user.id,
+      status: 'pending',
+      notes: `Hi ${targetUser.firstName}! I would like to work with you as my coach.`,
+    };
+
     Alert.alert(
-      'Request Connection',
-      `Send a connection request to ${coach.fullName}?`,
+      `${connectButtonText}`,
+      `Send a connection request to ${targetUser.fullName}?`,
       [
         { text: 'Cancel', style: 'cancel' },
         {
           text: 'Send Request',
           onPress: async () => {
             try {
-              await CoachClientService.createRelationship({
-                coach_id: coach.id,
-                client_id: user.id,
-                status: 'pending',
-                notes: `Hi ${coach.firstName}! I would like to work with you as my coach.`,
-              });
-              
+              await CoachClientService.createRelationship(connectionData);
               Alert.alert('Success', 'Connection request sent successfully!');
             } catch (error) {
               console.error('Error sending connection request:', error);
@@ -192,70 +196,82 @@ export default function FindCoachesScreen() {
     return stars;
   };
 
-  const renderCoach = ({ item }: { item: Coach }) => (
-    <View style={styles.coachCard}>
-      <View style={styles.coachHeader}>
-        {item.profilePicture ? (
-          <Image
-            source={{ uri: item.profilePicture }}
-            style={styles.coachAvatar}
-          />
-        ) : (
-          <View style={styles.coachAvatarPlaceholder}>
-            <Ionicons name="person" size={32} color="#A78BFA" />
-          </View>
-        )}
-        
-        <View style={styles.coachInfo}>
-          <Text style={styles.coachName}>{item.fullName}</Text>
-          <Text style={styles.coachSpecialization}>
-            {item.coach_profile.specialization}
-          </Text>
-          <Text style={styles.coachExperience}>
-            {item.coach_profile.yearsOfExperience} years experience
-          </Text>
-          
-          {item.reviews.length > 0 && (
-            <View style={styles.ratingContainer}>
-              <View style={styles.stars}>
-                {renderStars(item.reviews[0].rating)}
-              </View>
-              <Text style={styles.reviewCount}>
-                ({item.reviews.length} reviews)
-              </Text>
+  const renderUser = ({ item }: { item: Coach | Client }) => {
+    // Type guard to check if item is Coach
+    const isCoachItem = 'coach_profile' in item;
+    
+    return (
+      <View style={styles.userCard}>
+        <View style={styles.userHeader}>
+          {item.profilePicture ? (
+            <Image
+              source={{ uri: item.profilePicture }}
+              style={styles.userAvatar}
+            />
+          ) : (
+            <View style={styles.userAvatarPlaceholder}>
+              <Ionicons name="person" size={32} color="#A78BFA" />
             </View>
           )}
+          
+          <View style={styles.userInfo}>
+            <Text style={styles.userName}>{item.fullName}</Text>
+            {isCoachItem && (
+              <>
+                <Text style={styles.userSpecialization}>
+                  {(item as Coach).coach_profile.specialization}
+                </Text>
+                <Text style={styles.userExperience}>
+                  {(item as Coach).coach_profile.yearsOfExperience} years experience
+                </Text>
+                
+                {(item as Coach).reviews.length > 0 && (
+                  <View style={styles.ratingContainer}>
+                    <View style={styles.stars}>
+                      {renderStars((item as Coach).reviews[0].rating)}
+                    </View>
+                    <Text style={styles.reviewCount}>
+                      ({(item as Coach).reviews.length} reviews)
+                    </Text>
+                  </View>
+                )}
+              </>
+            )}
+            {!isCoachItem && (
+              <Text style={styles.userType}>Client</Text>
+            )}
+          </View>
+          
+          <TouchableOpacity
+            style={styles.connectButton}
+            onPress={() => handleRequestConnection(item)}
+          >
+            <Ionicons name="add-circle" size={24} color="#A78BFA" />
+          </TouchableOpacity>
         </View>
-        
-        <TouchableOpacity
-          style={styles.connectButton}
-          onPress={() => handleRequestConnection(item)}
-        >
-          <Ionicons name="add-circle" size={24} color="#A78BFA" />
-        </TouchableOpacity>
+
+        {isCoachItem && (item as Coach).coach_profile.certification && (
+          <View style={styles.certificationContainer}>
+            <Ionicons name="ribbon" size={16} color="#4CAF50" />
+            <Text style={styles.certificationText}>
+              {(item as Coach).coach_profile.certification}
+            </Text>
+          </View>
+        )}
+
+        {isCoachItem && (item as Coach).reviews.length > 0 && (
+          <View style={styles.reviewContainer}>
+            <Text style={styles.reviewText} numberOfLines={2}>
+              "{(item as Coach).reviews[0].content}"
+            </Text>
+            <Text style={styles.reviewerName}>
+              - {(item as Coach).reviews[0].reviewerName}
+            </Text>
+          </View>
+        )}
       </View>
-
-      {item.coach_profile.certification && (
-        <View style={styles.certificationContainer}>
-          <Ionicons name="ribbon" size={16} color="#4CAF50" />
-          <Text style={styles.certificationText}>
-            {item.coach_profile.certification}
-          </Text>
-        </View>
-      )}
-
-      {item.reviews.length > 0 && (
-        <View style={styles.reviewContainer}>
-          <Text style={styles.reviewText} numberOfLines={2}>
-            "{item.reviews[0].content}"
-          </Text>
-          <Text style={styles.reviewerName}>
-            - {item.reviews[0].reviewerName}
-          </Text>
-        </View>
-      )}
-    </View>
-  );
+    );
+  };
 
   const renderSpecializationFilter = () => (
     <View style={styles.filterContainer}>
@@ -294,9 +310,9 @@ export default function FindCoachesScreen() {
           <Ionicons name="arrow-back" size={24} color={Colors.light.text} />
         </TouchableOpacity>
         <View style={styles.headerContent}>
-          <Text style={styles.headerTitle}>Find Coaches</Text>
+          <Text style={styles.headerTitle}>{pageTitle}</Text>
           <Text style={styles.headerSubtitle}>
-            {totalCount} coaches available
+            {totalCount} {targetUserType}s available
           </Text>
         </View>
       </View>
@@ -307,7 +323,7 @@ export default function FindCoachesScreen() {
           <Ionicons name="search" size={20} color="#666" />
           <TextInput
             style={styles.searchTextInput}
-            placeholder="Search coaches by name..."
+            placeholder={searchPlaceholder}
             placeholderTextColor="#666"
             value={searchQuery}
             onChangeText={setSearchQuery}
@@ -323,16 +339,16 @@ export default function FindCoachesScreen() {
       {/* Specialization Filter */}
       {renderSpecializationFilter()}
 
-      {/* Coaches List */}
-      {loading && coaches.length === 0 ? (
+      {/* Users List */}
+      {loading && users.length === 0 ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#A78BFA" />
-          <Text style={styles.loadingText}>Finding coaches for you...</Text>
+          <Text style={styles.loadingText}>Finding {targetUserType}s for you...</Text>
         </View>
       ) : (
         <FlatList
-          data={coaches}
-          renderItem={renderCoach}
+          data={users}
+          renderItem={renderUser}
           keyExtractor={(item) => item.id.toString()}
           contentContainerStyle={styles.listContainer}
           refreshControl={
@@ -345,12 +361,12 @@ export default function FindCoachesScreen() {
           }
           onEndReached={() => {
             if (hasMore && !loading) {
-              fetchCoaches(false);
+              fetchUsers(false);
             }
           }}
           onEndReachedThreshold={0.5}
           ListFooterComponent={
-            loading && coaches.length > 0 ? (
+            loading && users.length > 0 ? (
               <View style={styles.footerLoading}>
                 <ActivityIndicator size="small" color="#A78BFA" />
               </View>
@@ -361,15 +377,12 @@ export default function FindCoachesScreen() {
               <View style={styles.emptyState}>
                 <Ionicons name="people-outline" size={64} color="#666" />
                 <Text style={styles.emptyStateText}>
-                  {searchQuery || selectedSpecialization !== 'All'
-                    ? 'No coaches found'
-                    : 'No coaches available'
-                  }
+                  {emptyStateText}
                 </Text>
                 <Text style={styles.emptyStateSubtext}>
                   {searchQuery || selectedSpecialization !== 'All'
                     ? 'Try adjusting your search or filters'
-                    : 'Check back later for new coaches'
+                    : 'Check back later for new users'
                   }
                 </Text>
               </View>
@@ -474,7 +487,7 @@ const styles = StyleSheet.create({
     padding: 20,
     paddingTop: 0,
   },
-  coachCard: {
+  userCard: {
     backgroundColor: '#fff',
     borderRadius: 12,
     padding: 16,
@@ -487,18 +500,18 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 3,
   },
-  coachHeader: {
+  userHeader: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     marginBottom: 12,
   },
-  coachAvatar: {
+  userAvatar: {
     width: 60,
     height: 60,
     borderRadius: 30,
     marginRight: 12,
   },
-  coachAvatarPlaceholder: {
+  userAvatarPlaceholder: {
     width: 60,
     height: 60,
     borderRadius: 30,
@@ -507,25 +520,31 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  coachInfo: {
+  userInfo: {
     flex: 1,
   },
-  coachName: {
+  userName: {
     fontSize: 18,
     fontWeight: 'bold',
     color: '#1a1a1a',
     marginBottom: 4,
   },
-  coachSpecialization: {
+  userSpecialization: {
     fontSize: 14,
     color: '#A78BFA',
     fontWeight: '600',
     marginBottom: 2,
   },
-  coachExperience: {
+  userExperience: {
     fontSize: 14,
     color: '#666',
     marginBottom: 8,
+  },
+  userType: {
+    fontSize: 14,
+    color: '#A78BFA',
+    fontWeight: '600',
+    marginBottom: 2,
   },
   ratingContainer: {
     flexDirection: 'row',

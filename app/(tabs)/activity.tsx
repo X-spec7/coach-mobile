@@ -8,6 +8,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
+import { useAuth } from '../contexts/AuthContext';
 
 const activityData = [
   { date: 'Mon', calories: 450 },
@@ -20,6 +21,7 @@ const activityData = [
 ];
 
 export default function ActivityScreen() {
+  const { user } = useAuth();
   console.log('ActivityScreen rendering...');
 
   const maxCalories = Math.max(...activityData.map(d => d.calories));
@@ -90,318 +92,270 @@ export default function ActivityScreen() {
   ];
 
   return (
-    <View style={[styles.container, { backgroundColor: '#f8f9fa' }]}>
-      <ScrollView style={styles.scrollView}>
-        {/* Header */}
-        <View style={[styles.header, { borderBottomColor: '#e0e0e0' }]}>
-          <Text style={[styles.title, { color: '#1a1a1a' }]}>
-            Activity
-          </Text>
-          <Text style={styles.subtitle}>
-            Track your fitness journey and progress
-          </Text>
-        </View>
+    <ScrollView style={styles.container}>
+      {/* Header */}
+      <View style={styles.header}>
+        <Text style={styles.headerTitle}>Activity Dashboard</Text>
+        <Text style={styles.headerSubtitle}>
+          Track your progress and manage your fitness journey
+        </Text>
+      </View>
 
-        {/* Quick Stats */}
-        <View style={styles.statsGrid}>
-          <View style={[styles.statCard, { 
-            backgroundColor: '#fff',
-            borderColor: '#e0e0e0'
-          }]}>
-            <Ionicons name="fitness" size={24} color="#A78BFA" />
-            <Text style={[styles.statValue, { color: '#1a1a1a' }]}>15</Text>
-            <Text style={styles.statLabel}>Workouts</Text>
+      {/* Weekly Progress */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Weekly Progress</Text>
+        <View style={styles.progressCard}>
+          <View style={styles.progressItem}>
+            <Text style={styles.progressNumber}>5</Text>
+            <Text style={styles.progressLabel}>Workouts</Text>
           </View>
-          <View style={[styles.statCard, { 
-            backgroundColor: '#fff',
-            borderColor: '#e0e0e0'
-          }]}>
-            <Ionicons name="flame" size={24} color="#FF6B6B" />
-            <Text style={[styles.statValue, { color: '#1a1a1a' }]}>3,420</Text>
-            <Text style={styles.statLabel}>Calories</Text>
+          <View style={styles.progressItem}>
+            <Text style={styles.progressNumber}>12</Text>
+            <Text style={styles.progressLabel}>Hours</Text>
           </View>
-          <View style={[styles.statCard, { 
-            backgroundColor: '#fff',
-            borderColor: '#e0e0e0'
-          }]}>
-            <Ionicons name="trophy" size={24} color="#FFA726" />
-            <Text style={[styles.statValue, { color: '#1a1a1a' }]}>5</Text>
-            <Text style={styles.statLabel}>Achievements</Text>
+          <View style={styles.progressItem}>
+            <Text style={styles.progressNumber}>850</Text>
+            <Text style={styles.progressLabel}>Calories</Text>
           </View>
         </View>
+      </View>
 
-        {/* Weekly Progress Chart */}
-        <View style={styles.chartSection}>
-          <Text style={[styles.sectionTitle, { color: '#1a1a1a' }]}>
-            Weekly Progress
-          </Text>
-          <View style={styles.chartContainer}>
-            {activityData.map((day, index) => (
-              <View key={index} style={styles.chartColumn}>
-                <View style={[styles.barContainer, { backgroundColor: '#f0f0f0' }]}>
-                  <View 
-                    style={[
-                      styles.bar, 
-                      { height: `${(day.calories / maxCalories) * 100}%` }
-                    ]} 
-                  />
+      {/* Role-based Menu */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>
+          {user?.userType === 'Coach' ? 'Coach Tools' : 'Workouts & Training'}
+        </Text>
+        <View style={styles.menuGrid}>
+          {user?.userType === 'Coach' ? (
+            // Coach Menu Items
+            <>
+              <TouchableOpacity 
+                style={styles.menuItem}
+                onPress={() => router.push('/find-coaches')} // Will be renamed to find-clients for coaches
+              >
+                <View style={styles.menuIcon}>
+                  <Ionicons name="people" size={24} color="#A78BFA" />
                 </View>
-                <Text style={[styles.chartLabel, { color: '#1a1a1a' }]}>{day.date}</Text>
-                <Text style={[styles.chartValue, { color: '#1a1a1a' }]}>
-                  {day.calories}
-                </Text>
-              </View>
-            ))}
-          </View>
-        </View>
+                <Text style={styles.menuTitle}>Find Clients</Text>
+                <Text style={styles.menuSubtitle}>Connect with new clients</Text>
+              </TouchableOpacity>
 
-        {/* Workout & Fitness Menu */}
-        <View style={styles.menuSection}>
-          <Text style={[styles.sectionTitle, { color: '#1a1a1a' }]}>
-            Workouts & Training
-          </Text>
-          
-          {menuItems.map((item) => (
-            <TouchableOpacity
-              key={item.id}
-              style={[
-                styles.menuItem,
-                { 
-                  backgroundColor: '#fff',
-                  borderColor: '#e0e0e0',
-                }
-              ]}
-              onPress={item.onPress}
-            >
-              <View style={[styles.menuIconContainer, { backgroundColor: item.color + '20' }]}>
-                <Ionicons name={item.icon} size={24} color={item.color} />
-              </View>
-              <View style={styles.menuItemContent}>
-                <Text style={[styles.menuItemTitle, { color: '#1a1a1a' }]}>
-                  {item.title}
-                </Text>
-                <Text style={styles.menuItemSubtitle}>
-                  {item.subtitle}
-                </Text>
-              </View>
-              <Ionicons
-                name="chevron-forward"
-                size={20}
-                color="#999"
-              />
-            </TouchableOpacity>
-          ))}
-        </View>
+              <TouchableOpacity 
+                style={styles.menuItem}
+                onPress={() => router.push('/connections')}
+              >
+                <View style={styles.menuIcon}>
+                  <Ionicons name="link" size={24} color="#A78BFA" />
+                </View>
+                <Text style={styles.menuTitle}>My Clients</Text>
+                <Text style={styles.menuSubtitle}>Manage client relationships</Text>
+              </TouchableOpacity>
 
-        {/* Recent Achievements */}
-        <View style={styles.achievementsContainer}>
-          <Text style={[styles.sectionTitle, { color: '#1a1a1a' }]}>
-            Recent Achievements
-          </Text>
-          <View style={[styles.achievement, { 
-            backgroundColor: '#fff',
-            borderColor: '#e0e0e0'
-          }]}>
-            <View style={styles.achievementIcon}>
-              <Ionicons name="trophy" size={24} color="#FFA726" />
-            </View>
-            <View style={styles.achievementContent}>
-              <Text style={[styles.achievementTitle, { color: '#1a1a1a' }]}>
-                Workout Warrior
-              </Text>
-              <Text style={styles.achievementDesc}>
-                Completed 5 workouts in a week
-              </Text>
-            </View>
-          </View>
+              <TouchableOpacity 
+                style={styles.menuItem}
+                onPress={() => router.push('/workouts')}
+              >
+                <View style={styles.menuIcon}>
+                  <Ionicons name="barbell" size={24} color="#A78BFA" />
+                </View>
+                <Text style={styles.menuTitle}>My Programs</Text>
+                <Text style={styles.menuSubtitle}>Create and manage workout plans</Text>
+              </TouchableOpacity>
 
-          <View style={[styles.achievement, { 
-            backgroundColor: '#fff',
-            borderColor: '#e0e0e0'
-          }]}>
-            <View style={styles.achievementIcon}>
-              <Ionicons name="flame" size={24} color="#FF6B6B" />
-            </View>
-            <View style={styles.achievementContent}>
-              <Text style={[styles.achievementTitle, { color: '#1a1a1a' }]}>
-                Calorie Crusher
-              </Text>
-              <Text style={styles.achievementDesc}>
-                Burned 3,000+ calories this week
-              </Text>
-            </View>
-          </View>
+              <TouchableOpacity 
+                style={styles.menuItem}
+                onPress={() => router.push('/workout-assignments')}
+              >
+                <View style={styles.menuIcon}>
+                  <Ionicons name="clipboard" size={24} color="#A78BFA" />
+                </View>
+                <Text style={styles.menuTitle}>Client Assignments</Text>
+                <Text style={styles.menuSubtitle}>Track assigned programs</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity 
+                style={styles.menuItem}
+                onPress={() => router.push('/public-workouts')}
+              >
+                <View style={styles.menuIcon}>
+                  <Ionicons name="globe" size={24} color="#A78BFA" />
+                </View>
+                <Text style={styles.menuTitle}>Public Library</Text>
+                <Text style={styles.menuSubtitle}>Browse community workouts</Text>
+              </TouchableOpacity>
+            </>
+          ) : (
+            // Client Menu Items
+            <>
+              <TouchableOpacity 
+                style={styles.menuItem}
+                onPress={() => router.push('/scheduled-workouts')}
+              >
+                <View style={styles.menuIcon}>
+                  <Ionicons name="calendar" size={24} color="#A78BFA" />
+                </View>
+                <Text style={styles.menuTitle}>My Schedule</Text>
+                <Text style={styles.menuSubtitle}>View scheduled workouts</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity 
+                style={styles.menuItem}
+                onPress={() => router.push('/public-workouts')}
+              >
+                <View style={styles.menuIcon}>
+                  <Ionicons name="search" size={24} color="#A78BFA" />
+                </View>
+                <Text style={styles.menuTitle}>Discover Programs</Text>
+                <Text style={styles.menuSubtitle}>Find new workout plans</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity 
+                style={styles.menuItem}
+                onPress={() => router.push('/find-coaches')}
+              >
+                <View style={styles.menuIcon}>
+                  <Ionicons name="person-add" size={24} color="#A78BFA" />
+                </View>
+                <Text style={styles.menuTitle}>Find Coaches</Text>
+                <Text style={styles.menuSubtitle}>Connect with fitness experts</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity 
+                style={styles.menuItem}
+                onPress={() => router.push('/connections')}
+              >
+                <View style={styles.menuIcon}>
+                  <Ionicons name="fitness" size={24} color="#A78BFA" />
+                </View>
+                <Text style={styles.menuTitle}>My Coaches</Text>
+                <Text style={styles.menuSubtitle}>Manage coach relationships</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity 
+                style={styles.menuItem}
+                onPress={() => router.push('/workout-assignments')}
+              >
+                <View style={styles.menuIcon}>
+                  <Ionicons name="trophy" size={24} color="#A78BFA" />
+                </View>
+                <Text style={styles.menuTitle}>Assigned Programs</Text>
+                <Text style={styles.menuSubtitle}>Programs from your coaches</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity 
+                style={styles.menuItem}
+                onPress={() => router.push('/workouts')}
+              >
+                <View style={styles.menuIcon}>
+                  <Ionicons name="create" size={24} color="#A78BFA" />
+                </View>
+                <Text style={styles.menuTitle}>My Programs</Text>
+                <Text style={styles.menuSubtitle}>Personal workout plans</Text>
+              </TouchableOpacity>
+            </>
+          )}
         </View>
-      </ScrollView>
-    </View>
+      </View>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-  },
-  scrollView: {
-    flex: 1,
+    backgroundColor: '#f8f9fa',
   },
   header: {
     padding: 20,
     paddingTop: 60,
+    backgroundColor: '#fff',
     borderBottomWidth: 1,
+    borderBottomColor: '#e0e0e0',
   },
-  title: {
+  headerTitle: {
     fontSize: 28,
     fontWeight: 'bold',
+    color: '#1a1a1a',
     marginBottom: 4,
   },
-  subtitle: {
+  headerSubtitle: {
     fontSize: 16,
     color: '#666',
   },
-  statsGrid: {
-    flexDirection: 'row',
-    padding: 20,
-    gap: 12,
-  },
-  statCard: {
-    flex: 1,
-    borderRadius: 16,
-    padding: 16,
-    alignItems: 'center',
-    borderWidth: 1,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  statValue: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginTop: 8,
-  },
-  statLabel: {
-    fontSize: 12,
-    color: '#666',
-    marginTop: 4,
-  },
-  menuSection: {
-    padding: 20,
-    paddingTop: 10,
+  section: {
+    margin: 20,
+    marginBottom: 0,
   },
   sectionTitle: {
     fontSize: 20,
     fontWeight: 'bold',
+    color: '#1a1a1a',
     marginBottom: 16,
   },
-  menuItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 16,
+  progressCard: {
+    backgroundColor: '#fff',
     borderRadius: 12,
-    marginBottom: 12,
+    padding: 20,
+    flexDirection: 'row',
+    justifyContent: 'space-around',
     borderWidth: 1,
+    borderColor: '#e0e0e0',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
   },
-  menuIconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    justifyContent: 'center',
+  progressItem: {
     alignItems: 'center',
-    marginRight: 12,
   },
-  menuItemContent: {
-    flex: 1,
-  },
-  menuItemTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    marginBottom: 2,
-  },
-  menuItemSubtitle: {
-    fontSize: 14,
-    color: '#666',
-  },
-  chartSection: {
-    padding: 20,
-    paddingTop: 10,
-  },
-  chartContainer: {
-    flexDirection: 'row',
-    height: 200,
-    justifyContent: 'space-between',
-    alignItems: 'flex-end',
-  },
-  chartColumn: {
-    alignItems: 'center',
-    flex: 1,
-  },
-  barContainer: {
-    height: 150,
-    width: 30,
-    borderRadius: 15,
-    overflow: 'hidden',
-    justifyContent: 'flex-end',
-  },
-  bar: {
-    width: '100%',
-    backgroundColor: '#A78BFA',
-    borderRadius: 15,
-  },
-  chartLabel: {
-    fontSize: 12,
-    marginTop: 8,
-  },
-  chartValue: {
-    fontSize: 12,
-    marginTop: 4,
-  },
-  achievementsContainer: {
-    padding: 20,
-    paddingTop: 10,
-  },
-  achievement: {
-    borderRadius: 16,
-    padding: 20,
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-    borderWidth: 1,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  achievementIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: '#FFA72620',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 16,
-  },
-  achievementContent: {
-    flex: 1,
-  },
-  achievementTitle: {
-    fontSize: 18,
+  progressNumber: {
+    fontSize: 24,
     fontWeight: 'bold',
+    color: '#A78BFA',
     marginBottom: 4,
   },
-  achievementDesc: {
+  progressLabel: {
     fontSize: 14,
     color: '#666',
   },
-  errorText: {
-    textAlign: 'center',
-    marginTop: 50,
+  menuGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+  },
+  menuItem: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+    width: '48%',
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  menuIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#A78BFA20',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 12,
+  },
+  menuTitle: {
     fontSize: 16,
+    fontWeight: 'bold',
+    color: '#1a1a1a',
+    marginBottom: 4,
+  },
+  menuSubtitle: {
+    fontSize: 12,
+    color: '#666',
+    lineHeight: 16,
   },
 });

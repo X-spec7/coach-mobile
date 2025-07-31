@@ -430,4 +430,110 @@ export const CoachClientService = {
       throw error;
     }
   },
+
+  // Get users based on current user's role (role-based discovery)
+  findUsersForRole: async (
+    currentUserType: string,
+    params?: {
+      query?: string;
+      specialization?: string;
+      listed?: string;
+      offset?: number;
+      limit?: number;
+    }
+  ): Promise<CoachesResponse | UsersListResponse> => {
+    const headers = await getAuthHeaders();
+    
+    if (!headers.Authorization) {
+      throw new Error('Authentication required. Please sign in to discover users.');
+    }
+
+    const queryParams = new URLSearchParams();
+    
+    // Determine target user type based on current user's role
+    const targetUserType = currentUserType === 'Coach' ? 'Client' : 'Coach';
+    queryParams.append('user_type', targetUserType);
+    
+    if (params?.query) queryParams.append('query', params.query);
+    if (params?.specialization && params.specialization !== 'All') {
+      queryParams.append('specialization', params.specialization);
+    }
+    if (params?.listed) queryParams.append('listed', params.listed);
+    if (params?.offset !== undefined) queryParams.append('offset', params.offset.toString());
+    if (params?.limit !== undefined) queryParams.append('limit', params.limit.toString());
+
+    const url = `${API_ENDPOINTS.USERS.USERS_LIST}?${queryParams.toString()}`;
+
+    try {
+      const response = await authenticatedFetch(url, {
+        method: 'GET',
+        headers,
+      });
+      
+      console.log(`[findUsersForRole] ${currentUserType} searching for ${targetUserType}s:`, response);
+      
+      if (targetUserType === 'Coach') {
+        // Transform for coaches (when clients are searching)
+        const transformedCoaches = (response.users || []).map((user: any) => ({
+          id: user.id,
+          email: user.email,
+          firstName: user.firstName || '',
+          lastName: user.lastName || '',
+          fullName: user.fullName || `${user.firstName || ''} ${user.lastName || ''}`.trim(),
+          userType: user.userType,
+          phoneNumber: user.phoneNumber,
+          address: user.address,
+          gender: user.gender || 'not_specified',
+          emailVerified: true,
+          notificationsEnabled: user.notificationsEnabled || false,
+          profilePicture: user.avatarImageUrl,
+          coach_profile: {
+            certification: user.certifications?.[0]?.certificationTitle || 'Certified Fitness Coach',
+            specialization: user.specialization || 'General Fitness',
+            yearsOfExperience: user.yearsOfExperience || 1,
+            bannerImage: user.bannerImageUrl,
+            listed: true
+          },
+          certifications: (user.certifications || []).map((cert: any) => ({
+            certificationTitle: cert.certificationTitle || 'Fitness Certification',
+            certificationDetail: cert.certificationDetail || 'Professional fitness certification'
+          })),
+          reviews: []
+        }));
+        
+        return {
+          message: 'Coaches retrieved successfully',
+          totalCoachesCount: response.totalUsersCount || transformedCoaches.length,
+          coaches: transformedCoaches
+        };
+      } else {
+        // Transform for clients (when coaches are searching)
+        const transformedClients = (response.users || []).map((user: any) => ({
+          id: user.id,
+          email: user.email,
+          firstName: user.firstName || '',
+          lastName: user.lastName || '',
+          fullName: user.fullName || `${user.firstName || ''} ${user.lastName || ''}`.trim(),
+          userType: user.userType,
+          phoneNumber: user.phoneNumber,
+          address: user.address,
+          gender: user.gender || 'not_specified',
+          emailVerified: true,
+          notificationsEnabled: user.notificationsEnabled || false,
+          profilePicture: user.avatarImageUrl,
+        }));
+        
+        return {
+          message: 'Users retrieved successfully',
+          totalUsersCount: response.totalUsersCount || transformedClients.length,
+          users: transformedClients
+        };
+      }
+    } catch (error) {
+      if (error instanceof TypeError && error.message === 'Network request failed') {
+        throw new Error('Unable to connect to server. Please check your internet connection.');
+      }
+      throw error;
+    }
+  },
 }; 

@@ -237,7 +237,9 @@ export default function ConnectionsScreen() {
           <Ionicons name="arrow-back" size={24} color={Colors.light.text} />
         </TouchableOpacity>
         <View style={styles.headerContent}>
-          <Text style={styles.headerTitle}>My Connections</Text>
+          <Text style={styles.headerTitle}>
+            {user?.userType === 'Coach' ? 'My Clients' : 'My Coaches'}
+          </Text>
           <Text style={styles.headerSubtitle}>
             Manage your {user?.userType === 'Coach' ? 'client' : 'coach'} relationships
           </Text>

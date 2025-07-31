@@ -32,7 +32,7 @@ export default function WorkoutAssignmentsScreen() {
     setLoading(true);
     try {
       const params = {
-        role: isCoach ? 'coach' : 'client',
+        role: user?.userType === 'Coach' ? 'coach' : 'client',
         status: filter === 'all' ? undefined : filter,
       };
 
@@ -285,9 +285,14 @@ export default function WorkoutAssignmentsScreen() {
           <Ionicons name="arrow-back" size={24} color={Colors.light.text} />
         </TouchableOpacity>
         <View style={styles.headerContent}>
-          <Text style={styles.headerTitle}>Workout Assignments</Text>
+          <Text style={styles.headerTitle}>
+            {user?.userType === 'Coach' ? 'Client Assignments' : 'My Assignments'}
+          </Text>
           <Text style={styles.headerSubtitle}>
-            {isCoach ? 'Plans you\'ve assigned to clients' : 'Plans assigned to you'}
+            {user?.userType === 'Coach' 
+              ? 'Workout plans assigned to clients'
+              : 'Workout plans assigned by coaches'
+            }
           </Text>
         </View>
       </View>
