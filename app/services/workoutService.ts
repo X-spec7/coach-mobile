@@ -1,6 +1,6 @@
 import { API_ENDPOINTS } from "@/constants/api";
 import { getAuthHeaders, getAuthHeadersForDelete } from "./api";
-import { handle401Error } from "../utils/auth";
+import { authenticatedFetch, handle401Error } from "../utils/auth";
 
 // Exercise interfaces
 export interface Exercise {

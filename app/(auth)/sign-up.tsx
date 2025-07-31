@@ -69,8 +69,21 @@ export const SignUpScreen: React.FC = () => {
         throw new Error(data.message || "Registration failed");
       }
 
-      setTempAuth(email, password);
-      router.replace(`/(auth)/verification?email=${encodeURIComponent(email)}`);
+      // Show success message and redirect to sign-in
+      Alert.alert(
+        "Registration Successful!",
+        "Your account has been created successfully. Please sign in to continue.",
+        [
+          {
+            text: "Sign In",
+            onPress: () => {
+              router.replace("/(auth)/sign-in");
+            },
+          },
+        ],
+        { cancelable: false }
+      );
+      
     } catch (err) {
       console.error("err:", err);
       setError(err instanceof Error ? err.message : "An error occurred");

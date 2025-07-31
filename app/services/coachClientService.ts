@@ -1,6 +1,6 @@
 import { API_ENDPOINTS } from "../constants/api";
 import { getAuthHeaders, getAuthHeadersForDelete } from "./api";
-import { handle401Error } from "../utils/auth";
+import { authenticatedFetch } from "../utils/auth";
 
 // Coach interfaces
 export interface CoachProfile {
@@ -202,31 +202,46 @@ export const CoachClientService = {
     const url = `${API_ENDPOINTS.USERS.COACHES}?${queryParams.toString()}`;
 
     try {
-      const response = await fetch(url, {
+      const response = await authenticatedFetch(url, {
         method: 'GET',
         headers,
       });
-
-      if (response.status === 401) {
-        await handle401Error('Your session has expired. Please sign in again.');
-        throw new Error('Authentication required');
-      }
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Failed to fetch coaches: ${response.status} - ${errorText}`);
-      }
-
-      const data = await response.json();
       
-      console.log('[getCoaches] Backend response:', data);
+      console.log('[getCoaches] Backend response:', response);
       
       // Transform the response to match expected format
-      // The backend might return different structure, so we need to adapt
+      // Map the backend user data to Coach interface
+      const transformedCoaches = (response.users || []).map((user: any) => ({
+        id: user.id,
+        email: user.email,
+        firstName: user.firstName || '',
+        lastName: user.lastName || '',
+        fullName: user.fullName || `${user.firstName || ''} ${user.lastName || ''}`.trim(),
+        userType: user.userType,
+        phoneNumber: user.phoneNumber,
+        address: user.address,
+        gender: user.gender || 'not_specified',
+        emailVerified: true, // Assume verified if they can log in
+        notificationsEnabled: user.notificationsEnabled || false,
+        profilePicture: user.avatarImageUrl,
+        coach_profile: {
+          certification: user.certifications?.[0]?.certificationTitle || 'Certified Fitness Coach',
+          specialization: user.specialization || 'General Fitness',
+          yearsOfExperience: user.yearsOfExperience || 1,
+          bannerImage: user.bannerImageUrl,
+          listed: true // Since they appear in the list
+        },
+        certifications: (user.certifications || []).map((cert: any) => ({
+          certificationTitle: cert.certificationTitle || 'Fitness Certification',
+          certificationDetail: cert.certificationDetail || 'Professional fitness certification'
+        })),
+        reviews: [] // Backend doesn't provide reviews yet, use empty array
+      }));
+      
       return {
         message: 'Coaches retrieved successfully',
-        totalCoachesCount: data.count || data.length || 0,
-        coaches: data.results || data || [] // Handle both paginated and non-paginated responses
+        totalCoachesCount: response.totalUsersCount || transformedCoaches.length,
+        coaches: transformedCoaches
       };
     } catch (error) {
       if (error instanceof TypeError && error.message === 'Network request failed') {
@@ -264,28 +279,16 @@ export const CoachClientService = {
     const url = `${API_ENDPOINTS.USERS.USERS_LIST}?${queryParams.toString()}`;
 
     try {
-      const response = await fetch(url, {
+      const response = await authenticatedFetch(url, {
         method: 'GET',
         headers,
       });
-
-      if (response.status === 401) {
-        await handle401Error('Your session has expired. Please sign in again.');
-        throw new Error('Authentication required');
-      }
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Failed to fetch users: ${response.status} - ${errorText}`);
-      }
-
-      const data = await response.json();
       
       // Transform the response to match expected format
       return {
         message: 'Users retrieved successfully',
-        totalUsersCount: data.count || data.length || 0,
-        users: data.results || data || [] // Handle both paginated and non-paginated responses
+        totalUsersCount: response.count || response.length || 0,
+        users: response.results || response || [] // Handle both paginated and non-paginated responses
       };
     } catch (error) {
       if (error instanceof TypeError && error.message === 'Network request failed') {
@@ -298,23 +301,13 @@ export const CoachClientService = {
   // Create coach-client relationship
   createRelationship: async (data: CreateRelationshipRequest): Promise<CreateRelationshipResponse> => {
     const headers = await getAuthHeaders();
-    const response = await fetch(API_ENDPOINTS.USERS.COACH_CLIENT_RELATIONSHIP, {
+    const response = await authenticatedFetch(API_ENDPOINTS.USERS.COACH_CLIENT_RELATIONSHIP, {
       method: 'POST',
       headers,
       body: JSON.stringify(data),
     });
 
-    if (response.status === 401) {
-      await handle401Error('Your session has expired. Please sign in again.');
-      throw new Error('Authentication required');
-    }
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`Failed to create relationship: ${response.status} - ${errorText}`);
-    }
-
-    return response.json();
+    return response;
   },
 
   // Get coach-client relationships
@@ -337,22 +330,12 @@ export const CoachClientService = {
     const url = `${API_ENDPOINTS.USERS.COACH_CLIENT_RELATIONSHIP}${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
 
     try {
-      const response = await fetch(url, {
+      const response = await authenticatedFetch(url, {
         method: 'GET',
         headers,
       });
-
-      if (response.status === 401) {
-        await handle401Error('Your session has expired. Please sign in again.');
-        throw new Error('Authentication required');
-      }
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Failed to fetch relationships: ${response.status} - ${errorText}`);
-      }
-
-      return response.json();
+      
+      return response;
     } catch (error) {
       if (error instanceof TypeError && error.message === 'Network request failed') {
         throw new Error('Unable to connect to server. Please check your internet connection.');
@@ -364,45 +347,25 @@ export const CoachClientService = {
   // Update coach-client relationship
   updateRelationship: async (relationshipId: number, data: UpdateRelationshipRequest): Promise<CreateRelationshipResponse> => {
     const headers = await getAuthHeaders();
-    const response = await fetch(API_ENDPOINTS.USERS.COACH_CLIENT_RELATIONSHIP_DETAILS(relationshipId), {
+    const response = await authenticatedFetch(API_ENDPOINTS.USERS.COACH_CLIENT_RELATIONSHIP_DETAILS(relationshipId), {
       method: 'PUT',
       headers,
       body: JSON.stringify(data),
     });
 
-    if (response.status === 401) {
-      await handle401Error('Your session has expired. Please sign in again.');
-      throw new Error('Authentication required');
-    }
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`Failed to update relationship: ${response.status} - ${errorText}`);
-    }
-
-    return response.json();
+    return response;
   },
 
   // Assign workout plan to client (Coach only)
   assignWorkoutPlan: async (data: AssignWorkoutPlanRequest): Promise<AssignWorkoutResponse> => {
     const headers = await getAuthHeaders();
-    const response = await fetch(API_ENDPOINTS.WORKOUTS.ASSIGN_WORKOUT_PLAN, {
+    const response = await authenticatedFetch(API_ENDPOINTS.WORKOUTS.ASSIGN_WORKOUT_PLAN, {
       method: 'POST',
       headers,
       body: JSON.stringify(data),
     });
 
-    if (response.status === 401) {
-      await handle401Error('Your session has expired. Please sign in again.');
-      throw new Error('Authentication required');
-    }
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`Failed to assign workout plan: ${response.status} - ${errorText}`);
-    }
-
-    return response.json();
+    return response;
   },
 
   // Get workout plan assignments
@@ -423,22 +386,12 @@ export const CoachClientService = {
     const url = `${API_ENDPOINTS.WORKOUTS.WORKOUT_PLAN_ASSIGNMENTS}${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
 
     try {
-      const response = await fetch(url, {
+      const response = await authenticatedFetch(url, {
         method: 'GET',
         headers,
       });
-
-      if (response.status === 401) {
-        await handle401Error('Your session has expired. Please sign in again.');
-        throw new Error('Authentication required');
-      }
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Failed to fetch assignments: ${response.status} - ${errorText}`);
-      }
-
-      return response.json();
+      
+      return response;
     } catch (error) {
       if (error instanceof TypeError && error.message === 'Network request failed') {
         throw new Error('Unable to connect to server. Please check your internet connection.');
@@ -450,23 +403,13 @@ export const CoachClientService = {
   // Accept workout plan assignment (Client only)
   acceptWorkoutAssignment: async (data: AcceptWorkoutAssignmentRequest): Promise<AcceptAssignmentResponse> => {
     const headers = await getAuthHeaders();
-    const response = await fetch(API_ENDPOINTS.WORKOUTS.ACCEPT_WORKOUT_ASSIGNMENT, {
+    const response = await authenticatedFetch(API_ENDPOINTS.WORKOUTS.ACCEPT_WORKOUT_ASSIGNMENT, {
       method: 'POST',
       headers,
       body: JSON.stringify(data),
     });
 
-    if (response.status === 401) {
-      await handle401Error('Your session has expired. Please sign in again.');
-      throw new Error('Authentication required');
-    }
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`Failed to accept assignment: ${response.status} - ${errorText}`);
-    }
-
-    return response.json();
+    return response;
   },
 
   // Reject workout plan assignment (Client only)
@@ -474,22 +417,12 @@ export const CoachClientService = {
     const headers = await getAuthHeadersForDelete();
     
     try {
-      const response = await fetch(API_ENDPOINTS.WORKOUTS.REJECT_WORKOUT_ASSIGNMENT(assignmentId), {
+      const response = await authenticatedFetch(API_ENDPOINTS.WORKOUTS.REJECT_WORKOUT_ASSIGNMENT(assignmentId), {
         method: 'POST',
         headers,
       });
 
-      if (response.status === 401) {
-        await handle401Error('Your session has expired. Please sign in again.');
-        throw new Error('Authentication required');
-      }
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Failed to reject assignment: ${response.status} - ${errorText}`);
-      }
-
-      return response.json();
+      return response;
     } catch (error) {
       if (error instanceof TypeError && error.message === 'Network request failed') {
         throw new Error('Unable to connect to server. Please check your internet connection.');
