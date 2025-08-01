@@ -34,7 +34,7 @@ export default function ConnectionsScreen() {
         status: filter === 'all' ? undefined : filter,
       };
 
-      const response = await CoachClientService.getRelationships(params);
+      const response = await CoachClientService.getMyRelationships(params);
       setRelationships(response.relationships);
     } catch (error) {
       console.error('Error fetching relationships:', error);

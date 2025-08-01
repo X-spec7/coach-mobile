@@ -36,6 +36,36 @@ export const resendVerificationEmail = async (email: string): Promise<{ message:
   }
 };
 
+// Verify email with verification code
+export const verifyEmail = async (email: string, verificationCode: string): Promise<{ message: string }> => {
+  try {
+    const response = await fetch(API_ENDPOINTS.AUTH.VERIFY_EMAIL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ 
+        email, 
+        verificationCode 
+      }),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.message || 'Failed to verify email');
+    }
+
+    return data;
+  } catch (error) {
+    console.error('Error verifying email:', error);
+    if (error instanceof TypeError && error.message === 'Network request failed') {
+      throw new Error('Unable to connect to server. Please check your internet connection.');
+    }
+    throw error;
+  }
+};
+
 export const storeToken = async (token: AuthToken): Promise<void> => {
   try {
     console.log("Storing token in secure storage:", token);

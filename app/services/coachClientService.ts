@@ -312,7 +312,7 @@ export const CoachClientService = {
     return response;
   },
 
-  // Get coach-client relationships
+  // Get coach-client relationships (legacy method - consider using getMyRelationships instead)
   getRelationships: async (params?: {
     user_id?: number;
     user_type?: string;
@@ -330,6 +330,43 @@ export const CoachClientService = {
     if (params?.status) queryParams.append('status', params.status);
 
     const url = `${API_ENDPOINTS.USERS.COACH_CLIENT_RELATIONSHIP}${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+
+    try {
+      const response = await authenticatedFetch(url, {
+        method: 'GET',
+        headers,
+      });
+      
+      return response;
+    } catch (error) {
+      if (error instanceof TypeError && error.message === 'Network request failed') {
+        throw new Error('Unable to connect to server. Please check your internet connection.');
+      }
+      throw error;
+    }
+  },
+
+  // Get my relationships (recommended method - automatically detects user role)
+  // ✅ BEST OPTION: Uses GET /api/users/my-relationships/
+  // Benefits:
+  // ✅ Automatically detects that you're a coach/client (no need to pass user IDs)
+  // ✅ Uses the authenticated user context
+  // ✅ Returns additional data like active clients/coaches list
+  // ✅ Clean and simple to use
+  // ✅ More secure as it only returns relationships for the authenticated user
+  getMyRelationships: async (params?: {
+    status?: string;
+  }): Promise<RelationshipsResponse> => {
+    const headers = await getAuthHeaders();
+    
+    if (!headers.Authorization) {
+      throw new Error('Authentication required. Please sign in to view relationships.');
+    }
+
+    const queryParams = new URLSearchParams();
+    if (params?.status) queryParams.append('status', params.status);
+
+    const url = `${API_ENDPOINTS.USERS.MY_RELATIONSHIPS}${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
 
     try {
       const response = await authenticatedFetch(url, {

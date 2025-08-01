@@ -6,19 +6,82 @@ import {
   TouchableOpacity,
   Alert,
   ActivityIndicator,
+  TextInput,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Colors } from '@/constants/Colors';
-import { resendVerificationEmail } from '../services/auth';
+import { resendVerificationEmail, verifyEmail } from '../services/auth';
 
 export default function EmailVerificationScreen() {
   const params = useLocalSearchParams();
   const [resending, setResending] = useState(false);
+  const [verifying, setVerifying] = useState(false);
+  const [verificationCode, setVerificationCode] = useState('');
+  const [email, setEmail] = useState('');
+  const [showEmailInput, setShowEmailInput] = useState(false);
   
-  const userEmail = params.email as string || 'your email';
+  const userEmail = (params.email as string) || email || '';
+
+  // Check if we need to show email input (when no email is provided from registration)
+  React.useEffect(() => {
+    if (!params.email) {
+      setShowEmailInput(true);
+    }
+  }, [params.email]);
+
+  const handleVerifyEmail = async () => {
+    if (!userEmail.trim()) {
+      Alert.alert('Error', 'Please enter your email address.');
+      return;
+    }
+
+    if (!verificationCode.trim()) {
+      Alert.alert('Error', 'Please enter the verification code.');
+      return;
+    }
+
+    if (verificationCode.length !== 6) {
+      Alert.alert('Error', 'Please enter a valid 6-digit verification code.');
+      return;
+    }
+
+    setVerifying(true);
+    try {
+      await verifyEmail(userEmail, verificationCode.trim());
+      
+      Alert.alert(
+        'Email Verified Successfully!',
+        'Your email has been verified. You can now sign in to your account.',
+        [
+          {
+            text: 'Sign In',
+            onPress: () => {
+              router.replace('/(auth)/sign-in');
+            },
+          },
+        ],
+        { cancelable: false }
+      );
+    } catch (error) {
+      console.error('Error verifying email:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to verify email';
+      Alert.alert(
+        'Verification Failed',
+        errorMessage,
+        [{ text: 'Try Again', style: 'default' }]
+      );
+    } finally {
+      setVerifying(false);
+    }
+  };
 
   const handleResendVerification = async () => {
+    if (!userEmail.trim()) {
+      Alert.alert('Error', 'Please enter your email address first.');
+      return;
+    }
+
     setResending(true);
     try {
       await resendVerificationEmail(userEmail);
@@ -68,41 +131,98 @@ export default function EmailVerificationScreen() {
         </View>
 
         {/* Title */}
-        <Text style={styles.title}>Check Your Email</Text>
+        <Text style={styles.title}>Verify Your Email</Text>
         <Text style={styles.subtitle}>
-          We've sent a verification link to{'\n'}
-          <Text style={styles.emailText}>{userEmail}</Text>
+          {userEmail ? (
+            <>
+              We've sent a verification code to{'\n'}
+              <Text style={styles.emailText}>{userEmail}</Text>
+            </>
+          ) : (
+            'Enter your email address and verification code below'
+          )}
         </Text>
+
+        {/* Email Input (only show if no email from registration) */}
+        {showEmailInput && (
+          <View style={styles.emailInputContainer}>
+            <Text style={styles.emailInputLabel}>Email Address</Text>
+            <TextInput
+              style={styles.emailInput}
+              placeholder="Enter your email address"
+              placeholderTextColor="#999"
+              value={email}
+              onChangeText={setEmail}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              autoCorrect={false}
+            />
+          </View>
+        )}
+
+        {/* Verification Code Input */}
+        <View style={styles.codeInputContainer}>
+          <Text style={styles.codeInputLabel}>Enter Verification Code</Text>
+          <TextInput
+            style={styles.codeInput}
+            placeholder="000000"
+            placeholderTextColor="#999"
+            value={verificationCode}
+            onChangeText={setVerificationCode}
+            keyboardType="numeric"
+            maxLength={6}
+            textAlign="center"
+            autoFocus={!showEmailInput}
+          />
+          <Text style={styles.codeInputHint}>Enter the 6-digit code from your email</Text>
+        </View>
+
+        {/* Verify Button */}
+        <TouchableOpacity
+          style={[styles.verifyButton, (!userEmail.trim() || !verificationCode.trim() || verifying) && styles.buttonDisabled]}
+          onPress={handleVerifyEmail}
+          disabled={!userEmail.trim() || !verificationCode.trim() || verifying}
+        >
+          {verifying ? (
+            <ActivityIndicator size="small" color="#fff" />
+          ) : (
+            <Text style={styles.verifyButtonText}>Verify Email</Text>
+          )}
+        </TouchableOpacity>
 
         {/* Instructions */}
         <View style={styles.instructionsContainer}>
-          <Text style={styles.instructionsTitle}>To complete your registration:</Text>
+          <Text style={styles.instructionsTitle}>To complete your verification:</Text>
           <View style={styles.instructionItem}>
             <Ionicons name="checkmark-circle" size={20} color="#4CAF50" />
             <Text style={styles.instructionText}>Check your email inbox</Text>
           </View>
           <View style={styles.instructionItem}>
             <Ionicons name="checkmark-circle" size={20} color="#4CAF50" />
-            <Text style={styles.instructionText}>Click the verification link</Text>
+            <Text style={styles.instructionText}>Copy the 6-digit verification code</Text>
           </View>
           <View style={styles.instructionItem}>
             <Ionicons name="checkmark-circle" size={20} color="#4CAF50" />
-            <Text style={styles.instructionText}>Return here to sign in</Text>
+            <Text style={styles.instructionText}>Enter the code above and verify</Text>
           </View>
         </View>
 
         {/* Resend Email */}
         <View style={styles.resendContainer}>
-          <Text style={styles.resendText}>Didn't receive the email?</Text>
+          <Text style={styles.resendText}>
+            {userEmail ? "Didn't receive the email?" : "Need to get a verification code?"}
+          </Text>
           <TouchableOpacity 
             onPress={handleResendVerification}
-            disabled={resending}
-            style={styles.resendButton}
+            disabled={resending || !userEmail.trim()}
+            style={[styles.resendButton, !userEmail.trim() && styles.buttonDisabled]}
           >
             {resending ? (
               <ActivityIndicator size="small" color="#A78BFA" />
             ) : (
-              <Text style={styles.resendButtonText}>Resend Verification Email</Text>
+              <Text style={styles.resendButtonText}>
+                {userEmail ? "Resend Verification Email" : "Send Verification Email"}
+              </Text>
             )}
           </TouchableOpacity>
         </View>
@@ -110,17 +230,17 @@ export default function EmailVerificationScreen() {
         {/* Action Buttons */}
         <View style={styles.buttonContainer}>
           <TouchableOpacity
-            style={styles.loginButton}
-            onPress={handleGoToLogin}
-          >
-            <Text style={styles.loginButtonText}>Go to Sign In</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
             style={styles.secondaryButton}
             onPress={handleBackToRegister}
           >
             <Text style={styles.secondaryButtonText}>Change Email Address</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.loginButton}
+            onPress={handleGoToLogin}
+          >
+            <Text style={styles.loginButtonText}>Go to Sign In</Text>
           </TouchableOpacity>
         </View>
 
@@ -174,6 +294,72 @@ const styles = StyleSheet.create({
   emailText: {
     fontWeight: '600',
     color: '#A78BFA',
+  },
+  emailInputContainer: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 20,
+    marginBottom: 32,
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+  },
+  emailInputLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#1a1a1a',
+    marginBottom: 8,
+  },
+  emailInput: {
+    fontSize: 16,
+    color: '#1a1a1a',
+    borderBottomWidth: 1,
+    borderBottomColor: '#e0e0e0',
+    paddingBottom: 8,
+    textAlign: 'center',
+  },
+  codeInputContainer: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 20,
+    marginBottom: 32,
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+  },
+  codeInputLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#1a1a1a',
+    marginBottom: 8,
+  },
+  codeInput: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#1a1a1a',
+    borderBottomWidth: 1,
+    borderBottomColor: '#e0e0e0',
+    paddingBottom: 8,
+    textAlign: 'center',
+  },
+  codeInputHint: {
+    fontSize: 12,
+    color: '#999',
+    textAlign: 'center',
+    marginTop: 8,
+  },
+  verifyButton: {
+    backgroundColor: '#A78BFA',
+    borderRadius: 12,
+    paddingVertical: 16,
+    alignItems: 'center',
+    marginBottom: 32,
+  },
+  verifyButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  buttonDisabled: {
+    opacity: 0.7,
   },
   instructionsContainer: {
     backgroundColor: '#fff',

@@ -9,6 +9,7 @@ export const API_ENDPOINTS = {
     LOGOUT: `${API_BASE_URL}/api/auth/logout/`,
     REFRESH: `${API_BASE_URL}/api/auth/token/refresh/`,
     RESEND_VERIFICATION: `${API_BASE_URL}/api/auth/resend-verification/`,
+    VERIFY_EMAIL: `${API_BASE_URL}/api/authentication/verify-code/`,
   },
 
   // User endpoints
@@ -18,6 +19,7 @@ export const API_ENDPOINTS = {
     USERS_LIST: `${API_BASE_URL}/api/users/`, // Use general users endpoint
     COACH_CLIENT_RELATIONSHIP: `${API_BASE_URL}/api/users/relationships/`,
     COACH_CLIENT_RELATIONSHIP_DETAILS: (id: number) => `${API_BASE_URL}/api/users/relationships/${id}/`,
+    MY_RELATIONSHIPS: `${API_BASE_URL}/api/users/my-relationships/`,
   },
 
   // Workout endpoints
