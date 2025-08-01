@@ -1,4 +1,5 @@
 import * as SecureStore from "expo-secure-store";
+import { API_ENDPOINTS } from "../constants/api";
 
 const TOKEN_KEY = "auth_token";
 
@@ -7,6 +8,33 @@ export interface AuthToken {
   refreshToken?: string;
   expiresAt?: number;
 }
+
+// Resend email verification
+export const resendVerificationEmail = async (email: string): Promise<{ message: string }> => {
+  try {
+    const response = await fetch(API_ENDPOINTS.AUTH.RESEND_VERIFICATION, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ email }),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.message || 'Failed to resend verification email');
+    }
+
+    return data;
+  } catch (error) {
+    console.error('Error resending verification email:', error);
+    if (error instanceof TypeError && error.message === 'Network request failed') {
+      throw new Error('Unable to connect to server. Please check your internet connection.');
+    }
+    throw error;
+  }
+};
 
 export const storeToken = async (token: AuthToken): Promise<void> => {
   try {

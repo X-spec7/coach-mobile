@@ -69,15 +69,18 @@ export const SignUpScreen: React.FC = () => {
         throw new Error(data.message || "Registration failed");
       }
 
-      // Show success message and redirect to sign-in
+      // Show success message and redirect to email verification
       Alert.alert(
         "Registration Successful!",
-        "Your account has been created successfully. Please sign in to continue.",
+        "Your account has been created successfully. Please check your email for verification instructions.",
         [
           {
-            text: "Sign In",
+            text: "Continue",
             onPress: () => {
-              router.replace("/(auth)/sign-in");
+              router.replace({
+                pathname: "/(auth)/email-verification",
+                params: { email: email }
+              });
             },
           },
         ],

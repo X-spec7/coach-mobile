@@ -36,7 +36,7 @@ export default function FindCoachesScreen() {
   const pageTitle = isCoach ? 'Find Clients' : 'Find Coaches';
   const searchPlaceholder = isCoach ? 'Search clients by name...' : 'Search coaches by name...';
   const emptyStateText = isCoach ? 'No clients found' : 'No coaches found';
-  const connectButtonText = isCoach ? 'Connect' : 'Request Connection';
+  const connectButtonText = 'Connect';
 
   const specializations = [
     'All',
@@ -200,6 +200,47 @@ export default function FindCoachesScreen() {
     // Type guard to check if item is Coach
     const isCoachItem = 'coach_profile' in item;
     
+    // Determine connection status and button properties
+    const getConnectionStatus = () => {
+      // TODO: Replace this with actual connection status from your backend
+      // You can get this from:
+      // 1. The user data itself (if backend includes connectionStatus field)
+      // 2. A separate API call to check relationship status
+      // 3. Store in local state after connection requests
+      
+      // Example backend integration:
+      // const connectionStatus = item.connectionStatus || 'none';
+      
+      // For demo purposes, you can uncomment one of these lines to test different states:
+      // if (item.id === 1) return { text: 'Connected', backgroundColor: '#4CAF50', disabled: true, icon: 'checkmark-circle' as const };
+      // if (item.id === 2) return { text: 'Connect Requested', backgroundColor: '#FFA726', disabled: true, icon: 'time' as const };
+      
+      if (item.connectionStatus === 'connected') {
+        return {
+          text: 'Connected',
+          backgroundColor: '#4CAF50',
+          disabled: true,
+          icon: 'checkmark-circle' as const
+        };
+      } else if (item.connectionStatus === 'pending') {
+        return {
+          text: 'Connect Requested',
+          backgroundColor: '#FFA726',
+          disabled: true,
+          icon: 'time' as const
+        };
+      } else {
+        return {
+          text: 'Connect',
+          backgroundColor: '#A78BFA',
+          disabled: false,
+          icon: 'person-add' as const
+        };
+      }
+    };
+
+    const connectionStatus = getConnectionStatus();
+    
     return (
       <View style={styles.userCard}>
         <View style={styles.userHeader}>
@@ -241,15 +282,40 @@ export default function FindCoachesScreen() {
               <Text style={styles.userType}>Client</Text>
             )}
           </View>
-          
+        </View>
+
+        {/* Action Buttons */}
+        <View style={styles.actionButtonsContainer}>
           <TouchableOpacity
-            style={styles.connectButton}
-            onPress={() => handleRequestConnection(item)}
+            style={[
+              styles.connectButton,
+              { backgroundColor: connectionStatus.backgroundColor },
+              connectionStatus.disabled && styles.disabledButton
+            ]}
+            onPress={() => connectionStatus.disabled ? null : handleRequestConnection(item)}
+            disabled={connectionStatus.disabled}
           >
-            <Ionicons name="add-circle" size={24} color="#A78BFA" />
+            <Ionicons name={connectionStatus.icon} size={16} color="#fff" />
+            <Text style={styles.connectButtonText}>{connectionStatus.text}</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.chatButton}
+            onPress={() => router.push({
+              pathname: '/chat',
+              params: {
+                userId: item.id,
+                userName: item.fullName,
+                userAvatar: item.profilePicture || '',
+              },
+            })}
+          >
+            <Ionicons name="mail-outline" size={16} color="#4CAF50" />
+            <Text style={styles.chatButtonText}>Message</Text>
           </TouchableOpacity>
         </View>
 
+        {/* Certification Badge */}
         {isCoachItem && (item as Coach).coach_profile.certification && (
           <View style={styles.certificationContainer}>
             <Ionicons name="ribbon" size={16} color="#4CAF50" />
@@ -259,6 +325,7 @@ export default function FindCoachesScreen() {
           </View>
         )}
 
+        {/* Review */}
         {isCoachItem && (item as Coach).reviews.length > 0 && (
           <View style={styles.reviewContainer}>
             <Text style={styles.reviewText} numberOfLines={2}>
@@ -503,7 +570,7 @@ const styles = StyleSheet.create({
   userHeader: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    marginBottom: 12,
+    marginBottom: 16,
   },
   userAvatar: {
     width: 60,
@@ -559,8 +626,41 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#666',
   },
+  actionButtonsContainer: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 16,
+  },
   connectButton: {
-    padding: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: 24,
+    paddingHorizontal: 15,
+    paddingVertical: 10,
+    gap: 8,
+    flex: 1,
+    justifyContent: 'center',
+  },
+  connectButtonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  chatButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#E8F5E8',
+    borderRadius: 24,
+    paddingHorizontal: 15,
+    paddingVertical: 10,
+    gap: 8,
+    flex: 1,
+    justifyContent: 'center',
+  },
+  chatButtonText: {
+    color: '#4CAF50',
+    fontSize: 14,
+    fontWeight: '600',
   },
   certificationContainer: {
     flexDirection: 'row',
@@ -617,5 +717,8 @@ const styles = StyleSheet.create({
     color: '#666',
     marginTop: 8,
     textAlign: 'center',
+  },
+  disabledButton: {
+    opacity: 0.7,
   },
 }); 

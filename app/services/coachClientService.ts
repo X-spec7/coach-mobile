@@ -38,6 +38,7 @@ export interface Coach {
   coach_profile: CoachProfile;
   certifications: Certification[];
   reviews: Review[];
+  connectionStatus?: 'connected' | 'pending' | 'none';
 }
 
 // Client interfaces
@@ -54,6 +55,7 @@ export interface Client {
   emailVerified: boolean;
   notificationsEnabled: boolean;
   profilePicture: string | null;
+  connectionStatus?: 'connected' | 'pending' | 'none';
 }
 
 // User (generic) interface

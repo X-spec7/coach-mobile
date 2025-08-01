@@ -9,6 +9,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useAuth } from '../contexts/AuthContext';
+import WebSocketTest from '../components/WebSocketTest';
 
 const activityData = [
   { date: 'Mon', calories: 450 },
@@ -101,6 +102,9 @@ export default function ActivityScreen() {
         </Text>
       </View>
 
+      {/* WebSocket Test - Temporary for debugging */}
+      <WebSocketTest />
+
       {/* Weekly Progress */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Weekly Progress</Text>
@@ -183,6 +187,17 @@ export default function ActivityScreen() {
                 <Text style={styles.menuTitle}>Public Library</Text>
                 <Text style={styles.menuSubtitle}>Browse community workouts</Text>
               </TouchableOpacity>
+
+              <TouchableOpacity 
+                style={styles.menuItem}
+                onPress={() => router.push('/chat-contacts')}
+              >
+                <View style={styles.menuIcon}>
+                  <Ionicons name="mail" size={24} color="#A78BFA" />
+                </View>
+                <Text style={styles.menuTitle}>Messages</Text>
+                <Text style={styles.menuSubtitle}>Chat with clients</Text>
+              </TouchableOpacity>
             </>
           ) : (
             // Client Menu Items
@@ -251,6 +266,17 @@ export default function ActivityScreen() {
                 </View>
                 <Text style={styles.menuTitle}>My Programs</Text>
                 <Text style={styles.menuSubtitle}>Personal workout plans</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity 
+                style={styles.menuItem}
+                onPress={() => router.push('/chat-contacts')}
+              >
+                <View style={styles.menuIcon}>
+                  <Ionicons name="mail" size={24} color="#A78BFA" />
+                </View>
+                <Text style={styles.menuTitle}>Messages</Text>
+                <Text style={styles.menuSubtitle}>Chat with coaches</Text>
               </TouchableOpacity>
             </>
           )}

@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { View, StyleSheet } from "react-native";
 import Logo from "./components/Logo";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
+import { ChatProvider } from "./contexts/ChatContext";
 
 function RootLayoutNav() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -56,7 +57,9 @@ function RootLayoutNav() {
 export default function RootLayout() {
   return (
     <AuthProvider>
-      <RootLayoutNav />
+      <ChatProvider>
+        <RootLayoutNav />
+      </ChatProvider>
     </AuthProvider>
   );
 }

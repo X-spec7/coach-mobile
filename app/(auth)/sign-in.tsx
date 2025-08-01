@@ -149,6 +149,13 @@ export default function SignInScreen() {
               <Text style={styles.signUpLink}>Sign Up</Text>
             </TouchableOpacity>
           </View>
+
+          <View style={styles.verificationContainer}>
+            <Text style={styles.verificationText}>Need to verify your email? </Text>
+            <TouchableOpacity onPress={() => router.push("/(auth)/email-verification")}>
+              <Text style={styles.verificationLink}>Resend Verification</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -258,6 +265,21 @@ const styles = StyleSheet.create({
     color: "#666666",
   },
   signUpLink: {
+    fontSize: 14,
+    color: "#007AFF",
+    fontWeight: "600",
+  },
+  verificationContainer: {
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    marginTop: 24,
+  },
+  verificationText: {
+    fontSize: 14,
+    color: "#666666",
+  },
+  verificationLink: {
     fontSize: 14,
     color: "#007AFF",
     fontWeight: "600",

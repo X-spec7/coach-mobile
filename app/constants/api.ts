@@ -8,6 +8,7 @@ export const API_ENDPOINTS = {
     REGISTER: `${API_BASE_URL}/api/auth/register/`,
     LOGOUT: `${API_BASE_URL}/api/auth/logout/`,
     REFRESH: `${API_BASE_URL}/api/auth/token/refresh/`,
+    RESEND_VERIFICATION: `${API_BASE_URL}/api/auth/resend-verification/`,
   },
 
   // User endpoints
