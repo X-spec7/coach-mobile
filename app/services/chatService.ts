@@ -4,16 +4,16 @@ import { authenticatedFetch } from '../utils/auth';
 
 // Chat interfaces
 export interface Message {
-  id: number;
+  id: string; // Changed from number to string to support UUIDs
   content: string;
   isRead: boolean;
   isSent: boolean;
   sentDate: string;
-  senderId?: number; // Add senderId to match web version
+  senderId?: string; // Changed from number to string to support UUIDs
 }
 
 export interface Contact {
-  id: number;
+  id: string; // Changed from number to string to support UUIDs
   fullName: string;
   avatarUrl: string | null;
   userType: string;
@@ -22,7 +22,7 @@ export interface Contact {
 }
 
 export interface User {
-  id: number;
+  id: string; // Changed from number to string to support UUIDs
   fullName: string;
   avatarUrl: string | null;
   userType: string;
@@ -86,7 +86,7 @@ class WebSocketService {
   private reconnectAttempts = 0;
   private maxReconnectAttempts = 5;
   private reconnectDelay = 3000;
-  private userId: number | null = null;
+  private userId: string | null = null;
 
   private constructor() {}
 
@@ -97,7 +97,7 @@ class WebSocketService {
     return WebSocketService.instance;
   }
 
-  connect(userId: number): Promise<void> {
+  connect(userId: string): Promise<void> {
     return new Promise((resolve, reject) => {
       // If already connected to the same user, resolve immediately
       if (this.ws && this.ws.readyState === WebSocket.OPEN && this.userId === userId) {
@@ -115,18 +115,24 @@ class WebSocketService {
       try {
         // Match web frontend URL pattern - remove the extra /chat/ path
         const wsUrl = `ws://${API_BASE_URL.replace('http://', '').replace('https://', '')}/chat/${userId}/`;
+        console.log('[WebSocketService] API_BASE_URL:', API_BASE_URL);
         console.log('[WebSocketService] Connecting to:', wsUrl);
+        console.log('[WebSocketService] User ID:', userId);
         
         this.ws = new WebSocket(wsUrl);
 
         this.ws.onopen = () => {
-          console.log('[WebSocketService] WebSocket connected');
+          console.log('[WebSocketService] WebSocket connected successfully');
           this.reconnectAttempts = 0;
           resolve();
         };
 
         this.ws.onclose = (event) => {
-          console.log('[WebSocketService] WebSocket disconnected');
+          console.log('[WebSocketService] WebSocket disconnected:', {
+            code: event.code,
+            reason: event.reason,
+            wasClean: event.wasClean
+          });
           this.ws = null;
           
           if (!event.wasClean && this.reconnectAttempts < this.maxReconnectAttempts) {
@@ -136,6 +142,11 @@ class WebSocketService {
 
         this.ws.onerror = (error) => {
           console.error('[WebSocketService] WebSocket error:', error);
+          console.error('[WebSocketService] WebSocket error details:', {
+            readyState: this.ws?.readyState,
+            url: wsUrl,
+            userId: userId
+          });
           reject(error);
         };
 
@@ -236,9 +247,9 @@ export const websocketService = WebSocketService.getInstance();
 
 // Legacy ChatWebSocket class for backward compatibility
 export class ChatWebSocket {
-  private userId: number;
+  private userId: string;
 
-  constructor(userId: number) {
+  constructor(userId: string) {
     this.userId = userId;
   }
 
@@ -326,7 +337,7 @@ export const ChatService = {
   },
 
   // Get message history with another user
-  getMessages: async (otherPersonId: number, params?: {
+  getMessages: async (otherPersonId: string, params?: {
     offset?: number;
     limit?: number;
   }): Promise<MessagesResponse> => {
@@ -357,7 +368,7 @@ export const ChatService = {
   },
 
   // Mark messages as read
-  markMessagesAsRead: async (otherPersonId: number): Promise<ReadStatusResponse> => {
+  markMessagesAsRead: async (otherPersonId: string): Promise<ReadStatusResponse> => {
     const url = `${API_BASE_URL}/api/chat/messages/read/${otherPersonId}/`;
     
     try {

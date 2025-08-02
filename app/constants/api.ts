@@ -18,7 +18,7 @@ export const API_ENDPOINTS = {
     COACHES: `${API_BASE_URL}/api/users/`, // Use general users endpoint with filter
     USERS_LIST: `${API_BASE_URL}/api/users/`, // Use general users endpoint
     COACH_CLIENT_RELATIONSHIP: `${API_BASE_URL}/api/users/relationships/`,
-    COACH_CLIENT_RELATIONSHIP_DETAILS: (id: number) => `${API_BASE_URL}/api/users/relationships/${id}/`,
+    COACH_CLIENT_RELATIONSHIP_DETAILS: (id: string) => `${API_BASE_URL}/api/users/relationships/${id}/`,
     MY_RELATIONSHIPS: `${API_BASE_URL}/api/users/my-relationships/`,
   },
 
@@ -53,7 +53,7 @@ export const API_ENDPOINTS = {
     ASSIGN_WORKOUT_PLAN: `${API_BASE_URL}/api/workouts/assign-workout-plan/`,
     WORKOUT_PLAN_ASSIGNMENTS: `${API_BASE_URL}/api/workouts/workout-plan-assignments/`,
     ACCEPT_WORKOUT_ASSIGNMENT: `${API_BASE_URL}/api/workouts/accept-workout-plan-assignment/`,
-    REJECT_WORKOUT_ASSIGNMENT: (assignmentId: number) => `${API_BASE_URL}/api/workouts/reject-workout-plan-assignment/${assignmentId}/`,
+    REJECT_WORKOUT_ASSIGNMENT: (assignmentId: string) => `${API_BASE_URL}/api/workouts/reject-workout-plan-assignment/${assignmentId}/`,
   },
 
   // Exercise endpoints

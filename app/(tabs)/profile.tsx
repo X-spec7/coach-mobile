@@ -13,6 +13,7 @@ import {
 import { useRouter } from "expo-router";
 import { useAuth } from "../contexts/AuthContext";
 import { ContactsModal } from "../components/ContactsModal";
+import UserDebugInfo from "../components/UserDebugInfo";
 
 const menuItems = [
   { id: 1, title: "Personal Information", icon: "user" },
@@ -103,6 +104,8 @@ export default function ProfileScreen() {
           </Pressable>
         </Modal>
         <ScrollView style={styles.scrollView}>
+          <UserDebugInfo />
+          
           <View style={styles.header}>
             <View style={styles.profileInfo}>
               {user?.avatarImageUrl ? (

@@ -46,7 +46,7 @@ export const ContactsModal: React.FC<ContactsModalProps> = ({
     "relationships"
   );
   const [updatingRelationship, setUpdatingRelationship] = useState<
-    number | null
+    string | null
   >(null);
 
   useEffect(() => {
@@ -116,10 +116,10 @@ export const ContactsModal: React.FC<ContactsModalProps> = ({
     }
   };
 
-  const handleAcceptRequest = async (relationshipId: number) => {
+  const handleAcceptRequest = async (relationshipId: string) => {
     try {
       setUpdatingRelationship(relationshipId);
-      await RelationshipService.updateRelationshipStatus(
+      await RelationshipService.updateRelationship(
         relationshipId,
         "active"
       );
@@ -131,10 +131,10 @@ export const ContactsModal: React.FC<ContactsModalProps> = ({
     }
   };
 
-  const handleRejectRequest = async (relationshipId: number) => {
+  const handleRejectRequest = async (relationshipId: string) => {
     try {
       setUpdatingRelationship(relationshipId);
-      await RelationshipService.updateRelationshipStatus(
+      await RelationshipService.updateRelationship(
         relationshipId,
         "inactive"
       );
@@ -146,7 +146,7 @@ export const ContactsModal: React.FC<ContactsModalProps> = ({
     }
   };
 
-  const handleWithdrawRequest = async (relationshipId: number) => {
+  const handleWithdrawRequest = async (relationshipId: string) => {
     try {
       setUpdatingRelationship(relationshipId);
       await RelationshipService.deleteRelationship(relationshipId);

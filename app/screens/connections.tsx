@@ -64,7 +64,7 @@ export default function ConnectionsScreen() {
   };
 
   const handleUpdateRelationship = async (
-    relationshipId: number,
+    relationshipId: string, // Changed from number to string for UUID support
     status: 'active' | 'inactive' | 'terminated',
     relationshipType: string
   ) => {

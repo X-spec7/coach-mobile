@@ -16,7 +16,7 @@ export interface AuthToken {
 }
 
 export interface User {
-  id: number;
+  id: string; // Changed from number to string to support UUIDs
   firstName: string;
   lastName: string;
   fullName: string;
@@ -57,7 +57,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
           // Try to get user from SecureStore first
           const userString = await SecureStore.getItemAsync("user");
           if (userString) {
-            setUser(JSON.parse(userString));
+            const userData = JSON.parse(userString);
+            console.log('[AuthContext] Loaded user from SecureStore:', userData);
+            setUser(userData);
           } else {
             // Fetch user from API
             const res = await fetch(API_ENDPOINTS.USER.GET_USER_INFO, {
@@ -65,9 +67,14 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
             });
             if (res.ok) {
               const data = await res.json();
-              setUser(data.user);
-              await SecureStore.setItemAsync("user", JSON.stringify(data.user));
+              console.log('[AuthContext] API response data:', data);
+              // Handle different response formats
+              const userData = data.user || data; // Some APIs return user directly, others wrap in {user: ...}
+              console.log('[AuthContext] Parsed user data:', userData);
+              setUser(userData);
+              await SecureStore.setItemAsync("user", JSON.stringify(userData));
             } else {
+              console.log('[AuthContext] Failed to fetch user profile:', res.status);
               setUser(null);
               await SecureStore.deleteItemAsync("user");
             }
@@ -94,11 +101,15 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
     });
     if (res.ok) {
       const data = await res.json();
-      setUser(data.user);
-      await SecureStore.setItemAsync("user", JSON.stringify(data.user));
+      console.log('[AuthContext] signIn - API response data:', data);
+      // Handle different response formats
+      const userData = data.user || data; // Some APIs return user directly, others wrap in {user: ...}
+      console.log('[AuthContext] signIn - Parsed user data:', userData);
+      setUser(userData);
+      await SecureStore.setItemAsync("user", JSON.stringify(userData));
     } else {
+      console.log('[AuthContext] signIn - Failed to fetch user profile:', res.status);
       setUser(null);
-      await SecureStore.deleteItemAsync("user");
     }
   };
 

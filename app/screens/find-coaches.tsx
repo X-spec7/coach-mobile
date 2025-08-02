@@ -21,6 +21,8 @@ import { useAuth } from '../contexts/AuthContext';
 
 export default function FindCoachesScreen() {
   const { user } = useAuth();
+  console.log('[FindCoachesScreen] User data:', user);
+  
   const [users, setUsers] = useState<Coach[] | Client[]>([]);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -37,6 +39,13 @@ export default function FindCoachesScreen() {
   const searchPlaceholder = isCoach ? 'Search clients by name...' : 'Search coaches by name...';
   const emptyStateText = isCoach ? 'No clients found' : 'No coaches found';
   const connectButtonText = 'Connect';
+
+  console.log('[FindCoachesScreen] Role config:', {
+    isCoach,
+    userType: user?.userType,
+    targetUserType,
+    pageTitle
+  });
 
   const specializations = [
     'All',

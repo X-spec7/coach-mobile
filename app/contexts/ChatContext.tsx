@@ -10,8 +10,8 @@ interface ChatContextType {
   connectChat: () => Promise<void>;
   disconnectChat: () => void;
   updateContacts: (contacts: Contact[]) => void;
-  updateContactLastMessage: (contactId: number, message: any) => void;
-  updateContactUnreadCount: (contactId: number, count: number) => void;
+  updateContactLastMessage: (contactId: string, message: any) => void;
+  updateContactUnreadCount: (contactId: string, count: number) => void;
 }
 
 const ChatContext = createContext<ChatContextType | undefined>(undefined);
@@ -25,6 +25,12 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const unreadMessagesCount = contacts.reduce((total, contact) => total + contact.unreadCount, 0);
 
   const connectChat = async (): Promise<void> => {
+    console.log('[ChatContext] connectChat called:', {
+      userId: user?.id,
+      isAlreadyConnected: websocketService.isConnected,
+      userExists: !!user
+    });
+    
     if (!user?.id || websocketService.isConnected) return;
 
     try {
@@ -50,7 +56,7 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setContacts(newContacts);
   };
 
-  const updateContactLastMessage = (contactId: number, message: any): void => {
+  const updateContactLastMessage = (contactId: string, message: any): void => {
     setContacts(prevContacts => 
       prevContacts.map(contact => 
         contact.id === contactId 
@@ -60,7 +66,7 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     );
   };
 
-  const updateContactUnreadCount = (contactId: number, count: number): void => {
+  const updateContactUnreadCount = (contactId: string, count: number): void => {
     setContacts(prevContacts => 
       prevContacts.map(contact => 
         contact.id === contactId 
@@ -83,7 +89,16 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   // Auto-connect when user is authenticated
   useEffect(() => {
+    console.log('[ChatContext] Auto-connect check:', {
+      isAuthenticated,
+      userId: user?.id,
+      isConnected,
+      hasUser: !!user,
+      hasUserId: !!user?.id
+    });
+
     if (isAuthenticated && user?.id && !isConnected) {
+      console.log('[ChatContext] Attempting auto-connect...');
       // Add a small delay to avoid rapid reconnection attempts
       const connectTimer = setTimeout(() => {
         connectChat();
@@ -91,6 +106,7 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       
       return () => clearTimeout(connectTimer);
     } else if (!isAuthenticated && isConnected) {
+      console.log('[ChatContext] Disconnecting due to unauthenticated state.');
       disconnectChat();
     }
   }, [isAuthenticated, user?.id]);

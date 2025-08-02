@@ -23,7 +23,7 @@ export interface Review {
 }
 
 export interface Coach {
-  id: number;
+  id: string; // Changed from number to string to support UUIDs
   email: string;
   firstName: string;
   lastName: string;
@@ -43,7 +43,7 @@ export interface Coach {
 
 // Client interfaces
 export interface Client {
-  id: number;
+  id: string; // Changed from number to string to support UUIDs
   email: string;
   firstName: string;
   lastName: string;
@@ -60,7 +60,7 @@ export interface Client {
 
 // User (generic) interface
 export interface User {
-  id: number;
+  id: string; // Changed from number to string to support UUIDs
   email: string;
   fullName: string;
   userType: string;
@@ -69,14 +69,14 @@ export interface User {
 
 // Relationship interfaces
 export interface CoachClientRelationship {
-  id: number;
+  id: string; // Changed from number to string to support UUIDs
   coach: {
-    id: number;
+    id: string; // Changed from number to string to support UUIDs
     fullName: string;
     email: string;
   };
   client: {
-    id: number;
+    id: string; // Changed from number to string to support UUIDs
     fullName: string;
     email: string;
   };
@@ -88,7 +88,7 @@ export interface CoachClientRelationship {
 
 // Workout assignment interfaces
 export interface WorkoutAssignment {
-  id: number;
+  id: string; // Changed from number to string to support UUIDs
   coach_name: string;
   client_name: string;
   workout_plan_title: string;
@@ -106,8 +106,8 @@ export interface WorkoutAssignment {
 
 // Request interfaces
 export interface CreateRelationshipRequest {
-  coach_id: number;
-  client_id: number;
+  coach_id: string; // Changed from number to string to support UUIDs
+  client_id: string; // Changed from number to string to support UUIDs
   status: string;
   notes?: string;
 }
@@ -118,7 +118,7 @@ export interface UpdateRelationshipRequest {
 }
 
 export interface AssignWorkoutPlanRequest {
-  client_id: number;
+  client_id: string; // Changed from number to string to support UUIDs
   workout_plan_id: number;
   selected_days: string[];
   weeks_count: number;
@@ -128,7 +128,7 @@ export interface AssignWorkoutPlanRequest {
 }
 
 export interface AcceptWorkoutAssignmentRequest {
-  assignment_id: number;
+  assignment_id: string; // Changed from number to string to support UUIDs
   start_date?: string;
   selected_days?: string[];
   weeks_count?: number;
@@ -384,7 +384,7 @@ export const CoachClientService = {
   },
 
   // Update coach-client relationship
-  updateRelationship: async (relationshipId: number, data: UpdateRelationshipRequest): Promise<CreateRelationshipResponse> => {
+  updateRelationship: async (relationshipId: string, data: UpdateRelationshipRequest): Promise<CreateRelationshipResponse> => {
     const headers = await getAuthHeaders();
     const response = await authenticatedFetch(API_ENDPOINTS.USERS.COACH_CLIENT_RELATIONSHIP_DETAILS(relationshipId), {
       method: 'PUT',
@@ -452,7 +452,7 @@ export const CoachClientService = {
   },
 
   // Reject workout plan assignment (Client only)
-  rejectWorkoutAssignment: async (assignmentId: number): Promise<{ message: string }> => {
+  rejectWorkoutAssignment: async (assignmentId: string): Promise<{ message: string }> => {
     const headers = await getAuthHeadersForDelete();
     
     try {

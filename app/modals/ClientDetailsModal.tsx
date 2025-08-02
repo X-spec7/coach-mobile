@@ -28,12 +28,12 @@ interface ClientDetailsModalProps {
 }
 
 interface Relationship {
-  id: number;
+  id: string; // Changed from number to string for UUID support
   status: string;
   startDate: string;
   notes?: string;
-  coach: { id: number };
-  client: { id: number };
+  coach: { id: string }; // Changed from number to string for UUID support
+  client: { id: string }; // Changed from number to string for UUID support
 }
 
 // Helper function to format dates
@@ -70,8 +70,8 @@ const ClientDetailHeader: React.FC<{ client: Client }> = ({ client }) => {
     try {
       setIsLoadingRelationship(true);
       const relationshipData = await RelationshipService.getRelationshipStatus(
-        Number(user?.id),
-        Number(client.id)
+        user?.id || '',
+        client.id
       );
       console.log("relationshipData", relationshipData);
       setRelationship(relationshipData);
@@ -141,8 +141,8 @@ const ClientDetailHeader: React.FC<{ client: Client }> = ({ client }) => {
     setIsRequestingRelationship(true);
     try {
       await RelationshipService.createRelationship({
-        coach_id: Number(user.id),
-        client_id: Number(client.id),
+        coach_id: user.id,
+        client_id: client.id,
         status: "pending",
         notes: "Relationship request from coach",
       });

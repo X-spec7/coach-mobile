@@ -41,7 +41,7 @@ export default function ChatScreen() {
   const messageHandlerRef = useRef<((data: any) => void) | null>(null);
   const unreadHandlerRef = useRef<((data: any) => void) | null>(null);
   
-  const otherUserId = parseInt(params.userId as string);
+  const otherUserId = params.userId as string; // Remove parseInt() to preserve UUID format
   const otherUserName = params.userName as string;
   const otherUserAvatar = params.userAvatar as string;
 
@@ -112,7 +112,7 @@ export default function ChatScreen() {
   const setupMessageHandlers = () => {
     // Handle incoming messages
     const handleMessageReceived = (data: any) => {
-      if (data.message && (Number(data.message.senderId) === otherUserId || Number(data.message.senderId) === user?.id)) {
+      if (data.message && (data.message.senderId === otherUserId || data.message.senderId === user?.id)) {
         setMessages((prev) => [...prev, data.message]);
         
         // Auto-scroll to bottom for new messages
@@ -121,7 +121,7 @@ export default function ChatScreen() {
         }, 100);
 
         // Mark as read if it's an incoming message
-        if (Number(data.message.senderId) === otherUserId) {
+        if (data.message.senderId === otherUserId) {
           markMessagesAsRead();
         }
 
@@ -136,7 +136,7 @@ export default function ChatScreen() {
 
     // Handle read status updates
     const handleUnreadMessagesChecked = (data: any) => {
-      if (data.message && Number(data.message.reader_id) === otherUserId) {
+      if (data.message && data.message.reader_id === otherUserId) {
         setMessages((prevMessages) => {
           const lastUnreadIndex = prevMessages.findLastIndex((msg) => !msg.isRead);
           
