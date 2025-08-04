@@ -21,7 +21,7 @@ export const ContactService = {
   getContacts: async (): Promise<ContactsResponse> => {
     try {
       const headers = await getAuthHeaders();
-      const response = await fetch(`${API_BASE_URL}/chat/contact/get/`, {
+      const response = await fetch(`${API_BASE_URL}/api/chat/contacts/`, {
         headers,
       });
 

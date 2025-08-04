@@ -289,7 +289,7 @@ export class ChatWebSocket {
 export const ChatService = {
   // Get contact list
   getContacts: async (): Promise<ContactsResponse> => {
-    const url = `${API_BASE_URL}/api/chat/contact/get/`;
+    const url = `${API_BASE_URL}/api/chat/contacts/`;
     
     try {
       const response = await authenticatedFetch(url, {

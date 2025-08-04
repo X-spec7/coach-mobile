@@ -9,7 +9,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useAuth } from '../contexts/AuthContext';
-import WebSocketTest from '../components/WebSocketTest';
+import UnreadMessages from '../components/UnreadMessages';
 
 const activityData = [
   { date: 'Mon', calories: 450 },
@@ -69,6 +69,14 @@ export default function ActivityScreen() {
       onPress: () => router.push('/workout-assignments'),
     },
     {
+      id: 'messages',
+      title: 'Messages',
+      subtitle: 'Chat with coaches and clients',
+      icon: 'chatbubbles' as const,
+      color: '#FF6B6B',
+      onPress: () => router.push('/chat-contacts'),
+    },
+    {
       id: 'workout-history',
       title: 'Workout History',
       subtitle: 'View your workout performance over time',
@@ -102,8 +110,8 @@ export default function ActivityScreen() {
         </Text>
       </View>
 
-      {/* WebSocket Test - Temporary for debugging */}
-      <WebSocketTest />
+      {/* Unread Messages */}
+      <UnreadMessages />
 
       {/* Weekly Progress */}
       <View style={styles.section}>

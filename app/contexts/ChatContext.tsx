@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import { websocketService, WSIncomingMessage, Contact } from '../services/chatService';
+import { websocketService, WSIncomingMessage, Contact, ChatService } from '../services/chatService';
 import { useAuth } from './AuthContext';
 
 interface ChatContextType {
@@ -12,6 +12,7 @@ interface ChatContextType {
   updateContacts: (contacts: Contact[]) => void;
   updateContactLastMessage: (contactId: string, message: any) => void;
   updateContactUnreadCount: (contactId: string, count: number) => void;
+  loadContacts: () => Promise<void>;
 }
 
 const ChatContext = createContext<ChatContextType | undefined>(undefined);
@@ -76,6 +77,21 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     );
   };
 
+  // Load contacts from API
+  const loadContacts = async (): Promise<void> => {
+    if (!user?.id) return;
+    
+    try {
+      console.log('[ChatContext] Loading contacts...');
+      const response = await ChatService.getContacts();
+      setContacts(response.contacts);
+      console.log('[ChatContext] Contacts loaded:', response.contacts.length);
+    } catch (error) {
+      console.error('[ChatContext] Failed to load contacts:', error);
+      // Don't show user-facing errors for contact loading
+    }
+  };
+
   // Update connection status based on WebSocket state
   useEffect(() => {
     const checkConnectionStatus = () => {
@@ -111,6 +127,13 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   }, [isAuthenticated, user?.id]);
 
+  // Load contacts when user is authenticated
+  useEffect(() => {
+    if (isAuthenticated && user?.id) {
+      loadContacts();
+    }
+  }, [isAuthenticated, user?.id]);
+
   const value: ChatContextType = {
     websocketService,
     isConnected,
@@ -121,6 +144,7 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     updateContacts,
     updateContactLastMessage,
     updateContactUnreadCount,
+    loadContacts,
   };
 
   return <ChatContext.Provider value={value}>{children}</ChatContext.Provider>;
