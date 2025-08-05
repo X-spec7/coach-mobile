@@ -35,7 +35,7 @@ export interface DailyPlan {
 
 // Workout plan interfaces
 export interface WorkoutPlan {
-  id: number;
+  id: string; // Changed from number to string to support UUIDs
   title: string;
   description: string;
   client: number;
@@ -115,7 +115,7 @@ export interface UpdateWorkoutPlanRequest {
 }
 
 export interface ApplyWorkoutPlanRequest {
-  workout_plan_id: number;
+  workout_plan_id: string;
   selected_days: WeekDay[];
   weeks_count: number;
   start_date: string;
@@ -219,6 +219,105 @@ export interface ExercisesListResponse {
   totalExercisesCount: number;
 }
 
+// Workout assignment interfaces
+export interface WorkoutPlanAssignment {
+  id: string;
+  coach: {
+    id: string;
+    fullName: string;
+    userType: string;
+  };
+  client: {
+    id: string;
+    fullName: string;
+    userType: string;
+  };
+  workoutPlan: {
+    id: string;
+    title: string;
+    description?: string;
+    totalCalories: number;
+    dailyPlans?: DailyPlan[];
+  };
+  selectedDays: string[];
+  weeksCount: number;
+  suggestedStartDate: string;
+  dueDate: string;
+  notes?: string;
+  status: 'assigned' | 'applied' | 'completed' | 'overdue' | 'cancelled';
+  assignedAt: string;
+}
+
+export interface AssignWorkoutPlanRequest {
+  client_id: string;
+  workout_plan_id: string;
+  selected_days: string[];
+  weeks_count: number;
+  start_date: string;
+  suggested_start_date: string;
+  due_date: string;
+  notes?: string;
+}
+
+export interface AssignableWorkoutPlan {
+  id: string;
+  title: string;
+  description?: string;
+  isOwnPlan: boolean;
+  isPublic: boolean;
+  totalCalories: number;
+  dailyPlansCount: number;
+  createdBy: string;
+  applicationsCount?: number;
+  createdAt: string;
+}
+
+export interface AcceptAssignmentRequest {
+  assignment_id: string;
+  start_date: string;
+  selected_days: string[];
+  weeks_count: number;
+}
+
+// Response interfaces for assignments
+export interface AssignmentResponse {
+  message: string;
+  assignment: WorkoutPlanAssignment;
+}
+
+export interface AssignmentsListResponse {
+  message: string;
+  assignments: WorkoutPlanAssignment[];
+}
+
+export interface AssignablePlansResponse {
+  message: string;
+  assignablePlans: AssignableWorkoutPlan[];
+}
+
+export interface AcceptAssignmentResponse {
+  message: string;
+  appliedPlan: {
+    id: string;
+    user: {
+      id: string;
+      fullName: string;
+    };
+    workoutPlan: {
+      id: string;
+      title: string;
+      totalCalories: number;
+    };
+    startDate: string;
+    endDate: string;
+    selectedDays: string[];
+    weeksCount: number;
+    scheduledWorkoutsCount: number;
+    completedWorkoutsCount: number;
+    appliedAt: string;
+  };
+}
+
 // WorkoutService class
 export const WorkoutService = {
   // Get all workout plans
@@ -256,11 +355,13 @@ export const WorkoutService = {
   },
 
   // Get specific workout plan
-  getWorkoutPlan: async (planId: number): Promise<WorkoutPlanResponse> => {
+  getWorkoutPlan: async (planId: string): Promise<WorkoutPlanResponse> => {
     const headers = await getAuthHeaders();
     
     try {
-      const response = await fetch(API_ENDPOINTS.WORKOUTS.WORKOUT_PLAN_DETAILS(planId), {
+      // Hardcoded endpoint to bypass TypeScript caching issues
+      const endpoint = `http://52.15.195.49:8000/api/workouts/workout-plans/${planId}/`;
+      const response = await fetch(endpoint, {
         method: 'GET',
         headers,
       });
@@ -308,9 +409,11 @@ export const WorkoutService = {
   },
 
   // Update workout plan
-  updateWorkoutPlan: async (planId: number, data: UpdateWorkoutPlanRequest): Promise<WorkoutPlanResponse> => {
+  updateWorkoutPlan: async (planId: string, data: UpdateWorkoutPlanRequest): Promise<WorkoutPlanResponse> => {
     const headers = await getAuthHeaders();
-    const response = await fetch(API_ENDPOINTS.WORKOUTS.WORKOUT_PLAN_DETAILS(planId), {
+    // Hardcoded endpoint to bypass TypeScript caching issues
+    const endpoint = `http://52.15.195.49:8000/api/workouts/workout-plans/${planId}/`;
+    const response = await fetch(endpoint, {
       method: 'PUT',
       headers,
       body: JSON.stringify(data),
@@ -331,7 +434,7 @@ export const WorkoutService = {
   },
 
   // Delete workout plan
-  deleteWorkoutPlan: async (planId: number): Promise<{ message: string }> => {
+  deleteWorkoutPlan: async (planId: string): Promise<{ message: string }> => {
     const headers = await getAuthHeadersForDelete();
     
     return new Promise(async (resolve, reject) => {
@@ -341,7 +444,9 @@ export const WorkoutService = {
           resolve({ message: 'Workout plan deleted successfully' });
         }, 5000);
         
-        const response = await fetch(API_ENDPOINTS.WORKOUTS.WORKOUT_PLAN_DETAILS(planId), {
+        // Hardcoded endpoint to bypass TypeScript caching issues
+        const endpoint = `http://52.15.195.49:8000/api/workouts/workout-plans/${planId}/`;
+        const response = await fetch(endpoint, {
           method: 'DELETE',
           headers,
         });
@@ -390,9 +495,11 @@ export const WorkoutService = {
   },
 
   // Add day to workout plan
-  addDay: async (planId: number, data: AddDayRequest): Promise<DailyPlanResponse> => {
+  addDay: async (planId: string, data: AddDayRequest): Promise<DailyPlanResponse> => {
     const headers = await getAuthHeaders();
-    const response = await fetch(API_ENDPOINTS.WORKOUTS.ADD_DAY(planId), {
+    // Hardcoded endpoint to bypass TypeScript caching issues
+    const endpoint = `http://52.15.195.49:8000/api/workouts/workout-plans/${planId}/days/`;
+    const response = await fetch(endpoint, {
       method: 'POST',
       headers,
       body: JSON.stringify(data),
@@ -413,9 +520,10 @@ export const WorkoutService = {
   },
 
   // Remove day from workout plan
-  removeDay: async (planId: number, dayId: number): Promise<{ message: string }> => {
+  removeDay: async (planId: string, dayId: number): Promise<{ message: string }> => {
     const headers = await getAuthHeadersForDelete();
-    const url = API_ENDPOINTS.WORKOUTS.REMOVE_DAY(planId, dayId);
+    // Hardcoded endpoint to bypass TypeScript caching issues
+    const url = `http://52.15.195.49:8000/api/workouts/workout-plans/${planId}/days/${dayId}/`;
     
     console.log(`[removeDay] Making DELETE request to: ${url}`);
     console.log(`[removeDay] Headers:`, headers);
@@ -492,9 +600,11 @@ export const WorkoutService = {
   },
 
   // Add exercise to day
-  addExercise: async (planId: number, dayId: number, data: AddExerciseRequest): Promise<ExerciseResponse> => {
+  addExercise: async (planId: string, dayId: number, data: AddExerciseRequest): Promise<ExerciseResponse> => {
     const headers = await getAuthHeaders();
-    const response = await fetch(API_ENDPOINTS.WORKOUTS.ADD_EXERCISE(planId, dayId), {
+    // Hardcoded endpoint to bypass TypeScript caching issues
+    const endpoint = `http://52.15.195.49:8000/api/workouts/workout-plans/${planId}/days/${dayId}/exercises/`;
+    const response = await fetch(endpoint, {
       method: 'POST',
       headers,
       body: JSON.stringify(data),
@@ -515,9 +625,11 @@ export const WorkoutService = {
   },
 
   // Update exercise in day
-  updateExercise: async (planId: number, dayId: number, exerciseId: number, data: UpdateExerciseRequest): Promise<ExerciseResponse> => {
+  updateExercise: async (planId: string, dayId: number, exerciseId: number, data: UpdateExerciseRequest): Promise<ExerciseResponse> => {
     const headers = await getAuthHeaders();
-    const response = await fetch(API_ENDPOINTS.WORKOUTS.UPDATE_EXERCISE(planId, dayId, exerciseId), {
+    // Hardcoded endpoint to bypass TypeScript caching issues
+    const endpoint = `http://52.15.195.49:8000/api/workouts/workout-plans/${planId}/days/${dayId}/exercises/${exerciseId}/`;
+    const response = await fetch(endpoint, {
       method: 'PUT',
       headers,
       body: JSON.stringify(data),
@@ -538,11 +650,13 @@ export const WorkoutService = {
   },
 
   // Remove exercise from day
-  removeExercise: async (planId: number, dayId: number, exerciseId: number): Promise<{ message: string }> => {
+  removeExercise: async (planId: string, dayId: number, exerciseId: number): Promise<{ message: string }> => {
     const headers = await getAuthHeadersForDelete();
     
     try {
-      const response = await fetch(API_ENDPOINTS.WORKOUTS.REMOVE_EXERCISE(planId, dayId, exerciseId), {
+      // Hardcoded endpoint to bypass TypeScript caching issues
+      const endpoint = `http://52.15.195.49:8000/api/workouts/workout-plans/${planId}/days/${dayId}/exercises/${exerciseId}/`;
+      const response = await fetch(endpoint, {
         method: 'DELETE',
         headers,
       });
@@ -972,5 +1086,238 @@ export const WorkoutService = {
     }
 
     return response.json();
+  },
+
+  // ===== WORKOUT PLAN ASSIGNMENTS =====
+
+  // Assign workout plan to client (Coach only)
+  assignWorkoutPlan: async (data: AssignWorkoutPlanRequest): Promise<AssignmentResponse> => {
+    const headers = await getAuthHeaders();
+    
+    if (!headers.Authorization) {
+      throw new Error('Authentication required. Please sign in to assign workout plans.');
+    }
+
+    // Hardcoded endpoint to bypass TypeScript caching issues
+    const endpoint = 'http://52.15.195.49:8000/api/workouts/assign-workout-plan/';
+    
+    console.log('[assignWorkoutPlan] Using endpoint:', endpoint);
+    console.log('[assignWorkoutPlan] Request data:', JSON.stringify(data, null, 2));
+    console.log('[assignWorkoutPlan] Headers:', headers);
+
+    try {
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(data),
+      });
+
+      console.log('[assignWorkoutPlan] Response status:', response.status);
+      console.log('[assignWorkoutPlan] Response ok:', response.ok);
+
+      if (response.status === 401) {
+        await handle401Error('Your session has expired. Please sign in again.');
+        throw new Error('Authentication required');
+      }
+
+      if (response.status === 403) {
+        throw new Error('Only coaches can assign workout plans to clients');
+      }
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.log('[assignWorkoutPlan] Error response text:', errorText);
+        throw new Error(`Failed to assign workout plan: ${response.status} - ${errorText}`);
+      }
+
+      const result = await response.json();
+      console.log('[assignWorkoutPlan] Success response:', result);
+      return result;
+    } catch (error) {
+      console.error('[assignWorkoutPlan] Catch block error:', error);
+      if (error instanceof TypeError && error.message === 'Network request failed') {
+        throw new Error('Unable to connect to server. Please check your internet connection.');
+      }
+      throw error;
+    }
+  },
+
+  // Get workout plan assignments
+  getWorkoutPlanAssignments: async (params?: {
+    role?: 'coach' | 'client' | 'auto';
+    status?: 'assigned' | 'applied' | 'completed' | 'overdue' | 'cancelled';
+  }): Promise<AssignmentsListResponse> => {
+    const headers = await getAuthHeaders();
+    
+    if (!headers.Authorization) {
+      throw new Error('Authentication required. Please sign in to view assignments.');
+    }
+
+    const queryParams = new URLSearchParams();
+    if (params?.role) queryParams.append('role', params.role);
+    if (params?.status) queryParams.append('status', params.status);
+
+    // Hardcoded endpoint to bypass TypeScript caching issues
+    const baseUrl = 'http://52.15.195.49:8000/api/workouts/workout-plan-assignments/';
+    const url = `${baseUrl}${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+
+    try {
+      const response = await fetch(url, {
+        method: 'GET',
+        headers,
+      });
+
+      if (response.status === 401) {
+        await handle401Error('Your session has expired. Please sign in again.');
+        throw new Error('Authentication required');
+      }
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Failed to fetch assignments: ${response.status} - ${errorText}`);
+      }
+
+      return response.json();
+    } catch (error) {
+      if (error instanceof TypeError && error.message === 'Network request failed') {
+        throw new Error('Unable to connect to server. Please check your internet connection.');
+      }
+      throw error;
+    }
+  },
+
+  // Accept workout plan assignment (Client only)
+  acceptWorkoutPlanAssignment: async (data: AcceptAssignmentRequest): Promise<AcceptAssignmentResponse> => {
+    const headers = await getAuthHeaders();
+
+    if (!headers.Authorization) {
+      throw new Error('Authentication required. Please sign in to accept assignments.');
+    }
+
+    try {
+      // Hardcoded endpoint to bypass TypeScript caching issues
+      const endpoint = 'http://52.15.195.49:8000/api/workouts/accept-workout-plan-assignment/';
+      
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(data),
+      });
+
+      if (response.status === 401) {
+        await handle401Error('Your session has expired. Please sign in again.');
+        throw new Error('Authentication required');
+      }
+
+      if (response.status === 403) {
+        throw new Error('Only clients can accept workout plan assignments');
+      }
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Failed to accept assignment: ${response.status} - ${errorText}`);
+      }
+
+      return response.json();
+    } catch (error) {
+      if (error instanceof TypeError && error.message === 'Network request failed') {
+        throw new Error('Unable to connect to server. Please check your internet connection.');
+      }
+      throw error;
+    }
+  },
+
+  // Reject workout plan assignment (Client only)
+  rejectWorkoutPlanAssignment: async (assignmentId: string): Promise<{ message: string }> => {
+    const headers = await getAuthHeaders();
+
+    if (!headers.Authorization) {
+      throw new Error('Authentication required. Please sign in to reject assignments.');
+    }
+
+    try {
+      // Hardcoded endpoint to bypass TypeScript caching issues
+      const endpoint = `http://52.15.195.49:8000/api/workouts/reject-workout-plan-assignment/${assignmentId}/`;
+      
+      const response = await fetch(endpoint, {
+        method: 'DELETE',
+        headers,
+      });
+
+      if (response.status === 401) {
+        await handle401Error('Your session has expired. Please sign in again.');
+        throw new Error('Authentication required');
+      }
+
+      if (response.status === 403) {
+        throw new Error('Only clients can reject workout plan assignments');
+      }
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Failed to reject assignment: ${response.status} - ${errorText}`);
+      }
+
+      return response.json();
+    } catch (error) {
+      if (error instanceof TypeError && error.message === 'Network request failed') {
+        throw new Error('Unable to connect to server. Please check your internet connection.');
+      }
+      throw error;
+    }
+  },
+
+  // Get assignable workout plans for client (Coach only)
+  getAssignablePlans: async (clientId: string, params?: {
+    search?: string;
+    min_calories?: number;
+    max_calories?: number;
+    include_own?: boolean;
+    include_public?: boolean;
+  }): Promise<AssignablePlansResponse> => {
+    const headers = await getAuthHeaders();
+    
+    if (!headers.Authorization) {
+      throw new Error('Authentication required. Please sign in to view assignable plans.');
+    }
+
+    const queryParams = new URLSearchParams();
+    if (params?.search) queryParams.append('search', params.search);
+    if (params?.min_calories) queryParams.append('min_calories', params.min_calories.toString());
+    if (params?.max_calories) queryParams.append('max_calories', params.max_calories.toString());
+    if (params?.include_own !== undefined) queryParams.append('include_own', params.include_own.toString());
+    if (params?.include_public !== undefined) queryParams.append('include_public', params.include_public.toString());
+
+    // Hardcoded endpoint to bypass TypeScript caching issues
+    const baseUrl = `http://52.15.195.49:8000/api/workouts/assignable-plans/${clientId}/`;
+    const url = `${baseUrl}${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+
+    try {
+      const response = await fetch(url, {
+        method: 'GET',
+        headers,
+      });
+
+      if (response.status === 401) {
+        await handle401Error('Your session has expired. Please sign in again.');
+        throw new Error('Authentication required');
+      }
+
+      if (response.status === 403) {
+        throw new Error('Only coaches can view assignable plans for clients');
+      }
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Failed to fetch assignable plans: ${response.status} - ${errorText}`);
+      }
+
+      return response.json();
+    } catch (error) {
+      if (error instanceof TypeError && error.message === 'Network request failed') {
+        throw new Error('Unable to connect to server. Please check your internet connection.');
+      }
+      throw error;
+    }
   },
 }; 

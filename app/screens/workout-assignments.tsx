@@ -3,7 +3,7 @@ import {
   View,
   Text,
   StyleSheet,
-  FlatList,
+  ScrollView,
   TouchableOpacity,
   ActivityIndicator,
   Alert,
@@ -11,76 +11,69 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import { Colors } from '@/constants/Colors';
-import { CoachClientService, WorkoutAssignment } from '../services/coachClientService';
 import { useAuth } from '../contexts/AuthContext';
+import { WorkoutService, WorkoutPlanAssignment } from '../services/workoutService';
 
 export default function WorkoutAssignmentsScreen() {
   const { user } = useAuth();
-  const [assignments, setAssignments] = useState<WorkoutAssignment[]>([]);
+  const [assignments, setAssignments] = useState<WorkoutPlanAssignment[]>([]);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
-  const [filter, setFilter] = useState<'all' | 'assigned' | 'applied' | 'completed'>('all');
-
-  const isCoach = user?.userType === 'Coach';
+  const [activeTab, setActiveTab] = useState<'assigned' | 'applied' | 'completed'>('assigned');
 
   useEffect(() => {
     fetchAssignments();
-  }, [filter]);
+  }, [activeTab]);
 
-  const fetchAssignments = async () => {
-    setLoading(true);
+  const fetchAssignments = async (isRefresh = false) => {
+    if (isRefresh) {
+      setRefreshing(true);
+    } else {
+      setLoading(true);
+    }
+
     try {
-      const params = {
-        role: user?.userType === 'Coach' ? 'coach' : 'client',
-        status: filter === 'all' ? undefined : filter,
-      };
-
-      const response = await CoachClientService.getWorkoutAssignments(params);
+      const response = await WorkoutService.getWorkoutPlanAssignments({
+        role: 'auto', // Let backend detect user role
+        status: activeTab,
+      });
       setAssignments(response.assignments);
     } catch (error) {
       console.error('Error fetching assignments:', error);
       const errorMessage = error instanceof Error ? error.message : 'Failed to load assignments';
       
-      if (errorMessage.includes('Authentication required')) {
-        console.log('User not authenticated, skipping fetch');
-        setAssignments([]);
-      } else if (errorMessage.includes('404') || errorMessage.includes('not found')) {
-        Alert.alert(
-          'Feature Not Available', 
-          'The workout assignment feature is not yet available on this server.'
-        );
-        setAssignments([]);
-      } else {
+      // Don't show alert for authentication errors
+      if (!errorMessage.includes('Authentication required')) {
         Alert.alert('Error', errorMessage);
       }
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   };
 
-  const handleRefresh = async () => {
-    setRefreshing(true);
-    await fetchAssignments();
-    setRefreshing(false);
+  const handleRefresh = () => {
+    fetchAssignments(true);
   };
 
-  const handleAcceptAssignment = async (assignment: WorkoutAssignment) => {
+  const handleAcceptAssignment = async (assignment: WorkoutPlanAssignment) => {
     Alert.alert(
       'Accept Assignment',
-      `Accept the workout plan "${assignment.workout_plan_title}" from ${assignment.coach_name}?`,
+      `Accept the workout plan "${assignment.workoutPlan.title}" from ${assignment.coach.fullName}?`,
       [
         { text: 'Cancel', style: 'cancel' },
         {
           text: 'Accept',
           onPress: async () => {
             try {
-              await CoachClientService.acceptWorkoutAssignment({
+              await WorkoutService.acceptWorkoutPlanAssignment({
                 assignment_id: assignment.id,
-                // Use coach's suggestions by default
+                start_date: assignment.suggestedStartDate,
+                selected_days: assignment.selectedDays,
+                weeks_count: assignment.weeksCount,
               });
               
-              Alert.alert('Success', 'Workout plan accepted and applied to your schedule!');
+              Alert.alert('Success', 'Assignment accepted! The workout plan has been added to your schedule.');
               fetchAssignments();
             } catch (error) {
               console.error('Error accepting assignment:', error);
@@ -93,10 +86,10 @@ export default function WorkoutAssignmentsScreen() {
     );
   };
 
-  const handleRejectAssignment = async (assignment: WorkoutAssignment) => {
+  const handleRejectAssignment = async (assignment: WorkoutPlanAssignment) => {
     Alert.alert(
       'Reject Assignment',
-      `Reject the workout plan "${assignment.workout_plan_title}" from ${assignment.coach_name}?`,
+      `Are you sure you want to reject the workout plan "${assignment.workoutPlan.title}"?`,
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -104,9 +97,8 @@ export default function WorkoutAssignmentsScreen() {
           style: 'destructive',
           onPress: async () => {
             try {
-              await CoachClientService.rejectWorkoutAssignment(assignment.id);
-              
-              Alert.alert('Success', 'Workout plan assignment rejected.');
+              await WorkoutService.rejectWorkoutPlanAssignment(assignment.id);
+              Alert.alert('Success', 'Assignment rejected.');
               fetchAssignments();
             } catch (error) {
               console.error('Error rejecting assignment:', error);
@@ -119,161 +111,113 @@ export default function WorkoutAssignmentsScreen() {
     );
   };
 
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString();
+  };
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'assigned': return '#FFA726';
       case 'applied': return '#4CAF50';
-      case 'completed': return '#9C27B0';
-      case 'overdue': return '#FF6B6B';
-      case 'cancelled': return '#666';
+      case 'completed': return '#2196F3';
+      case 'overdue': return '#FF5722';
+      case 'cancelled': return '#9E9E9E';
       default: return '#666';
     }
   };
 
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'assigned': return 'mail-outline';
-      case 'applied': return 'checkmark-circle';
-      case 'completed': return 'trophy';
-      case 'overdue': return 'alert-circle';
-      case 'cancelled': return 'close-circle';
-      default: return 'help-circle';
-    }
-  };
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      weekday: 'short',
-      month: 'short',
-      day: 'numeric',
-    });
-  };
-
-  const formatDays = (days: string[]) => {
-    return days.map(day => day.charAt(0).toUpperCase() + day.slice(1)).join(', ');
-  };
-
-  const renderAssignment = ({ item }: { item: WorkoutAssignment }) => (
-    <View style={styles.assignmentCard}>
-      <View style={styles.assignmentHeader}>
-        <View style={styles.assignmentInfo}>
-          <Text style={styles.workoutPlanTitle}>{item.workout_plan_title}</Text>
-          <Text style={styles.participantName}>
-            {isCoach ? `To: ${item.client_name}` : `From: ${item.coach_name}`}
-          </Text>
-          
-          <View style={styles.statusContainer}>
-            <View style={[styles.statusBadge, { backgroundColor: getStatusColor(item.status) }]}>
-              <Ionicons 
-                name={getStatusIcon(item.status)} 
-                size={14} 
-                color="#fff" 
-              />
-              <Text style={styles.statusText}>{item.status_display}</Text>
-            </View>
+  const renderAssignment = (assignment: WorkoutPlanAssignment) => {
+    const isCoach = user?.userType === 'Coach';
+    const otherPerson = isCoach ? assignment.client : assignment.coach;
+    
+    return (
+      <TouchableOpacity
+        key={assignment.id}
+        style={styles.assignmentCard}
+        onPress={() => {
+          // Navigate to workout plan details or assignment details
+          console.log('Assignment pressed:', assignment.id);
+        }}
+      >
+        <View style={styles.assignmentHeader}>
+          <View style={styles.assignmentInfo}>
+            <Text style={styles.planTitle}>{assignment.workoutPlan.title}</Text>
+            <Text style={styles.personName}>
+              {isCoach ? `To: ${otherPerson.fullName}` : `From: ${otherPerson.fullName}`}
+            </Text>
+          </View>
+          <View style={[styles.statusBadge, { backgroundColor: getStatusColor(assignment.status) }]}>
+            <Text style={styles.statusText}>{assignment.status.toUpperCase()}</Text>
           </View>
         </View>
-      </View>
 
-      <View style={styles.assignmentDetails}>
-        <View style={styles.detailRow}>
-          <Ionicons name="calendar" size={16} color="#A78BFA" />
-          <Text style={styles.detailText}>
-            {formatDays(item.selected_days)} • {item.weeks_count} weeks
-          </Text>
+        <View style={styles.assignmentDetails}>
+          <View style={styles.detailRow}>
+            <Ionicons name="calendar-outline" size={16} color="#666" />
+            <Text style={styles.detailText}>
+              {assignment.selectedDays.length} days/week for {assignment.weeksCount} weeks
+            </Text>
+          </View>
+          <View style={styles.detailRow}>
+            <Ionicons name="time-outline" size={16} color="#666" />
+            <Text style={styles.detailText}>
+              Start: {formatDate(assignment.suggestedStartDate)}
+            </Text>
+          </View>
+          <View style={styles.detailRow}>
+            <Ionicons name="flag-outline" size={16} color="#666" />
+            <Text style={styles.detailText}>
+              Due: {formatDate(assignment.dueDate)}
+            </Text>
+          </View>
+          <View style={styles.detailRow}>
+            <Ionicons name="flame-outline" size={16} color="#666" />
+            <Text style={styles.detailText}>
+              {assignment.workoutPlan.totalCalories} cal per session
+            </Text>
+          </View>
         </View>
-        
-        <View style={styles.detailRow}>
-          <Ionicons name="time" size={16} color="#A78BFA" />
-          <Text style={styles.detailText}>
-            Start: {formatDate(item.suggested_start_date)}
-          </Text>
-        </View>
-        
-        <View style={styles.detailRow}>
-          <Ionicons name="alarm" size={16} color="#A78BFA" />
-          <Text style={styles.detailText}>
-            Due: {formatDate(item.due_date)}
-          </Text>
-        </View>
-        
-        <View style={styles.detailRow}>
-          <Ionicons name="create" size={16} color="#A78BFA" />
-          <Text style={styles.detailText}>
-            Assigned: {formatDate(item.assigned_at)}
-          </Text>
-        </View>
-      </View>
 
-      {item.notes && (
-        <View style={styles.notesContainer}>
-          <Text style={styles.notesLabel}>Notes:</Text>
-          <Text style={styles.notesText}>"{item.notes}"</Text>
-        </View>
-      )}
+        {assignment.notes && (
+          <View style={styles.notesSection}>
+            <Text style={styles.notesTitle}>Notes:</Text>
+            <Text style={styles.notesText}>{assignment.notes}</Text>
+          </View>
+        )}
 
-      {/* Action Buttons for Clients */}
-      {!isCoach && item.status === 'assigned' && (
-        <View style={styles.actionButtons}>
-          <TouchableOpacity
-            style={styles.acceptButton}
-            onPress={() => handleAcceptAssignment(item)}
-          >
-            <Ionicons name="checkmark" size={16} color="#fff" />
-            <Text style={styles.acceptButtonText}>Accept</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.rejectButton}
-            onPress={() => handleRejectAssignment(item)}
-          >
-            <Ionicons name="close" size={16} color="#fff" />
-            <Text style={styles.rejectButtonText}>Reject</Text>
-          </TouchableOpacity>
-        </View>
-      )}
+        {/* Action buttons for clients with assigned status */}
+        {!isCoach && assignment.status === 'assigned' && (
+          <View style={styles.actionButtons}>
+            <TouchableOpacity
+              style={[styles.actionButton, styles.rejectButton]}
+              onPress={() => handleRejectAssignment(assignment)}
+            >
+              <Text style={styles.rejectButtonText}>Reject</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.actionButton, styles.acceptButton]}
+              onPress={() => handleAcceptAssignment(assignment)}
+            >
+              <Text style={styles.acceptButtonText}>Accept</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+      </TouchableOpacity>
+    );
+  };
 
-      {/* Status Info for Applied/Completed */}
-      {item.status === 'applied' && (
-        <View style={styles.infoContainer}>
-          <Ionicons name="information-circle" size={16} color="#4CAF50" />
-          <Text style={styles.infoText}>
-            This workout plan has been applied to your schedule
-          </Text>
-        </View>
-      )}
-
-      {item.status === 'completed' && (
-        <View style={styles.infoContainer}>
-          <Ionicons name="trophy" size={16} color="#9C27B0" />
-          <Text style={styles.infoText}>
-            Congratulations! You completed this workout plan
-          </Text>
-        </View>
-      )}
-    </View>
-  );
-
-  const renderFilterTabs = () => (
-    <View style={styles.filterContainer}>
-      {(['all', 'assigned', 'applied', 'completed'] as const).map((filterType) => (
-        <TouchableOpacity
-          key={filterType}
-          style={[
-            styles.filterTab,
-            filter === filterType && styles.filterTabActive,
-          ]}
-          onPress={() => setFilter(filterType)}
-        >
-          <Text
-            style={[
-              styles.filterTabText,
-              filter === filterType && styles.filterTabTextActive,
-            ]}
-          >
-            {filterType.charAt(0).toUpperCase() + filterType.slice(1)}
-          </Text>
-        </TouchableOpacity>
-      ))}
+  const renderEmptyState = () => (
+    <View style={styles.emptyState}>
+      <Ionicons name="clipboard-outline" size={48} color="#ccc" />
+      <Text style={styles.emptyStateTitle}>
+        No {activeTab} assignments
+      </Text>
+      <Text style={styles.emptyStateText}>
+        {user?.userType === 'Coach' 
+          ? `You haven't ${activeTab} any workout plans to clients yet.`
+          : `You don't have any ${activeTab} assignments from coaches.`
+        }
+      </Text>
     </View>
   );
 
@@ -282,67 +226,64 @@ export default function WorkoutAssignmentsScreen() {
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color={Colors.light.text} />
+          <Ionicons name="arrow-back" size={24} color="#333" />
         </TouchableOpacity>
-        <View style={styles.headerContent}>
-          <Text style={styles.headerTitle}>
-            {user?.userType === 'Coach' ? 'Client Assignments' : 'My Assignments'}
-          </Text>
-          <Text style={styles.headerSubtitle}>
-            {user?.userType === 'Coach' 
-              ? 'Workout plans assigned to clients'
-              : 'Workout plans assigned by coaches'
-            }
-          </Text>
-        </View>
+        <Text style={styles.headerTitle}>Workout Assignments</Text>
+        <View style={styles.headerSpacer} />
       </View>
 
-      {/* Filter Tabs */}
-      {renderFilterTabs()}
+      {/* Tabs */}
+      <View style={styles.tabsContainer}>
+        <TouchableOpacity
+          style={[styles.tab, activeTab === 'assigned' && styles.activeTab]}
+          onPress={() => setActiveTab('assigned')}
+        >
+          <Text style={[styles.tabText, activeTab === 'assigned' && styles.activeTabText]}>
+            {user?.userType === 'Coach' ? 'Assigned' : 'Pending'}
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.tab, activeTab === 'applied' && styles.activeTab]}
+          onPress={() => setActiveTab('applied')}
+        >
+          <Text style={[styles.tabText, activeTab === 'applied' && styles.activeTabText]}>
+            Active
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.tab, activeTab === 'completed' && styles.activeTab]}
+          onPress={() => setActiveTab('completed')}
+        >
+          <Text style={[styles.tabText, activeTab === 'completed' && styles.activeTabText]}>
+            Completed
+          </Text>
+        </TouchableOpacity>
+      </View>
 
-      {/* Assignments List */}
-      {loading && !refreshing ? (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#A78BFA" />
-          <Text style={styles.loadingText}>Loading assignments...</Text>
-        </View>
-      ) : (
-        <FlatList
-          data={assignments}
-          renderItem={renderAssignment}
-          keyExtractor={(item) => item.id.toString()}
-          contentContainerStyle={styles.listContainer}
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={handleRefresh}
-              colors={['#A78BFA']}
-              tintColor="#A78BFA"
-            />
-          }
-          ListEmptyComponent={
-            <View style={styles.emptyState}>
-              <Ionicons name="clipboard-outline" size={64} color="#666" />
-              <Text style={styles.emptyStateText}>
-                {filter === 'assigned' 
-                  ? 'No pending assignments'
-                  : filter === 'applied'
-                  ? 'No applied assignments'
-                  : filter === 'completed'
-                  ? 'No completed assignments'
-                  : 'No assignments yet'
-                }
-              </Text>
-              <Text style={styles.emptyStateSubtext}>
-                {isCoach 
-                  ? 'Assign workout plans to your connected clients'
-                  : 'Your coach will assign workout plans for you'
-                }
-              </Text>
-            </View>
-          }
-        />
-      )}
+      {/* Content */}
+      <ScrollView
+        style={styles.content}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+            tintColor="#A78BFA"
+          />
+        }
+      >
+        {loading ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color="#A78BFA" />
+            <Text style={styles.loadingText}>Loading assignments...</Text>
+          </View>
+        ) : assignments.length > 0 ? (
+          <View style={styles.assignmentsList}>
+            {assignments.map(renderAssignment)}
+          </View>
+        ) : (
+          renderEmptyState()
+        )}
+      </ScrollView>
     </View>
   );
 }
@@ -355,72 +296,71 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     padding: 20,
     paddingTop: 60,
+    backgroundColor: '#fff',
     borderBottomWidth: 1,
     borderBottomColor: '#e0e0e0',
-    backgroundColor: '#fff',
   },
   backButton: {
-    padding: 4,
-    marginRight: 12,
-  },
-  headerContent: {
-    flex: 1,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#f5f5f5',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   headerTitle: {
-    fontSize: 28,
+    fontSize: 18,
     fontWeight: 'bold',
-    color: '#1a1a1a',
-    marginBottom: 4,
+    color: '#333',
   },
-  headerSubtitle: {
-    fontSize: 16,
-    color: '#666',
+  headerSpacer: {
+    width: 40,
   },
-  filterContainer: {
+  tabsContainer: {
     flexDirection: 'row',
-    padding: 20,
-    gap: 8,
     backgroundColor: '#fff',
+    paddingHorizontal: 20,
     borderBottomWidth: 1,
     borderBottomColor: '#e0e0e0',
   },
-  filterTab: {
+  tab: {
     flex: 1,
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    borderRadius: 20,
+    paddingVertical: 16,
     alignItems: 'center',
-    backgroundColor: '#f0f0f0',
-    borderWidth: 1,
-    borderColor: '#e0e0e0',
+    borderBottomWidth: 2,
+    borderBottomColor: 'transparent',
   },
-  filterTabActive: {
-    backgroundColor: '#A78BFA',
-    borderColor: '#A78BFA',
+  activeTab: {
+    borderBottomColor: '#A78BFA',
   },
-  filterTabText: {
-    fontSize: 12,
-    fontWeight: '600',
+  tabText: {
+    fontSize: 16,
     color: '#666',
+    fontWeight: '500',
   },
-  filterTabTextActive: {
-    color: '#fff',
+  activeTabText: {
+    color: '#A78BFA',
+    fontWeight: '600',
+  },
+  content: {
+    flex: 1,
   },
   loadingContainer: {
     flex: 1,
-    justifyContent: 'center',
     alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 60,
   },
   loadingText: {
-    marginTop: 16,
+    marginTop: 10,
     fontSize: 16,
     color: '#666',
   },
-  listContainer: {
+  assignmentsList: {
     padding: 20,
-    paddingTop: 0,
   },
   assignmentCard: {
     backgroundColor: '#fff',
@@ -436,37 +376,33 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   assignmentHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
     marginBottom: 12,
   },
   assignmentInfo: {
     flex: 1,
+    marginRight: 12,
   },
-  workoutPlanTitle: {
+  planTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#1a1a1a',
+    color: '#333',
     marginBottom: 4,
   },
-  participantName: {
+  personName: {
     fontSize: 14,
-    color: '#A78BFA',
-    fontWeight: '600',
-    marginBottom: 8,
-  },
-  statusContainer: {
-    alignItems: 'flex-start',
+    color: '#666',
   },
   statusBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 12,
-    gap: 4,
   },
   statusText: {
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: 'bold',
     color: '#fff',
   },
   assignmentDetails: {
@@ -475,95 +411,77 @@ const styles = StyleSheet.create({
   detailRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
     marginBottom: 6,
   },
   detailText: {
     fontSize: 14,
     color: '#666',
+    marginLeft: 8,
   },
-  notesContainer: {
-    backgroundColor: '#f8f9fa',
+  notesSection: {
+    marginTop: 12,
     padding: 12,
+    backgroundColor: '#f8f9fa',
     borderRadius: 8,
-    marginBottom: 12,
   },
-  notesLabel: {
-    fontSize: 12,
-    color: '#A78BFA',
+  notesTitle: {
+    fontSize: 14,
     fontWeight: '600',
+    color: '#333',
     marginBottom: 4,
   },
   notesText: {
     fontSize: 14,
-    color: '#1a1a1a',
-    fontStyle: 'italic',
+    color: '#666',
+    lineHeight: 20,
   },
   actionButtons: {
     flexDirection: 'row',
+    marginTop: 16,
     gap: 12,
   },
-  acceptButton: {
+  actionButton: {
     flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#4CAF50',
     paddingVertical: 12,
     borderRadius: 8,
-    gap: 6,
-  },
-  acceptButtonText: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: '600',
+    alignItems: 'center',
   },
   rejectButton: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#FF6B6B',
-    paddingVertical: 12,
-    borderRadius: 8,
-    gap: 6,
+    backgroundColor: '#f5f5f5',
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+  },
+  acceptButton: {
+    backgroundColor: '#A78BFA',
   },
   rejectButtonText: {
-    color: '#fff',
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: '600',
+    color: '#666',
   },
-  infoContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    padding: 12,
-    backgroundColor: '#f0f8ff',
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#e0f0ff',
-  },
-  infoText: {
-    fontSize: 14,
-    color: '#1a1a1a',
-    flex: 1,
+  acceptButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#fff',
   },
   emptyState: {
+    flex: 1,
     alignItems: 'center',
-    padding: 50,
-    marginTop: 50,
+    justifyContent: 'center',
+    paddingVertical: 60,
+    paddingHorizontal: 40,
+  },
+  emptyStateTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#333',
+    marginTop: 16,
+    marginBottom: 8,
   },
   emptyStateText: {
-    fontSize: 18,
-    fontWeight: 'bold',
+    fontSize: 16,
     color: '#666',
-    marginTop: 16,
     textAlign: 'center',
-  },
-  emptyStateSubtext: {
-    fontSize: 14,
-    color: '#666',
-    marginTop: 8,
-    textAlign: 'center',
+    lineHeight: 24,
   },
 }); 

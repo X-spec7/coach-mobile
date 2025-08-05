@@ -16,11 +16,13 @@ import { WorkoutService, WorkoutPlan, DailyPlan, Exercise, AddDayRequest, Workou
 import { ExerciseBrowserModal } from './ExerciseBrowserModal';
 import { ExerciseConfigurationModal } from './ExerciseConfigurationModal';
 import { ApplyWorkoutPlanModal } from './ApplyWorkoutPlanModal';
+import { AssignWorkoutPlanModal } from './AssignWorkoutPlanModal';
+import { useAuth } from '../contexts/AuthContext';
 
 interface WorkoutPlanDetailsModalProps {
   visible: boolean;
   onClose: () => void;
-  workoutPlanId: number | null;
+  workoutPlanId: string | null;
   onUpdate: () => void;
 }
 
@@ -40,6 +42,7 @@ export const WorkoutPlanDetailsModal: React.FC<WorkoutPlanDetailsModalProps> = (
   workoutPlanId,
   onUpdate,
 }) => {
+  const { user } = useAuth();
   const [workoutPlan, setWorkoutPlan] = useState<WorkoutPlan | null>(null);
   const [loading, setLoading] = useState(false);
   const [expandedDay, setExpandedDay] = useState<number | null>(null);
@@ -49,6 +52,7 @@ export const WorkoutPlanDetailsModal: React.FC<WorkoutPlanDetailsModalProps> = (
   const [showExerciseConfig, setShowExerciseConfig] = useState(false);
   const [selectedExercise, setSelectedExercise] = useState<Exercise | null>(null);
   const [showApplyWorkoutPlanModal, setShowApplyWorkoutPlanModal] = useState(false);
+  const [showAssignModal, setShowAssignModal] = useState(false);
   
   // Ref to track if we're programmatically closing the exercise browser
   const isProgrammaticCloseRef = useRef(false);
@@ -405,6 +409,20 @@ export const WorkoutPlanDetailsModal: React.FC<WorkoutPlanDetailsModalProps> = (
     onUpdate();
   };
 
+  const handleAssignWorkoutPlan = () => {
+    setShowAssignModal(true);
+  };
+
+  const handleAssignWorkoutPlanClose = () => {
+    setShowAssignModal(false);
+  };
+
+  const handleAssignWorkoutPlanSuccess = () => {
+    setShowAssignModal(false);
+    Alert.alert('Success', 'Workout plan assigned successfully!');
+    onUpdate();
+  };
+
   const renderExercise = (exercise: WorkoutExercise, dayId: number) => (
     <View key={exercise.id} style={styles.exerciseCard}>
       <View style={styles.exerciseHeader}>
@@ -528,6 +546,11 @@ export const WorkoutPlanDetailsModal: React.FC<WorkoutPlanDetailsModalProps> = (
                   <TouchableOpacity onPress={handleApplyWorkoutPlan} style={styles.actionButton}>
                     <Ionicons name="calendar-outline" size={20} color="#A78BFA" />
                   </TouchableOpacity>
+                  {user?.userType === 'Coach' && (
+                    <TouchableOpacity onPress={handleAssignWorkoutPlan} style={styles.actionButton}>
+                      <Ionicons name="person-add-outline" size={20} color="#A78BFA" />
+                    </TouchableOpacity>
+                  )}
                 </View>
               )}
             </View>
@@ -674,6 +697,15 @@ export const WorkoutPlanDetailsModal: React.FC<WorkoutPlanDetailsModalProps> = (
           applications_count: workoutPlan.applications_count || 0
         } : null}
         onSuccess={handleApplyWorkoutPlanSuccess}
+      />
+
+      {/* Assign Workout Plan Modal */}
+      <AssignWorkoutPlanModal
+        visible={showAssignModal}
+        onClose={handleAssignWorkoutPlanClose}
+        workoutPlanId={workoutPlan?.id || ''}
+        workoutPlanTitle={workoutPlan?.title || ''}
+        onSuccess={handleAssignWorkoutPlanSuccess}
       />
     </>
   );

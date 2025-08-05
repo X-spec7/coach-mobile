@@ -34,7 +34,7 @@ export default function WorkoutsScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
-  const [selectedPlanId, setSelectedPlanId] = useState<number | null>(null);
+  const [selectedPlanId, setSelectedPlanId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchWorkoutPlans();
@@ -72,12 +72,12 @@ export default function WorkoutsScreen() {
     fetchWorkoutPlans(true);
   };
 
-  const handlePlanPress = (planId: number) => {
+  const handlePlanPress = (planId: string) => {
     setSelectedPlanId(planId);
     setShowDetailsModal(true);
   };
 
-  const handleDeletePlan = async (planId: number, planTitle: string) => {
+  const handleDeletePlan = async (planId: string, planTitle: string) => {
     Alert.alert(
       'Delete Workout Plan',
       `Are you sure you want to delete "${planTitle}"? This action cannot be undone.`,
