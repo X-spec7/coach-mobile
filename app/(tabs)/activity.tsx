@@ -286,6 +286,28 @@ export default function ActivityScreen() {
 
               <TouchableOpacity 
                 style={styles.menuItem}
+                onPress={() => router.push('/meal-assignments')}
+              >
+                <View style={styles.menuIcon}>
+                  <Ionicons name="restaurant" size={24} color="#A78BFA" />
+                </View>
+                <Text style={styles.menuTitle}>Meal Assignments</Text>
+                <Text style={styles.menuSubtitle}>Applied meal plans</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity 
+                style={styles.menuItem}
+                onPress={() => router.push('/scheduled-meals')}
+              >
+                <View style={styles.menuIcon}>
+                  <Ionicons name="checkbox" size={24} color="#A78BFA" />
+                </View>
+                <Text style={styles.menuTitle}>Meal Tracking</Text>
+                <Text style={styles.menuSubtitle}>Log daily food consumption</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity 
+                style={styles.menuItem}
                 onPress={() => router.push('/workouts')}
               >
                 <View style={styles.menuIcon}>

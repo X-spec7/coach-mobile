@@ -45,7 +45,7 @@ const MEAL_TIME_TEMPLATES = [
   { name: 'Evening Snack', time: '21:00:00' },
 ];
 
-export const MealPlanDetailsModal: React.FC<MealPlanDetailsModalProps> = ({
+export const MealPlanDetailsModal = ({
   visible,
   onClose,
   plan,
@@ -53,7 +53,7 @@ export const MealPlanDetailsModal: React.FC<MealPlanDetailsModalProps> = ({
   onAssign,
   onDelete,
   onUpdate,
-}) => {
+}: MealPlanDetailsModalProps) => {
   const { user } = useAuth();
   const [mealPlan, setMealPlan] = useState<MealPlan | null>(null);
   const [loading, setLoading] = useState(false);
@@ -70,6 +70,9 @@ export const MealPlanDetailsModal: React.FC<MealPlanDetailsModalProps> = ({
   const [selectedFoodItem, setSelectedFoodItem] = useState<FoodItem | null>(null);
   const [foodAmount, setFoodAmount] = useState('100');
   const [foodUnit, setFoodUnit] = useState('gram');
+  
+  // Track completion state for food items
+  const [completedFoodItems, setCompletedFoodItems] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     if (visible && plan.mealPlan) {
@@ -317,82 +320,183 @@ export const MealPlanDetailsModal: React.FC<MealPlanDetailsModalProps> = ({
     !mealPlan?.daily_plans?.some(dp => dp.day === day.key)
   );
 
-  const renderMealTime = (mealTime: MealTime, dayId: string) => (
-    <View key={mealTime.id} style={styles.mealTimeCard}>
-      <View style={styles.mealTimeHeader}>
-        <View style={styles.mealTimeInfo}>
-          <Text style={styles.mealTimeName}>{mealTime.name}</Text>
-          <Text style={styles.mealTimeStats}>
-            {mealTime.food_items.length} foods • {mealTime.total_calories} cal
-          </Text>
+  const renderMealTime = (mealTime: MealTime, dayId: string) => {
+    const progress = getMealTimeProgress(mealTime);
+    const completedCount = mealTime.food_items.filter(item => 
+      completedFoodItems.has(item.id)
+    ).length;
+    const totalCount = mealTime.food_items.length;
+
+  return (
+      <View key={mealTime.id} style={styles.mealTimeCard}>
+        <View style={styles.mealTimeHeader}>
+          <View style={styles.mealTimeInfo}>
+            <Text style={styles.mealTimeName}>{mealTime.name}</Text>
+            <Text style={styles.mealTimeStats}>
+              {mealTime.food_items.length} foods • {mealTime.total_calories} cal
+            </Text>
+            {totalCount > 0 && (
+              <View style={styles.progressContainer}>
+                <View style={styles.progressBar}>
+                  <View style={[styles.progressFill, { width: `${progress}%` }]} />
+                </View>
+                <Text style={styles.progressText}>
+                  {completedCount}/{totalCount} consumed ({Math.round(progress)}%)
+                </Text>
+              </View>
+            )}
+          </View>
+          <View style={styles.mealTimeActions}>
+            {progress === 100 && (
+              <View style={styles.completedBadge}>
+                <Ionicons name="checkmark-circle" size={20} color="#4CAF50" />
+              </View>
+            )}
+            <TouchableOpacity
+              onPress={() => handleAddFood(dayId, mealTime.id)}
+              style={styles.addFoodButton}
+            >
+              <Ionicons name="add" size={20} color="#A78BFA" />
+            </TouchableOpacity>
+          </View>
         </View>
+
+        {mealTime.food_items.length > 0 ? (
+          mealTime.food_items.map(foodItem => renderFoodItem(foodItem, dayId, mealTime.id))
+        ) : (
+          <Text style={styles.noFoodText}>
+            No food items yet. Tap + to add foods.
+          </Text>
+        )}
+      </View>
+    );
+  };
+
+  const handleToggleFoodComplete = (foodItemId: string) => {
+    const newCompleted = new Set(completedFoodItems);
+    if (newCompleted.has(foodItemId)) {
+      newCompleted.delete(foodItemId);
+    } else {
+      newCompleted.add(foodItemId);
+    }
+    setCompletedFoodItems(newCompleted);
+    
+    // Here you could call the meal tracking API to log consumption
+    // For now, we'll just toggle the visual state
+  };
+
+  const getMealTimeProgress = (mealTime: MealTime) => {
+    const totalFoods = mealTime.food_items.length;
+    const completedFoods = mealTime.food_items.filter(item => 
+      completedFoodItems.has(item.id)
+    ).length;
+    return totalFoods > 0 ? (completedFoods / totalFoods) * 100 : 0;
+  };
+
+  const getDayProgress = (day: DailyPlan) => {
+    const allFoodItems = day.meal_times.flatMap(mt => mt.food_items);
+    const totalFoods = allFoodItems.length;
+    const completedFoods = allFoodItems.filter(item => 
+      completedFoodItems.has(item.id)
+    ).length;
+    return totalFoods > 0 ? (completedFoods / totalFoods) * 100 : 0;
+  };
+
+  const renderFoodItem = (foodItem: MealPlanFoodItem, dayId: string, mealTimeId: string) => {
+    const isCompleted = completedFoodItems.has(foodItem.id);
+    
+    return (
+      <View key={foodItem.id} style={styles.foodItemCard}>
         <TouchableOpacity
-          onPress={() => handleAddFood(dayId, mealTime.id)}
-          style={styles.addFoodButton}
+          onPress={() => handleToggleFoodComplete(foodItem.id)}
+          style={[styles.completionCheckbox, isCompleted && styles.completionCheckboxChecked]}
         >
-          <Ionicons name="add" size={20} color="#A78BFA" />
+          {isCompleted && <Ionicons name="checkmark" size={16} color="#fff" />}
         </TouchableOpacity>
-      </View>
-
-      {mealTime.food_items.length > 0 ? (
-        mealTime.food_items.map(foodItem => renderFoodItem(foodItem, dayId, mealTime.id))
-      ) : (
-        <Text style={styles.noFoodText}>
-          No food items yet. Tap + to add foods.
-        </Text>
-      )}
-    </View>
-  );
-
-  const renderFoodItem = (foodItem: MealPlanFoodItem, dayId: string, mealTimeId: string) => (
-    <View key={foodItem.id} style={styles.foodItemCard}>
-      <View style={styles.foodItemInfo}>
-        <Text style={styles.foodItemName}>{foodItem.food_item_details.name}</Text>
-        <Text style={styles.foodItemStats}>
-          {foodItem.amount}{foodItem.unit} • {Math.round(foodItem.calories)} cal
-        </Text>
-      </View>
-      <TouchableOpacity
-        onPress={() => {/* handleRemoveFoodItem(dayId, mealTimeId, foodItem.id, foodItem.food_item_details.name) */}}
-        style={styles.removeButton}
-      >
-        <Ionicons name="trash-outline" size={20} color="#FF6B6B" />
-      </TouchableOpacity>
-    </View>
-  );
-
-  const renderDay = (day: DailyPlan) => (
-    <View key={day.id} style={styles.dayCard}>
-      <TouchableOpacity
-        style={styles.dayHeader}
-        onPress={() => setExpandedDay(expandedDay === day.id ? null : day.id)}
-      >
-        <View style={styles.dayInfo}>
-          <Text style={styles.dayTitle}>{day.day_display}</Text>
-          <Text style={styles.dayStats}>
-            {day.meal_times.length} meal times • {day.total_calories} cal
+        
+        <View style={[styles.foodItemInfo, isCompleted && styles.foodItemInfoCompleted]}>
+          <Text style={[styles.foodItemName, isCompleted && styles.foodItemNameCompleted]}>
+            {foodItem.food_item_details.name}
+                  </Text>
+          <Text style={[styles.foodItemStats, isCompleted && styles.foodItemStatsCompleted]}>
+            {foodItem.amount}{foodItem.unit} • {Math.round(foodItem.calories)} cal
           </Text>
-        </View>
-        <View style={styles.dayActions}>
+          {isCompleted && (
+            <Text style={styles.completedLabel}>✓ Consumed</Text>
+          )}
+                </View>
+        
+        <View style={styles.foodItemActions}>
           <TouchableOpacity
-            onPress={() => handleAddMealTime(day.id)}
-            style={styles.addMealTimeButton}
+            onPress={() => {/* handleEditFoodItem */}}
+            style={styles.editButton}
           >
-            <Ionicons name="add" size={20} color="#A78BFA" />
+            <Ionicons name="create-outline" size={18} color="#A78BFA" />
           </TouchableOpacity>
           <TouchableOpacity
-            onPress={() => handleRemoveDay(day.id, day.day_display)}
-            style={styles.removeDayButton}
+            onPress={() => {/* handleRemoveFoodItem(dayId, mealTimeId, foodItem.id, foodItem.food_item_details.name) */}}
+            style={styles.removeButton}
           >
             <Ionicons name="trash-outline" size={18} color="#FF6B6B" />
           </TouchableOpacity>
-          <Ionicons
-            name={expandedDay === day.id ? "chevron-up" : "chevron-down"}
-            size={20}
-            color="#666"
-          />
-        </View>
-      </TouchableOpacity>
+              </View>
+                  </View>
+    );
+  };
+
+  const renderDay = (day: DailyPlan) => {
+    const progress = getDayProgress(day);
+    const allFoodItems = day.meal_times.flatMap(mt => mt.food_items);
+    const completedCount = allFoodItems.filter(item => 
+      completedFoodItems.has(item.id)
+    ).length;
+    const totalCount = allFoodItems.length;
+    
+    return (
+      <View key={day.id} style={styles.dayCard}>
+        <TouchableOpacity
+          style={styles.dayHeader}
+          onPress={() => setExpandedDay(expandedDay === day.id ? null : day.id)}
+        >
+          <View style={styles.dayInfo}>
+            <View style={styles.dayTitleRow}>
+              <Text style={styles.dayTitle}>{day.day_display}</Text>
+              {progress === 100 && totalCount > 0 && (
+                <View style={styles.dayCompletedBadge}>
+                  <Ionicons name="checkmark-circle" size={18} color="#4CAF50" />
+                  <Text style={styles.dayCompletedText}>Complete</Text>
+              </View>
+              )}
+            </View>
+            <Text style={styles.dayStats}>
+              {day.meal_times.length} meal times • {day.total_calories} cal
+            </Text>
+            {totalCount > 0 && (
+              <Text style={styles.dayProgress}>
+                {completedCount}/{totalCount} foods consumed ({Math.round(progress)}%)
+              </Text>
+            )}
+          </View>
+          <View style={styles.dayActions}>
+                  <TouchableOpacity
+              onPress={() => handleAddMealTime(day.id)}
+              style={styles.addMealTimeButton}
+            >
+              <Ionicons name="add" size={20} color="#A78BFA" />
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => handleRemoveDay(day.id, day.day_display)}
+              style={styles.removeDayButton}
+            >
+              <Ionicons name="trash-outline" size={18} color="#FF6B6B" />
+            </TouchableOpacity>
+            <Ionicons
+              name={expandedDay === day.id ? "chevron-up" : "chevron-down"}
+              size={20}
+              color="#666"
+            />
+                          </View>
+        </TouchableOpacity>
 
       {expandedDay === day.id && (
         <View style={styles.mealTimesList}>
@@ -408,260 +512,263 @@ export const MealPlanDetailsModal: React.FC<MealPlanDetailsModalProps> = ({
     </View>
   );
 
-    if (!mealPlan && !loading) {
-    return null;
-  }
+ 
+};
 
-  return (
-    <>
-    <Modal visible={visible} animationType="slide" transparent>
-      <View style={styles.overlay}>
-          <View style={styles.container}>
-          {/* Header */}
-          <View style={styles.header}>
-              <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-                <Ionicons name="close" size={24} color="#1a1a1a" />
-            </TouchableOpacity>
-              <Text style={styles.headerTitle}>
-                Meal Plan
-              </Text>
-              {mealPlan && (
-                <View style={styles.headerActions}>
-                  <TouchableOpacity onPress={handleTogglePublic} style={styles.actionButton}>
-                    <Ionicons 
-                      name={mealPlan.is_public ? "globe" : "lock-closed"} 
-                      size={20} 
-                      color={mealPlan.is_public ? "#4CAF50" : "#666"} 
-                    />
-                  </TouchableOpacity>
-                  <TouchableOpacity onPress={handlePublish} style={styles.actionButton}>
-                    <Text style={[
-                      styles.publishText,
-                      { color: mealPlan.status === 'published' ? '#FF6B6B' : '#A78BFA' }
-                    ]}>
-                      {mealPlan.status === 'published' ? 'Unpublish' : 'Publish'}
-                  </Text>
-                  </TouchableOpacity>
-                  {onChoose && (
-                    <TouchableOpacity onPress={() => onChoose(mealPlan)} style={styles.actionButton}>
-                      <Ionicons name="calendar-outline" size={20} color="#A78BFA" />
-                    </TouchableOpacity>
-                  )}
-                  {user?.userType === 'Coach' && onAssign && (
-                    <TouchableOpacity onPress={() => onAssign(mealPlan)} style={styles.actionButton}>
-                      <Ionicons name="person-add-outline" size={20} color="#A78BFA" />
-                    </TouchableOpacity>
-                  )}
-                </View>
-              )}
-              </View>
+if (!mealPlan && !loading) {
+  return null;
+}
 
-            {loading ? (
-              <View style={styles.loadingContainer}>
-                <ActivityIndicator size="large" color="#A78BFA" />
-                  </View>
-            ) : mealPlan ? (
-              <ScrollView style={styles.content}>
-                {/* Plan Info */}
-                <View style={styles.planInfo}>
-                  <Text style={styles.planTitle}>
-                    {mealPlan.title}
-                  </Text>
-                  {mealPlan.description && (
-                    <Text style={styles.planDescription}>
-                      {mealPlan.description}
-            </Text>
-                  )}
-                  <View style={styles.planStats}>
-                    <View style={styles.statItem}>
-                      <Text style={styles.statValue}>{mealPlan.total_calories}</Text>
-                      <Text style={styles.statLabel}>Total Calories</Text>
-                          </View>
-                    <View style={styles.statItem}>
-                      <Text style={styles.statValue}>{mealPlan.daily_plans?.length || 0}</Text>
-                      <Text style={styles.statLabel}>Days</Text>
-                          </View>
-                    <View style={styles.statItem}>
-                      <Text style={styles.statValue}>
-                        {mealPlan.status === 'published' ? 'Published' : 'Draft'}
-                          </Text>
-                      <Text style={styles.statLabel}>Status</Text>
-                          </View>
-                    <View style={styles.statItem}>
-                      <Text style={styles.statValue}>
-                        {mealPlan.is_public ? 'Public' : 'Private'}
-                          </Text>
-                      <Text style={styles.statLabel}>Visibility</Text>
+return (
+  <>
+  <Modal visible={visible} animationType="slide" transparent>
+    <View style={styles.overlay}>
+        <View style={styles.container}>
+        {/* Header */}
+        <View style={styles.header}>
+            <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+              <Ionicons name="close" size={24} color="#1a1a1a" />
+          </TouchableOpacity>
+            <Text style={styles.headerTitle}>
+              Meal Plan
+                        </Text>
+            {mealPlan && (
+              <View style={styles.headerActions}>
+                <TouchableOpacity onPress={handleTogglePublic} style={styles.actionButton}>
+                  <Ionicons 
+                    name={mealPlan!.is_public ? "globe" : "lock-closed"} 
+                    size={20} 
+                    color={mealPlan!.is_public ? "#4CAF50" : "#666"} 
+                  />
+                </TouchableOpacity>
+                <TouchableOpacity onPress={handlePublish} style={styles.actionButton}>
+                  <Text style={[
+                    styles.publishText,
+                    { color: mealPlan!.status === 'published' ? '#FF6B6B' : '#A78BFA' }
+                  ]}>
+                    {mealPlan!.status === 'published' ? 'Unpublish' : 'Publish'}
+                </Text>
+                </TouchableOpacity>
+                {onChoose && mealPlan && (
+                  <TouchableOpacity onPress={() => onChoose!(mealPlan!)} style={styles.actionButton}>
+                    <Ionicons name="calendar-outline" size={20} color="#A78BFA" />
+                  </TouchableOpacity>
+                )}
+                {user?.userType === 'Coach' && onAssign && mealPlan && (
+                  <TouchableOpacity onPress={() => onAssign!(mealPlan!)} style={styles.actionButton}>
+                    <Ionicons name="person-add-outline" size={20} color="#A78BFA" />
+                  </TouchableOpacity>
+                )}
                         </View>
+            )}
+            </View>
+
+          {loading ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color="#A78BFA" />
+                </View>
+          ) : mealPlan ? (
+            <ScrollView style={styles.content}>
+              {/* Plan Info */}
+              <View style={styles.planInfo}>
+                <Text style={styles.planTitle}>
+                  {mealPlan!.title}
+                        </Text>
+                {mealPlan!.description && (
+                  <Text style={styles.planDescription}>
+                    {mealPlan!.description}
+          </Text>
+                )}
+                <View style={styles.planStats}>
+                  <View style={styles.statItem}>
+                    <Text style={styles.statValue}>{mealPlan!.total_calories}</Text>
+                    <Text style={styles.statLabel}>Total Calories</Text>
+                      </View>
+                  <View style={styles.statItem}>
+                    <Text style={styles.statValue}>{mealPlan!.daily_plans?.length || 0}</Text>
+                    <Text style={styles.statLabel}>Days</Text>
+                    </View>
+                  <View style={styles.statItem}>
+                    <Text style={styles.statValue}>
+                      {mealPlan!.status === 'published' ? 'Published' : 'Draft'}
+                        </Text>
+                    <Text style={styles.statLabel}>Status</Text>
+                  </View>
+                  <View style={styles.statItem}>
+                    <Text style={styles.statValue}>
+                      {mealPlan!.is_public ? 'Public' : 'Private'}
+                        </Text>
+                    <Text style={styles.statLabel}>Visibility</Text>
                       </View>
                     </View>
-
-                {/* Days Section */}
-                <View style={styles.daysSection}>
-                  <View style={styles.sectionHeader}>
-                    <Text style={styles.sectionTitle}>
-                      Days ({mealPlan.daily_plans?.length || 0}/7)
-                    </Text>
-                    <TouchableOpacity onPress={handleAddDay} style={styles.addDayButton}>
-                      <Ionicons name="add" size={20} color="#A78BFA" />
-                      <Text style={styles.addDayText}>Add Day</Text>
-                  </TouchableOpacity>
                   </View>
 
-                  {mealPlan.daily_plans && mealPlan.daily_plans.length > 0 ? (
-                    getSortedDailyPlans().map(renderDay)
-                  ) : (
-                    <View style={styles.emptyState}>
-                      <Text style={styles.emptyStateText}>
-                        No days added yet. Start by adding your first day!
-                      </Text>
-                    </View>
-                  )}
+              {/* Days Section */}
+              <View style={styles.daysSection}>
+                <View style={styles.sectionHeader}>
+                  <Text style={styles.sectionTitle}>
+                    Days ({mealPlan!.daily_plans?.length || 0}/7)
+                  </Text>
+                  <TouchableOpacity onPress={handleAddDay} style={styles.addDayButton}>
+                    <Ionicons name="add" size={20} color="#A78BFA" />
+                    <Text style={styles.addDayText}>Add Day</Text>
+                </TouchableOpacity>
                 </View>
-          </ScrollView>
-            ) : null}
-          </View>
-        </View>
-      </Modal>
 
-            {/* Add Day Modal */}
-      <Modal visible={showAddDayModal} animationType="slide" transparent>
-        <View style={styles.modalOverlay}>
-          <View style={styles.daySelectorContainer}>
-            <View style={styles.daySelectorHeader}>
-              <Text style={styles.daySelectorTitle}>Select Day to Add</Text>
-          <TouchableOpacity
-                onPress={() => setShowAddDayModal(false)}
-                style={styles.closeButton}
-              >
-                <Ionicons name="close" size={24} color="#1a1a1a" />
-              </TouchableOpacity>
-            </View>
-            
-            <View style={styles.dayOptionsContainer}>
-              {getAvailableDays().map((dayOption) => (
-                <TouchableOpacity
-                  key={dayOption.key}
-                  style={styles.dayOptionButton}
-                  onPress={async () => {
-                    setShowAddDayModal(false);
-                    await addDay(dayOption.key);
-                  }}
-                >
-                  <Text style={styles.dayOptionText}>
-                    {dayOption.label}
-            </Text>
-          </TouchableOpacity>
-              ))}
-            </View>
-          </View>
+                {mealPlan!.daily_plans && mealPlan!.daily_plans!.length > 0 ? (
+                  getSortedDailyPlans().map(renderDay)
+                ) : (
+                  <View style={styles.emptyState}>
+                    <Text style={styles.emptyStateText}>
+                      No days added yet. Start by adding your first day!
+                    </Text>
+                  </View>
+                )}
+              </View>
+        </ScrollView>
+          ) : null}
         </View>
-      </Modal>
+      </View>
+    </Modal>
 
-      {/* Add Meal Time Modal */}
-      <Modal visible={showAddMealTimeModal} animationType="slide" transparent>
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContainer}>
-            <Text style={styles.modalTitle}>Add Meal Time</Text>
-            {MEAL_TIME_TEMPLATES.map((template, index) => (
+          {/* Add Day Modal */}
+    <Modal visible={showAddDayModal} animationType="slide" transparent>
+      <View style={styles.modalOverlay}>
+        <View style={styles.daySelectorContainer}>
+          <View style={styles.daySelectorHeader}>
+            <Text style={styles.daySelectorTitle}>Select Day to Add</Text>
+        <TouchableOpacity
+              onPress={() => setShowAddDayModal(false)}
+              style={styles.closeButton}
+            >
+              <Ionicons name="close" size={24} color="#1a1a1a" />
+            </TouchableOpacity>
+          </View>
+          
+          <View style={styles.dayOptionsContainer}>
+            {getAvailableDays().map((dayOption) => (
               <TouchableOpacity
-                key={index}
-                style={styles.optionButton}
+                key={dayOption.key}
+                style={styles.dayOptionButton}
                 onPress={async () => {
-                  setShowAddMealTimeModal(false);
-                  await addMealTime(template.name, template.time);
+                  setShowAddDayModal(false);
+                  await addDay(dayOption.key);
                 }}
               >
-                <Text style={styles.optionText}>{template.name}</Text>
-                <Text style={styles.optionSubtext}>{template.time}</Text>
-              </TouchableOpacity>
+                <Text style={styles.dayOptionText}>
+                  {dayOption.label}
+          </Text>
+        </TouchableOpacity>
             ))}
-                  <TouchableOpacity
-              style={styles.cancelButton}
-                    onPress={() => {
+          </View>
+        </View>
+      </View>
+    </Modal>
+
+    {/* Add Meal Time Modal */}
+    <Modal visible={showAddMealTimeModal} animationType="slide" transparent>
+      <View style={styles.modalOverlay}>
+        <View style={styles.modalContainer}>
+          <Text style={styles.modalTitle}>Add Meal Time</Text>
+          {MEAL_TIME_TEMPLATES.map((template, index) => (
+        <TouchableOpacity
+              key={index}
+              style={styles.optionButton}
+              onPress={async () => {
                 setShowAddMealTimeModal(false);
+                await addMealTime(template.name, template.time);
+              }}
+            >
+              <Text style={styles.optionText}>{template.name}</Text>
+              <Text style={styles.optionSubtext}>{template.time}</Text>
+            </TouchableOpacity>
+          ))}
+                <TouchableOpacity
+            style={styles.cancelButton}
+                  onPress={() => {
+              setShowAddMealTimeModal(false);
+              setSelectedDayId(null);
+            }}
+          >
+            <Text style={styles.cancelButtonText}>Cancel</Text>
+          </TouchableOpacity>
+                      </View>
+                    </View>
+    </Modal>
+
+    {/* Add Food Modal */}
+    <Modal visible={showAddFoodModal} animationType="slide" transparent>
+      <View style={styles.modalOverlay}>
+        <View style={styles.modalContainer}>
+          <Text style={styles.modalTitle}>Add Food Item</Text>
+          
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search food items..."
+            value={foodSearchQuery}
+            onChangeText={setFoodSearchQuery}
+          />
+
+          <View style={styles.amountContainer}>
+            <TextInput
+              style={styles.amountInput}
+              placeholder="Amount"
+              value={foodAmount}
+              onChangeText={setFoodAmount}
+              keyboardType="numeric"
+            />
+            <Text style={styles.unitText}>{foodUnit}</Text>
+                  </View>
+
+          <FlatList
+            data={filteredFoodItems}
+            keyExtractor={(item) => item.id}
+            style={styles.foodList}
+            renderItem={({ item }) => (
+        <TouchableOpacity
+            style={[
+                  styles.foodOptionButton,
+                  selectedFoodItem?.id === item.id && styles.selectedFoodOption
+            ]}
+                onPress={() => setSelectedFoodItem(item)}
+          >
+                <Text style={styles.foodOptionName}>{item.name}</Text>
+                <Text style={styles.foodOptionInfo}>
+                  {item.calories} cal per {item.serving_size}{item.serving_unit}
+          </Text>
+        </TouchableOpacity>
+            )}
+          />
+
+          <View style={styles.modalActions}>
+        <TouchableOpacity
+              style={[styles.modalActionButton, styles.addFoodModalButton]}
+              onPress={async () => {
+                setShowAddFoodModal(false);
+                await addFood();
+              }}
+              disabled={!selectedFoodItem}
+            >
+              <Text style={styles.addFoodButtonText}>Add Food</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.cancelButton}
+              onPress={() => {
+                setShowAddFoodModal(false);
                 setSelectedDayId(null);
+                setSelectedMealTimeId(null);
+                setSelectedFoodItem(null);
+                setFoodSearchQuery('');
               }}
             >
               <Text style={styles.cancelButtonText}>Cancel</Text>
-            </TouchableOpacity>
-                        </View>
-                      </View>
-      </Modal>
-
-      {/* Add Food Modal */}
-      <Modal visible={showAddFoodModal} animationType="slide" transparent>
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContainer}>
-            <Text style={styles.modalTitle}>Add Food Item</Text>
-            
-            <TextInput
-              style={styles.searchInput}
-              placeholder="Search food items..."
-              value={foodSearchQuery}
-              onChangeText={setFoodSearchQuery}
-            />
-
-            <View style={styles.amountContainer}>
-              <TextInput
-                style={styles.amountInput}
-                placeholder="Amount"
-                value={foodAmount}
-                onChangeText={setFoodAmount}
-                keyboardType="numeric"
-              />
-              <Text style={styles.unitText}>{foodUnit}</Text>
-                    </View>
-
-            <FlatList
-              data={filteredFoodItems}
-              keyExtractor={(item) => item.id}
-              style={styles.foodList}
-              renderItem={({ item }) => (
-          <TouchableOpacity
-            style={[
-                    styles.foodOptionButton,
-                    selectedFoodItem?.id === item.id && styles.selectedFoodOption
-                  ]}
-                  onPress={() => setSelectedFoodItem(item)}
-                >
-                  <Text style={styles.foodOptionName}>{item.name}</Text>
-                  <Text style={styles.foodOptionInfo}>
-                    {item.calories} cal per {item.serving_size}{item.serving_unit}
-            </Text>
-          </TouchableOpacity>
-              )}
-            />
-
-            <View style={styles.modalActions}>
-          <TouchableOpacity
-                style={[styles.modalActionButton, styles.addFoodModalButton]}
-                onPress={async () => {
-                  setShowAddFoodModal(false);
-                  await addFood();
-                }}
-                disabled={!selectedFoodItem}
-              >
-                <Text style={styles.addFoodButtonText}>Add Food</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.cancelButton}
-                onPress={() => {
-                  setShowAddFoodModal(false);
-                  setSelectedDayId(null);
-                  setSelectedMealTimeId(null);
-                  setSelectedFoodItem(null);
-                  setFoodSearchQuery('');
-                }}
-              >
-                <Text style={styles.cancelButtonText}>Cancel</Text>
-          </TouchableOpacity>
-        </View>
+        </TouchableOpacity>
       </View>
-        </View>
-    </Modal>
-    </>
-  );
+    </View>
+      </View>
+  </Modal>
+  </>
+);
 };
 
 const styles = StyleSheet.create({
@@ -1049,5 +1156,101 @@ const styles = StyleSheet.create({
   addFoodButtonText: {
     color: '#fff',
     fontWeight: '600',
+  },
+  
+  // Completion styles
+  completionCheckbox: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: '#ddd',
+    backgroundColor: '#fff',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  completionCheckboxChecked: {
+    backgroundColor: '#4CAF50',
+    borderColor: '#4CAF50',
+  },
+  foodItemInfoCompleted: {
+    opacity: 0.7,
+  },
+  foodItemNameCompleted: {
+    textDecorationLine: 'line-through',
+    color: '#666',
+  },
+  foodItemStatsCompleted: {
+    color: '#999',
+  },
+  completedLabel: {
+    fontSize: 12,
+    color: '#4CAF50',
+    fontWeight: '600',
+    marginTop: 4,
+  },
+  foodItemActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  editButton: {
+    padding: 4,
+  },
+  
+  // Progress styles
+  progressContainer: {
+    marginTop: 8,
+  },
+  progressBar: {
+    height: 4,
+    backgroundColor: '#E0E0E0',
+    borderRadius: 2,
+    overflow: 'hidden',
+    marginBottom: 4,
+  },
+  progressFill: {
+    height: '100%',
+    backgroundColor: '#4CAF50',
+    borderRadius: 2,
+  },
+  progressText: {
+    fontSize: 12,
+    color: '#666',
+  },
+  completedBadge: {
+    marginLeft: 8,
+  },
+  mealTimeActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  
+  // Day completion styles
+  dayTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 4,
+  },
+  dayCompletedBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(76, 175, 80, 0.1)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  dayCompletedText: {
+    fontSize: 12,
+    color: '#4CAF50',
+    fontWeight: '600',
+    marginLeft: 4,
+  },
+  dayProgress: {
+    fontSize: 12,
+    color: '#A78BFA',
+    marginTop: 4,
   },
 });
