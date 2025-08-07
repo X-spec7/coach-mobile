@@ -291,6 +291,7 @@ export default function MealPlanScreen() {
             handleDeletePlan(selectedPlan.id, selectedPlan.title);
           }
         }}
+        onUpdate={fetchMealPlans}
       />
     </View>
   );
