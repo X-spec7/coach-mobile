@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { MealService, MealPlan } from '../services/mealService';
 import { CreateMealPlanModal } from '../modals/CreateMealPlanModal';
 import { MealPlanDetailsModal } from '../modals/MealPlanDetailsModal';
+import { ApplyMealPlanModal } from '../modals/ApplyMealPlanModal';
 import { useAuth } from '../contexts/AuthContext';
 
 export default function MealPlanScreen() {
@@ -15,6 +16,7 @@ export default function MealPlanScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [showApplyModal, setShowApplyModal] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<MealPlan | null>(null);
 
   useEffect(() => {
@@ -24,7 +26,7 @@ export default function MealPlanScreen() {
   const fetchMealPlans = async (isRefresh = false) => {
     if (isRefresh) {
       setRefreshing(true);
-    } else {
+      } else {
       setLoading(true);
     }
     
@@ -81,10 +83,10 @@ export default function MealPlanScreen() {
     );
   };
 
-  const handleChoosePlan = () => {
-    // Handle choosing/applying the meal plan
+  const handleChoosePlan = (plan: MealPlan) => {
+    setSelectedPlan(plan);
     setShowDetailsModal(false);
-    Alert.alert('Success', 'Meal plan applied successfully!');
+    setShowApplyModal(true);
   };
 
   const handleAssignPlan = () => {
@@ -108,7 +110,7 @@ export default function MealPlanScreen() {
               { backgroundColor: plan.status === 'published' ? '#4CAF50' : '#FFA726' }
             ]}>
               <Text style={styles.statusText}>{plan.status_display}</Text>
-            </View>
+        </View>
             <TouchableOpacity
               style={styles.deleteButton}
               onPress={(e) => {
@@ -117,8 +119,8 @@ export default function MealPlanScreen() {
               }}
             >
               <Ionicons name="trash-outline" size={20} color="#FF6B6B" />
-            </TouchableOpacity>
-          </View>
+          </TouchableOpacity>
+        </View>
           {plan.description && (
             <Text style={styles.planDescription} numberOfLines={2}>
               {plan.description}
@@ -174,13 +176,13 @@ export default function MealPlanScreen() {
       <Text style={styles.emptyStateText}>
         Create your first meal plan to get started
       </Text>
-      <TouchableOpacity 
+          <TouchableOpacity
         style={styles.emptyStateButton}
         onPress={() => setShowCreateModal(true)}
       >
         <Text style={styles.emptyStateButtonText}>Create Your First Plan</Text>
-      </TouchableOpacity>
-    </View>
+          </TouchableOpacity>
+        </View>
   );
 
   const renderMealPlansStats = () => {
@@ -210,10 +212,10 @@ export default function MealPlanScreen() {
       </View>
     );
   };
-  
+
   return (
-    <View style={styles.container}>
-      <ScrollView 
+      <View style={styles.container}>
+      <ScrollView
         style={styles.scrollView}
         refreshControl={
           <RefreshControl
@@ -229,18 +231,18 @@ export default function MealPlanScreen() {
           <View style={styles.statCard}>
             <Text style={styles.statValue}>2,100</Text>
             <Text style={styles.statLabel}>Daily Target</Text>
-          </View>
+                  </View>
           <View style={styles.statCard}>
             <Text style={styles.statValue}>85%</Text>
             <Text style={styles.statLabel}>Completion</Text>
-          </View>
+              </View>
         </View>
 
         {/* Meal Plans Section */}
         <View style={styles.sectionContainer}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>My Meal Plans</Text>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.addButton}
               onPress={() => setShowCreateModal(true)}
             >
@@ -259,11 +261,11 @@ export default function MealPlanScreen() {
           ) : mealPlans.length > 0 ? (
             <View style={styles.plansContainer}>
               {mealPlans.map(renderMealPlan)}
-            </View>
+        </View>
           ) : (
             renderEmptyMealPlans()
-          )}
-        </View>
+              )}
+            </View>
       </ScrollView>
 
       {/* Modals */}
@@ -292,6 +294,16 @@ export default function MealPlanScreen() {
           }
         }}
         onUpdate={fetchMealPlans}
+      />
+
+      <ApplyMealPlanModal
+        visible={showApplyModal}
+        onClose={() => setShowApplyModal(false)}
+        mealPlan={selectedPlan}
+        onSuccess={() => {
+          setShowApplyModal(false);
+          fetchMealPlans();
+        }}
       />
     </View>
   );

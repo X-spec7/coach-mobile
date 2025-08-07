@@ -237,37 +237,76 @@ export const MealPlanDetailsModal: React.FC<MealPlanDetailsModalProps> = ({
   const handleTogglePublic = async () => {
     if (!mealPlan) return;
 
-    setLoading(true);
-    try {
-      await MealService.updateMealPlan(mealPlan.id, {
-        is_public: !mealPlan.is_public
-      });
-      await fetchMealPlanDetails();
-      Alert.alert('Success', `Meal plan is now ${!mealPlan.is_public ? 'public' : 'private'}`);
-    } catch (error) {
-      console.error('Error updating meal plan:', error);
-      Alert.alert('Error', 'Failed to update meal plan');
-    } finally {
-      setLoading(false);
-    }
+    const newPublicStatus = !mealPlan.is_public;
+    const action = newPublicStatus ? 'make public' : 'make private';
+
+    Alert.alert(
+      `${action.charAt(0).toUpperCase() + action.slice(1)}`,
+      `Are you sure you want to ${action} this meal plan? ${newPublicStatus ? 'Other users will be able to discover and apply it.' : 'It will no longer be visible to other users.'}`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: action.charAt(0).toUpperCase() + action.slice(1),
+          onPress: async () => {
+            try {
+              await MealService.updateMealPlan(mealPlan.id, { 
+                is_public: newPublicStatus 
+              });
+              await fetchMealPlanDetails();
+              onUpdate?.();
+              
+              setTimeout(() => {
+                Alert.alert(
+                  'Success', 
+                  `Meal plan is now ${newPublicStatus ? 'public' : 'private'}.`
+                );
+              }, 100);
+            } catch (error) {
+              console.error('Error updating meal plan visibility:', error);
+              const errorMessage = error instanceof Error ? error.message : 'Failed to update meal plan visibility';
+              if (errorMessage.includes('Authentication required')) {
+                onClose();
+              } else {
+                Alert.alert('Error', errorMessage);
+              }
+            }
+          },
+        },
+      ]
+    );
   };
 
   const handlePublish = async () => {
     if (!mealPlan) return;
 
-    setLoading(true);
-    try {
-      await MealService.updateMealPlan(mealPlan.id, {
-        status: 'published'
-      });
-      await fetchMealPlanDetails();
-      Alert.alert('Success', 'Meal plan published successfully!');
-    } catch (error) {
-      console.error('Error publishing meal plan:', error);
-      Alert.alert('Error', 'Failed to publish meal plan');
-    } finally {
-      setLoading(false);
-    }
+    const newStatus = mealPlan.status === 'published' ? 'draft' : 'published';
+    const action = newStatus === 'published' ? 'publish' : 'unpublish';
+
+    Alert.alert(
+      `${action.charAt(0).toUpperCase() + action.slice(1)} Plan`,
+      `Are you sure you want to ${action} this meal plan?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: action.charAt(0).toUpperCase() + action.slice(1),
+          onPress: async () => {
+            try {
+              await MealService.updateMealPlan(mealPlan.id, { status: newStatus });
+              await fetchMealPlanDetails();
+              onUpdate?.();
+            } catch (error) {
+              console.error('Error updating meal plan:', error);
+              const errorMessage = error instanceof Error ? error.message : 'Failed to update meal plan';
+              if (errorMessage.includes('Authentication required')) {
+                onClose();
+              } else {
+                Alert.alert('Error', errorMessage);
+              }
+            }
+          },
+        },
+      ]
+    );
   };
 
   const filteredFoodItems = foodItems.filter(item =>

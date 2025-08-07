@@ -69,6 +69,14 @@ export default function ActivityScreen() {
       onPress: () => router.push('/workout-assignments'),
     },
     {
+      id: 'meal-assignments',
+      title: 'Meal Plan Assignments',
+      subtitle: 'View applied meal plans',
+      icon: 'restaurant' as const,
+      color: '#66BB6A',
+      onPress: () => router.push('/meal-assignments'),
+    },
+    {
       id: 'messages',
       title: 'Messages',
       subtitle: 'Chat with coaches and clients',
@@ -181,8 +189,19 @@ export default function ActivityScreen() {
                 <View style={styles.menuIcon}>
                   <Ionicons name="clipboard" size={24} color="#A78BFA" />
                 </View>
-                <Text style={styles.menuTitle}>Client Assignments</Text>
-                <Text style={styles.menuSubtitle}>Track assigned programs</Text>
+                <Text style={styles.menuTitle}>Workout Assignments</Text>
+                <Text style={styles.menuSubtitle}>Track assigned workout plans</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity 
+                style={styles.menuItem}
+                onPress={() => router.push('/meal-assignments')}
+              >
+                <View style={styles.menuIcon}>
+                  <Ionicons name="restaurant" size={24} color="#A78BFA" />
+                </View>
+                <Text style={styles.menuTitle}>Meal Assignments</Text>
+                <Text style={styles.menuSubtitle}>Track applied meal plans</Text>
               </TouchableOpacity>
 
               <TouchableOpacity 
