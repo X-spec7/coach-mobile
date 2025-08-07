@@ -10,7 +10,15 @@ const getApiBaseUrl = () => {
   return "http://52.15.195.49:8000/api";
 };
 
+const getWsBaseUrl = () => {
+  if (process.env.EXPO_PUBLIC_WS_BASE_URL) {
+    return process.env.EXPO_PUBLIC_WS_BASE_URL;
+  }
+  return "ws://52.15.195.49:8000";
+};
+
 export const API_BASE_URL = getApiBaseUrl();
+export const WS_BASE_URL = getWsBaseUrl()
 
 export const API_ENDPOINTS = {
   AUTH: {

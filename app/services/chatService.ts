@@ -1,4 +1,4 @@
-import { API_BASE_URL } from '@/constants/api';
+import { API_BASE_URL, WS_BASE_URL } from '@/constants/api';
 import { getAuthHeaders } from './api';
 import { authenticatedFetch } from '../utils/auth';
 
@@ -114,8 +114,7 @@ class WebSocketService {
 
       try {
         // Match web frontend URL pattern - remove the extra /chat/ path
-        const wsUrl = `ws://${API_BASE_URL.replace('http://', '').replace('https://', '')}/chat/${userId}/`;
-        console.log('[WebSocketService] API_BASE_URL:', API_BASE_URL);
+        const wsUrl = `${WS_BASE_URL}/chat/${userId}/`;
         console.log('[WebSocketService] Connecting to:', wsUrl);
         console.log('[WebSocketService] User ID:', userId);
         

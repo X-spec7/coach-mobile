@@ -1,4 +1,4 @@
-import { API_ENDPOINTS } from "../constants/api";
+import { API_ENDPOINTS } from "@/constants/api";
 import { getAuthHeaders, getAuthHeadersForDelete } from "./api";
 import { authenticatedFetch } from "../utils/auth";
 

@@ -1,796 +1,500 @@
-import React, { useState, useEffect } from "react";
-import {
-  View,
-  StyleSheet,
-  Dimensions,
-  Text,
-  TouchableOpacity,
-  Modal,
-  Pressable,
-  ScrollView,
-  ActivityIndicator,
-  Alert,
-} from "react-native";
-import { resolveImageUri } from "@/utils/resolveImageUri";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { useRouter } from "expo-router";
-import { Colors } from "@/constants/Colors";
-import { useColorScheme } from "@/hooks/useColorScheme";
-import Carousel from "react-native-reanimated-carousel";
-import { MealPlanCard } from "../components/MealPlanCard";
-import { Ionicons } from "@expo/vector-icons";
-import { PreferenceModal } from "../modals/PreferenceModal";
-import { SetMacrosModal } from "../modals/SetMacrosModal";
-import { AboutPlanModal } from "../modals/AboutPlanModal";
-import ChangePlanModal from "../modals/ChangePlanModal";
-import { FoodDislikesModal } from "../modals/FoodDislikesModal";
-import MealPlanDetailsModal from "../modals/MealPlanDetailsModal";
-import ChangeFoodModal from "../modals/ChangeFoodModal";
-import CreateMealPlanModal from "../modals/CreateMealPlanModal";
-import {
-  fetchMealPlans,
-  fetchMealPlanDetails,
-  fetchAllFoods,
-  MealPlan,
-  MealPlanDetails,
-  Food,
-  SuitableFood,
-  updateMealPlan,
-  updateMealPlanFoodItem,
-  selectMealPlan,
-  deleteMealPlan,
-  getAuthHeaders,
-} from "../services/api";
-import { useAuth } from "../contexts/AuthContext";
-import { API_BASE_URL } from "@/constants/api";
-const { width } = Dimensions.get("window");
-
-const menuItems = [
-  { key: "preference", label: "Preference" },
-  { key: "setMacros", label: "Set Macros" },
-  { key: "aboutPlan", label: "About Your Plan" },
-  { key: "changePlan", label: "Change Plan" },
-];
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, ActivityIndicator, RefreshControl } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { Ionicons } from '@expo/vector-icons';
+import { MealService, MealPlan } from '../services/mealService';
+import CreateMealPlanModal from '../modals/CreateMealPlanModal';
+import { MealPlanDetailsModal } from '../modals/MealPlanDetailsModal';
+import { useAuth } from '../contexts/AuthContext';
 
 export default function MealPlanScreen() {
-  const router = useRouter();
+  console.log('MealPlanScreen rendering...');
+  
   const { user } = useAuth();
-  const colorScheme = useColorScheme();
-  const [meals, setMeals] = useState<MealPlan[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [selectedId, setSelectedId] = useState<number | null>(null);
-  const [modal, setModal] = useState<string | null>(null);
-  const selectedMeal = meals.find((m) => m.id === selectedId);
-  const [showSetMacrosModal, setShowSetMacrosModal] = useState(false);
-  const [showAssignMealPlanModal, setShowAssignMealPlanModal] = useState(false);
-  const [macros, setMacros] = useState({
-    calories: 2904,
-    carbs: 276,
-    protein: 126,
-    fat: 142,
-  });
-  const [showAboutPlanModal, setShowAboutPlanModal] = useState(false);
-  const [showPlanDetails, setShowPlanDetails] = useState(false);
-  const [planDetails, setPlanDetails] = useState<MealPlanDetails | null>(null);
-  const [showChangeFoodModal, setShowChangeFoodModal] = useState(false);
-  const [suitableFoods, setSuitableFoods] = useState<SuitableFood[]>([]);
-  const [isLoadingFoods, setIsLoadingFoods] = useState(false);
-  const [isUpdatingMacros, setIsUpdatingMacros] = useState(false);
-  const [updateError, setUpdateError] = useState<string | null>(null);
-  const [carouselKey, setCarouselKey] = useState(0);
-  const [isUpdatingFood, setIsUpdatingFood] = useState(false);
-  const [showCreateMealPlanModal, setShowCreateMealPlanModal] = useState(false);
-  const [selectedClient, setSelectedClient] = useState<string>("");
-
-  const handleClientChange = (clientId: string) => {
-    setSelectedClient(clientId);
-  };
-
-  const allFoodItemIds = selectedMeal?.meal_times
-    .flatMap((mt) => mt.mealplan_food_items)
-    .map((item) => item.food_item_details.id);
+  const [mealPlans, setMealPlans] = useState<MealPlan[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [selectedPlan, setSelectedPlan] = useState<MealPlan | null>(null);
 
   useEffect(() => {
-    loadMealPlans();
+    fetchMealPlans();
   }, []);
 
-  const loadMealPlans = async () => {
-    try {
-      setIsLoading(true);
-      setError(null);
-      const data = await fetchMealPlans();
-      setMeals(data);
-      if (data.length > 0) {
-        setSelectedId(data[0].id);
-      }
-    } catch (err) {
-      const errorMessage =
-        err instanceof Error
-          ? err.message
-          : "Failed to load meal plans. Please try again later.";
-      if (errorMessage === "Authentication required") {
-        setError("Please sign in to view meal plans");
-        router.replace("/(auth)/login-register");
-      } else {
-        setError(errorMessage);
-      }
-      console.error("Error loading meal plans:", err);
-    } finally {
-      setIsLoading(false);
+  const fetchMealPlans = async (isRefresh = false) => {
+    if (isRefresh) {
+      setRefreshing(true);
+    } else {
+      setLoading(true);
     }
-  };
-
-  const handleMealSelect = async (meal: MealPlan) => {
+    
     try {
-      const details = await fetchMealPlanDetails(meal.id);
-      setPlanDetails(details);
-      setShowPlanDetails(true);
-    } catch (err) {
-      const errorMessage =
-        err instanceof Error ? err.message : "Failed to load meal details";
-      if (errorMessage === "Authentication required") {
-        router.replace("/(auth)/login-register");
-      } else {
-        console.error("Error loading meal details:", err);
-      }
-    }
-  };
-
-  useEffect(() => {
-    loadAllFoods();
-  }, []);
-
-  const loadAllFoods = async () => {
-    try {
-      setIsLoadingFoods(true);
-      const foods = await fetchAllFoods();
-      setSuitableFoods(foods);
-    } catch (err) {
-      const errorMessage =
-        err instanceof Error ? err.message : "Failed to load foods";
-      if (errorMessage === "Authentication required") {
-        router.replace("/(auth)/login-register");
-      } else {
-        console.error("Error loading foods:", err);
-      }
-    } finally {
-      setIsLoadingFoods(false);
-    }
-  };
-
-  const handleMacroUpdate = async (newMacros: {
-    calories: number;
-    protein: number;
-    fat: number;
-    carb: number;
-  }) => {
-    if (!selectedMeal) return;
-
-    try {
-      setIsUpdatingMacros(true);
-      setUpdateError(null);
-
-      // Update the meals state with the new data
-      setMeals((prevMeals) =>
-        prevMeals.map((meal) =>
-          meal.id === selectedMeal.id
-            ? {
-                ...meal,
-                protein: newMacros.protein,
-                fat: newMacros.fat,
-                carb: newMacros.carb,
-                calories: newMacros.calories,
-              }
-            : meal
-        )
-      );
-
-      // Force Carousel to update by setting a new key
-      setCarouselKey((prev) => prev + 1);
-      setShowSetMacrosModal(false);
+      const response = await MealService.getMealPlans();
+      setMealPlans(response.meal_plans);
     } catch (error) {
-      setUpdateError(
-        error instanceof Error ? error.message : "Failed to update macros"
-      );
+      console.error('Error fetching meal plans:', error);
+      
+      const errorMessage = error instanceof Error ? error.message : 'Failed to load meal plans';
+      
+      // Don't show alert for authentication required errors - user might not be logged in yet
+      if (errorMessage.includes('Authentication required')) {
+        console.log('User not authenticated, skipping meal plans fetch');
+        setMealPlans([]); // Clear any existing plans
+      } else {
+        Alert.alert('Error', errorMessage);
+      }
     } finally {
-      setIsUpdatingMacros(false);
+      setLoading(false);
+      setRefreshing(false);
     }
   };
 
-  const handleFoodUpdate = async (newFood: SuitableFood) => {
-    try {
-      if (!selectedMeal) return;
-
-      // Get the first meal time and its first food item
-      const firstMealTime = selectedMeal.meal_times[0];
-      const firstFoodItem = firstMealTime.mealplan_food_items[0];
-
-      if (!firstMealTime || !firstFoodItem) {
-        throw new Error("No food item found to update");
-      }
-
-      // Update the food item using the API
-      const updatedMealPlan = await updateMealPlanFoodItem(
-        selectedMeal.id,
-        firstMealTime.id,
-        firstFoodItem.id,
-        newFood
-      );
-
-      // Update local state with the response from the API
-      setMeals((prevMeals) =>
-        prevMeals.map((meal) => {
-          if (meal.id !== selectedMeal.id) return meal;
-          return updatedMealPlan;
-        })
-      );
-
-      // Force Carousel to update by setting a new key
-      setCarouselKey((prev) => prev + 1);
-      setShowChangeFoodModal(false);
-
-      // Show success message
-      Alert.alert("Success", "Food item updated successfully!", [
-        { text: "OK" },
-      ]);
-    } catch (error) {
-      const errorMessage =
-        error instanceof Error
-          ? error.message
-          : "Failed to update food item. Please try again.";
-
-      // Show error alert
-      Alert.alert("Error", errorMessage, [{ text: "OK" }]);
-    }
+  const handleRefresh = () => {
+    fetchMealPlans(true);
   };
 
-  const handleCreateMealPlan = async (formData: FormData) => {
-    console.log("=== handleCreateMealPlan ===");
-    console.log("formData:", formData);
-    try {
-      let fetchOptions: RequestInit = { method: "POST" };
-      const url = `${API_BASE_URL}/mealplan/create/`;
-      let headers = await getAuthHeaders();
-      if (headers["Content-Type"]) delete headers["Content-Type"];
-      fetchOptions.body = formData;
-      fetchOptions.headers = headers;
+  const handlePlanPress = (plan: MealPlan) => {
+    setSelectedPlan(plan);
+    setShowDetailsModal(true);
+  };
 
-      const response = await fetch(url, fetchOptions);
-      const mealPlan = await response.json();
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message);
-      }
-
-      // Assign to client
-      if (selectedClient) {
-        console.log("assigning to client", selectedClient);
-        const assignResponse = await fetch("/api/meal-plans/assign", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
+  const handleDeletePlan = async (planId: string, planTitle: string) => {
+    Alert.alert(
+      'Delete Meal Plan',
+      `Are you sure you want to delete "${planTitle}"? This action cannot be undone.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await MealService.deleteMealPlan(planId);
+              await fetchMealPlans();
+            } catch (error) {
+              console.error('Error deleting meal plan:', error);
+              Alert.alert('Error', 'Failed to delete meal plan');
+            }
           },
-          body: JSON.stringify({
-            mealPlanId: mealPlan.id,
-            clientId: Number(selectedClient),
-          }),
-        });
-
-        if (!assignResponse.ok) {
-          const error = await assignResponse.json();
-          throw new Error(error.message);
-        }
-      }
-      // Refresh meal plans
-      await loadMealPlans();
-
-      Alert.alert("Success", "Meal plan created successfully!");
-    } catch (error: any) {
-      Alert.alert(
-        "Error",
-        error.message || "Failed to create meal plan. Please try again."
-      );
-    }
-  };
-
-  const handleSelectMealPlan = async () => {
-    if (!planDetails?.mealPlan?.id) {
-      Alert.alert("Error", "No meal plan selected");
-      return;
-    }
-
-    try {
-      await selectMealPlan(planDetails.mealPlan.id);
-
-      // Update the selected meal plan in local state
-      setSelectedId(planDetails.mealPlan.id);
-
-      // Close the modal
-      setShowPlanDetails(false);
-
-      // Show success message
-      Alert.alert("Success", "Meal plan selected successfully!");
-    } catch (error: any) {
-      const errorMessage =
-        error.message || "Failed to select meal plan. Please try again.";
-      Alert.alert("Error", errorMessage);
-    }
-  };
-
-  const handleAssignMealPlan = async () => {
-    console.log("handleAssignMealPlan");
-  };
-
-  const handleDeleteMealPlan = async () => {
-    if (!planDetails?.mealPlan?.id) {
-      Alert.alert("Error", "No meal plan selected");
-      return;
-    }
-
-    try {
-      await deleteMealPlan(planDetails.mealPlan.id);
-
-      // Remove the deleted meal plan from local state
-      const updatedMeals = meals.filter(
-        (meal) => meal.id !== planDetails.mealPlan.id
-      );
-      setMeals(updatedMeals);
-
-      // Select next meal plan or set to null if no meals left
-      if (updatedMeals.length > 0) {
-        // Find the index of the deleted meal plan
-        const deletedIndex = meals.findIndex(
-          (meal) => meal.id === planDetails.mealPlan.id
-        );
-
-        // Select the next meal plan (or the previous one if we're at the end)
-        let nextIndex = deletedIndex;
-        if (deletedIndex >= updatedMeals.length) {
-          nextIndex = updatedMeals.length - 1; // Select the last meal plan
-        }
-
-        setSelectedId(updatedMeals[nextIndex].id);
-      } else {
-        // No meals left, set to null
-        setSelectedId(null);
-      }
-
-      // Close the modal
-      setShowPlanDetails(false);
-
-      // Show success message
-      Alert.alert("Success", "Meal plan deleted successfully!");
-    } catch (error: any) {
-      const errorMessage =
-        error.message || "Failed to delete meal plan. Please try again.";
-      Alert.alert("Error", errorMessage);
-    }
-  };
-
-  if (isLoading) {
-    return (
-      <SafeAreaView
-        style={[
-          styles.container,
-          { backgroundColor: Colors[colorScheme ?? "light"].background },
-        ]}
-      >
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#7C3AED" />
-          <Text style={styles.loadingText}>Loading meal plans...</Text>
-        </View>
-      </SafeAreaView>
+        },
+      ]
     );
-  }
+  };
 
-  if (error) {
-    return (
-      <SafeAreaView
-        style={[
-          styles.container,
-          { backgroundColor: Colors[colorScheme ?? "light"].background },
-        ]}
-      >
-        <View style={styles.errorContainer}>
-          <Text style={styles.errorText}>{error}</Text>
-          <TouchableOpacity style={styles.retryButton} onPress={loadMealPlans}>
-            <Text style={styles.retryButtonText}>Retry</Text>
-          </TouchableOpacity>
-        </View>
-      </SafeAreaView>
-    );
-  }
+  const handleChoosePlan = () => {
+    // Handle choosing/applying the meal plan
+    setShowDetailsModal(false);
+    Alert.alert('Success', 'Meal plan applied successfully!');
+  };
 
-  if (!selectedMeal) {
-    return (
-      <SafeAreaView
-        style={[
-          styles.container,
-          { backgroundColor: Colors[colorScheme ?? "light"].background },
-        ]}
-      >
-        <View style={styles.errorContainer}>
-          <Text style={styles.errorText}>No meal plans available</Text>
-          <TouchableOpacity
-            style={styles.createPlanButton}
-            onPress={() => {
-              console.log("Button pressed, setting modal to true");
-              setShowCreateMealPlanModal(true);
-            }}
-          >
-            <Ionicons name="add-circle-outline" size={24} color="#fff" />
-            <Text style={styles.createPlanButtonText}>
-              Create New Meal Plan
-            </Text>
-          </TouchableOpacity>
-        </View>
-        <CreateMealPlanModal
-          visible={showCreateMealPlanModal}
-          onClose={() => setShowCreateMealPlanModal(false)}
-          onSubmit={handleCreateMealPlan}
-        />
-      </SafeAreaView>
-    );
-  }
+  const handleAssignPlan = () => {
+    // Handle assigning the meal plan to client
+    setShowDetailsModal(false);
+    Alert.alert('Info', 'Assignment functionality coming soon!');
+  };
 
-  return (
-    <SafeAreaView
-      style={[
-        styles.container,
-        { backgroundColor: Colors[colorScheme ?? "light"].background },
-      ]}
+  const renderMealPlan = (plan: MealPlan) => (
+    <TouchableOpacity
+      key={plan.id}
+      style={styles.planCard}
+      onPress={() => handlePlanPress(plan)}
     >
-      <View style={styles.container}>
-        <TouchableOpacity
-          style={{
-            marginTop: 20,
-            alignSelf: "flex-end",
-            padding: 4,
-          }}
-          onPress={() => setShowCreateMealPlanModal(true)}
-        >
-          <Ionicons name="add-circle-outline" size={32} color="#7C3AED" />
-        </TouchableOpacity>
-      </View>
-      <ScrollView
-        contentContainerStyle={{ paddingBottom: 32 }}
-        showsVerticalScrollIndicator={false}
-      >
-        <View style={styles.carouselWrap}>
-          <Carousel
-            key={carouselKey}
-            width={320}
-            height={280}
-            data={meals}
-            style={{ width: width, alignSelf: "center" }}
-            defaultIndex={Math.max(
-              0,
-              meals.findIndex((m) => m.id === selectedId)
-            )}
-            renderItem={({ item }) => (
-              <View>
-                <MealPlanCard
-                  key={item.id}
-                  image={
-                    resolveImageUri(
-                      typeof item.image === "string" ? item.image : null
-                    )
-                      ? {
-                          uri: resolveImageUri(
-                            typeof item.image === "string" ? item.image : null
-                          )!,
-                        }
-                      : require("../../assets/images/plan-placeholder.png")
-                  }
-                  title={item.title ?? item.name ?? ""}
-                  protein={item.protein ?? 0}
-                  fat={item.fat ?? 0}
-                  carbs={item.carbs ?? 0}
-                  selected={selectedId === item.id}
-                  onTitlePress={() => handleMealSelect(item)}
-                />
-                {isUpdatingMacros && selectedId === item.id && (
-                  <View style={styles.loadingOverlay}>
-                    <ActivityIndicator size="large" color="#7C3AED" />
-                    <Text style={styles.loadingText}>Updating macros...</Text>
-                  </View>
-                )}
-              </View>
-            )}
-            mode="parallax"
-            pagingEnabled
-            onSnapToItem={(index) => setSelectedId(meals[index].id)}
-          />
-        </View>
-        <View style={styles.menuSection}>
-          {menuItems.map((item, idx) => (
+      <View style={styles.planContent}>
+        <View style={styles.planInfo}>
+          <View style={styles.planHeader}>
+            <Text style={styles.planTitle}>{plan.title}</Text>
+            <View style={[
+              styles.statusBadge,
+              { backgroundColor: plan.status === 'published' ? '#4CAF50' : '#FFA726' }
+            ]}>
+              <Text style={styles.statusText}>{plan.status_display}</Text>
+            </View>
             <TouchableOpacity
-              key={item.key}
-              style={styles.menuRow}
-              activeOpacity={0.7}
-              onPress={() => {
-                if (item.key === "setMacros") setShowSetMacrosModal(true);
-                else if (item.key === "aboutPlan") setShowAboutPlanModal(true);
-                else if (item.key === "changePlan")
-                  setShowChangeFoodModal(true);
-                else setModal(item.key);
+              style={styles.deleteButton}
+              onPress={(e) => {
+                e.stopPropagation();
+                handleDeletePlan(plan.id, plan.title);
               }}
             >
-              <Text style={styles.menuLabel}>{item.label}</Text>
-              <Ionicons name="chevron-forward" size={20} color="#94A3B8" />
+              <Ionicons name="trash-outline" size={20} color="#FF6B6B" />
             </TouchableOpacity>
-          ))}
+          </View>
+          {plan.description && (
+            <Text style={styles.planDescription} numberOfLines={2}>
+              {plan.description}
+            </Text>
+          )}
+          <View style={styles.planStats}>
+            <View style={styles.statItem}>
+              <Ionicons name="calendar-outline" size={16} color="#666" />
+              <Text style={styles.statText}>
+                {plan.daily_plans_count || 0} days
+              </Text>
+            </View>
+            <View style={styles.statItem}>
+              <Ionicons name="flame-outline" size={16} color="#666" />
+              <Text style={styles.statText}>
+                {plan.total_calories} cal
+              </Text>
+            </View>
+            <View style={styles.statItem}>
+              <Ionicons name="nutrition-outline" size={16} color="#666" />
+              <Text style={styles.statText}>
+                P: {plan.total_protein}g
+              </Text>
+            </View>
+            <View style={styles.statItem}>
+              <Ionicons name="leaf-outline" size={16} color="#666" />
+              <Text style={styles.statText}>
+                C: {plan.total_carbs}g
+              </Text>
+            </View>
+            <View style={styles.statItem}>
+              <Ionicons name="water-outline" size={16} color="#666" />
+              <Text style={styles.statText}>
+                F: {plan.total_fat}g
+              </Text>
+            </View>
+            <View style={styles.statItem}>
+              <Ionicons name="time-outline" size={16} color="#666" />
+              <Text style={styles.statText}>
+                {new Date(plan.updated_at).toLocaleDateString()}
+              </Text>
+            </View>
+          </View>
+        </View>
+      </View>
+    </TouchableOpacity>
+  );
+
+  const renderEmptyMealPlans = () => (
+    <View style={styles.emptyState}>
+      <Ionicons name="restaurant-outline" size={48} color="#666" />
+      <Text style={styles.emptyStateTitle}>No Meal Plans Yet</Text>
+      <Text style={styles.emptyStateText}>
+        Create your first meal plan to get started
+      </Text>
+      <TouchableOpacity 
+        style={styles.emptyStateButton}
+        onPress={() => setShowCreateModal(true)}
+      >
+        <Text style={styles.emptyStateButtonText}>Create Your First Plan</Text>
+      </TouchableOpacity>
+    </View>
+  );
+
+  const renderMealPlansStats = () => {
+    const totalPlans = mealPlans.length;
+    const publishedPlans = mealPlans.filter(plan => plan.status === 'published').length;
+    const totalCalories = mealPlans.reduce((sum, plan) => sum + plan.total_calories, 0);
+    const avgProtein = mealPlans.length > 0 ? Math.round(mealPlans.reduce((sum, plan) => sum + plan.total_protein, 0) / mealPlans.length) : 0;
+
+    return (
+      <View style={styles.plansStatsContainer}>
+        <View style={styles.planStatCard}>
+          <Text style={styles.planStatValue}>{totalPlans}</Text>
+          <Text style={styles.planStatLabel}>Total Plans</Text>
+        </View>
+        <View style={styles.planStatCard}>
+          <Text style={styles.planStatValue}>{publishedPlans}</Text>
+          <Text style={styles.planStatLabel}>Published</Text>
+        </View>
+        <View style={styles.planStatCard}>
+          <Text style={styles.planStatValue}>{totalCalories}</Text>
+          <Text style={styles.planStatLabel}>Total Calories</Text>
+        </View>
+        <View style={styles.planStatCard}>
+          <Text style={styles.planStatValue}>{avgProtein}g</Text>
+          <Text style={styles.planStatLabel}>Avg Protein</Text>
+        </View>
+      </View>
+    );
+  };
+  
+  return (
+    <View style={styles.container}>
+      <ScrollView 
+        style={styles.scrollView}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+            tintColor="#A78BFA"
+          />
+        }
+      >
+        <Text style={styles.title}>Meal Plans</Text>
+        
+        <View style={styles.statsContainer}>
+          <View style={styles.statCard}>
+            <Text style={styles.statValue}>2,100</Text>
+            <Text style={styles.statLabel}>Daily Target</Text>
+          </View>
+          <View style={styles.statCard}>
+            <Text style={styles.statValue}>85%</Text>
+            <Text style={styles.statLabel}>Completion</Text>
+          </View>
+        </View>
+
+        {/* Meal Plans Section */}
+        <View style={styles.sectionContainer}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>My Meal Plans</Text>
+            <TouchableOpacity 
+              style={styles.addButton}
+              onPress={() => setShowCreateModal(true)}
+            >
+              <Ionicons name="add" size={20} color="#A78BFA" />
+              <Text style={styles.addButtonText}>Create Plan</Text>
+            </TouchableOpacity>
+          </View>
+
+          {mealPlans.length > 0 && renderMealPlansStats()}
+
+          {loading ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color="#A78BFA" />
+              <Text style={styles.loadingText}>Loading meal plans...</Text>
+            </View>
+          ) : mealPlans.length > 0 ? (
+            <View style={styles.plansContainer}>
+              {mealPlans.map(renderMealPlan)}
+            </View>
+          ) : (
+            renderEmptyMealPlans()
+          )}
         </View>
       </ScrollView>
+
       {/* Modals */}
-      {menuItems
-        .filter((item) => item.key !== "changePlan")
-        .map((item) => (
-          <Modal
-            key={item.key}
-            visible={modal === item.key}
-            animationType="slide"
-            transparent
-            onRequestClose={() => setModal(null)}
-          >
-            <View style={styles.modalOverlay}>
-              {item.key === "preference" ? (
-                <PreferenceModal
-                  onClose={() => setModal(null)}
-                  onSave={(prefs) => {
-                    // handle save logic here if needed
-                    setModal(null);
-                  }}
-                />
-              ) : (
-                <View style={styles.modalContent}>
-                  <Text style={styles.modalTitle}>{item.label}</Text>
-                  <Text style={styles.modalBody}>
-                    This is the {item.label} modal.
-                  </Text>
-                  <Pressable
-                    style={styles.closeButton}
-                    onPress={() => setModal(null)}
-                  >
-                    <Text style={styles.closeButtonText}>Close</Text>
-                  </Pressable>
-                </View>
-              )}
-            </View>
-          </Modal>
-        ))}
-      <SetMacrosModal
-        visible={showSetMacrosModal}
-        onClose={() => {
-          setShowSetMacrosModal(false);
-          setUpdateError(null);
-        }}
-        onSave={handleMacroUpdate}
-        isLoading={isUpdatingMacros}
-        error={updateError}
-        initialValues={
-          selectedMeal
-            ? {
-                calories: selectedMeal.calories ?? 0,
-                carb: selectedMeal.carbs ?? 0,
-                protein: selectedMeal.protein ?? 0,
-                fat: selectedMeal.fat ?? 0,
-              }
-            : undefined
-        }
-      />
-      <AboutPlanModal
-        visible={showAboutPlanModal}
-        mealPlans={meals}
-        selectedMeal={selectedMeal}
-        onClose={() => setShowAboutPlanModal(false)}
-        onChange={() => {
-          setShowAboutPlanModal(false);
-          // Optionally open change plan modal here
-        }}
-      />
-      <MealPlanDetailsModal
-        visible={showPlanDetails}
-        onClose={() => setShowPlanDetails(false)}
-        plan={planDetails}
-        onChoose={handleSelectMealPlan}
-        onAssign={handleAssignMealPlan}
-        onDelete={handleDeleteMealPlan}
-      />
-      <ChangeFoodModal
-        visible={showChangeFoodModal && !!selectedMeal}
-        foods={suitableFoods.filter((food) =>
-          allFoodItemIds?.includes(food.id)
-        )}
-        suitableFoods={suitableFoods.filter(
-          (food) => !allFoodItemIds?.includes(food.id)
-        )}
-        onClose={() => setShowChangeFoodModal(false)}
-        onSave={handleFoodUpdate}
-      />
       <CreateMealPlanModal
-        visible={showCreateMealPlanModal}
-        onClose={() => setShowCreateMealPlanModal(false)}
-        onSubmit={handleCreateMealPlan}
-        selectedClient={selectedClient}
-        handleClientChange={handleClientChange}
+        visible={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+        onSubmit={async (data: FormData) => {
+          // Handle form submission
+          try {
+            console.log('Meal plan form submitted:', data);
+            await fetchMealPlans();
+            setShowCreateModal(false);
+          } catch (error) {
+            console.error('Error creating meal plan:', error);
+            Alert.alert('Error', 'Failed to create meal plan');
+          }
+        }}
+        selectedClient={undefined}
       />
-    </SafeAreaView>
+
+      <MealPlanDetailsModal
+        visible={showDetailsModal}
+        onClose={() => setShowDetailsModal(false)}
+        plan={{ mealPlan: selectedPlan }}
+        onChoose={handleChoosePlan}
+        onAssign={handleAssignPlan}
+        onDelete={() => {
+          if (selectedPlan) {
+            handleDeletePlan(selectedPlan.id, selectedPlan.title);
+          }
+        }}
+      />
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: "center",
+    backgroundColor: '#f8f9fa',
   },
-  loadingContainer: {
+  scrollView: {
     flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
   },
-  loadingText: {
-    marginTop: 12,
-    fontSize: 16,
-    color: "#64748B",
+  title: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: '#1a1a1a',
+    margin: 20,
+    marginTop: 40,
   },
-  errorContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
+  statsContainer: {
+    flexDirection: 'row',
     padding: 20,
+    gap: 16,
   },
-  errorText: {
-    fontSize: 16,
-    color: "#EF4444",
-    textAlign: "center",
+  statCard: {
+    flex: 1,
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 20,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  statValue: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#1a1a1a',
+    marginTop: 12,
+  },
+  statLabel: {
+    fontSize: 14,
+    color: '#666',
+    marginTop: 4,
+  },
+  sectionContainer: {
+    marginHorizontal: 20,
+    marginBottom: 20,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     marginBottom: 16,
   },
-  retryButton: {
-    backgroundColor: "#7C3AED",
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 8,
-  },
-  retryButtonText: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  carouselWrap: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  foodListContainer: {
-    marginTop: 16,
-    paddingHorizontal: 24,
-  },
-  foodListTitle: {
-    fontSize: 16,
-    fontWeight: "500",
-  },
-  foodList: {
-    marginTop: 16,
-  },
-  foodRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: "#F1F5F9",
-  },
-  foodDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: "#E5E7EB",
-    marginRight: 12,
-  },
-  foodName: {
-    flex: 1,
-    color: "#334155",
-    fontSize: 16,
-  },
-  foodAmount: {
-    color: "#94A3B8",
-    fontSize: 16,
-    fontWeight: "500",
-  },
-  menuSection: {
-    backgroundColor: "#fff",
-    borderRadius: 12,
-    margin: 20,
-    marginTop: 28,
-    overflow: "hidden",
-    shadowColor: "#000",
-    shadowOpacity: 0.03,
-    shadowRadius: 4,
-    elevation: 1,
-  },
-  menuRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingVertical: 18,
-    paddingHorizontal: 18,
-    borderBottomWidth: 1,
-    borderBottomColor: "#F1F5F9",
-  },
-  menuLabel: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#1E293B",
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.18)",
-    justifyContent: "flex-end",
-  },
-  modalContent: {
-    backgroundColor: "#fff",
-    borderTopLeftRadius: 18,
-    borderTopRightRadius: 18,
-    padding: 24,
-    minHeight: 220,
-  },
-  modalTitle: {
+  sectionTitle: {
     fontSize: 20,
-    fontWeight: "bold",
-    marginBottom: 12,
-    color: "#1E293B",
+    fontWeight: 'bold',
+    color: '#1a1a1a',
   },
-  modalBody: {
-    fontSize: 16,
-    color: "#64748B",
-    marginBottom: 24,
-  },
-  closeButton: {
-    alignSelf: "flex-end",
-    backgroundColor: "#7C3AED",
-    borderRadius: 8,
-    paddingVertical: 8,
-    paddingHorizontal: 18,
-  },
-  closeButtonText: {
-    color: "#fff",
-    fontWeight: "bold",
-    fontSize: 16,
-  },
-  loadingOverlay: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: "rgba(255, 255, 255, 0.8)",
-    justifyContent: "center",
-    alignItems: "center",
+  addButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#A78BFA20',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
     borderRadius: 16,
   },
-  createPlanButton: {
-    backgroundColor: "#7C3AED",
-    paddingHorizontal: 20,
-    paddingVertical: 12,
+  addButtonText: {
+    color: '#A78BFA',
+    marginLeft: 4,
+    fontWeight: '600',
+  },
+  loadingContainer: {
+    padding: 40,
+    alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: 10,
+    color: '#666',
+  },
+  plansContainer: {
+    gap: 12,
+  },
+  planCard: {
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  planContent: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+  },
+  planInfo: {
+    flex: 1,
+    marginRight: 12,
+  },
+  planHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+    gap: 8,
+  },
+  planTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#1a1a1a',
+    flex: 1,
+    marginRight: 8,
+  },
+  statusBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
     borderRadius: 8,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    marginTop: 16,
   },
-  createPlanButtonText: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "600",
-    marginLeft: 8,
+  statusText: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: '#fff',
   },
-  carouselSection: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
+  planDescription: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 12,
   },
-  menuScrollView: {
-    flex: 1,
+  planStats: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 16,
+  },
+  statItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  statText: {
+    fontSize: 12,
+    color: '#666',
+  },
+  deleteButton: {
+    padding: 8,
+  },
+  emptyState: {
+    alignItems: 'center',
+    padding: 40,
+  },
+  emptyStateTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#1a1a1a',
+    marginTop: 12,
+    marginBottom: 8,
+  },
+  emptyStateText: {
+    fontSize: 14,
+    color: '#666',
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  emptyStateButton: {
+    backgroundColor: '#A78BFA',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 20,
+  },
+  emptyStateButtonText: {
+    color: '#fff',
+    fontWeight: '600',
+  },
+  plansStatsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    marginBottom: 16,
+    paddingHorizontal: 20,
+  },
+  planStatCard: {
+    alignItems: 'center',
+  },
+  planStatValue: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#1a1a1a',
+    marginBottom: 4,
+  },
+  planStatLabel: {
+    fontSize: 12,
+    color: '#666',
   },
 });
