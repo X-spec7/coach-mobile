@@ -16,7 +16,7 @@ import { router } from 'expo-router';
 import { Colors } from '@/constants/Colors';
 import { CoachClientService, Coach, Client } from '../services/coachClientService';
 import { getAuthHeaders } from '../services/api';
-import { API_BASE_URL } from '../constants/api';
+import { API_BASE_URL } from '@/constants/api';
 import { useAuth } from '../contexts/AuthContext';
 
 export default function FindCoachesScreen() {
@@ -65,7 +65,7 @@ export default function FindCoachesScreen() {
     try {
       // Test: General users endpoint with role filter
       console.log(`Testing /api/users/ with ${targetUserType} filter...`);
-      const usersResponse = await fetch(`${API_BASE_URL}/api/users/?user_type=${targetUserType}`, {
+      const usersResponse = await fetch(`${API_BASE_URL}/users/?user_type=${targetUserType}`, {
         method: 'GET',
         headers,
       });

@@ -1,4 +1,4 @@
-import { API_BASE_URL } from '../constants/api';
+import { API_BASE_URL } from '@/constants/api';
 import { getAuthHeaders } from './api';
 import { authenticatedFetch } from '../utils/auth';
 
@@ -289,7 +289,7 @@ export class ChatWebSocket {
 export const ChatService = {
   // Get contact list
   getContacts: async (): Promise<ContactsResponse> => {
-    const url = `${API_BASE_URL}/api/chat/contacts/`;
+    const url = `${API_BASE_URL}/chat/contacts/`;
     
     try {
       const response = await authenticatedFetch(url, {
@@ -319,7 +319,7 @@ export const ChatService = {
       queryParams.append('query', params.query);
     }
 
-    const url = `${API_BASE_URL}/api/chat/users/search/?${queryParams.toString()}`;
+    const url = `${API_BASE_URL}/chat/users/search/?${queryParams.toString()}`;
     
     try {
       const response = await authenticatedFetch(url, {
@@ -350,7 +350,7 @@ export const ChatService = {
     }
 
     const queryString = queryParams.toString() ? `?${queryParams.toString()}` : '';
-    const url = `${API_BASE_URL}/api/chat/messages/${otherPersonId}/${queryString}`;
+    const url = `${API_BASE_URL}/chat/messages/${otherPersonId}/${queryString}`;
     
     try {
       const response = await authenticatedFetch(url, {
@@ -369,7 +369,7 @@ export const ChatService = {
 
   // Mark messages as read
   markMessagesAsRead: async (otherPersonId: string): Promise<ReadStatusResponse> => {
-    const url = `${API_BASE_URL}/api/chat/messages/read/${otherPersonId}/`;
+    const url = `${API_BASE_URL}/chat/messages/read/${otherPersonId}/`;
     
     try {
       const response = await authenticatedFetch(url, {

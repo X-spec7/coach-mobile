@@ -1,5 +1,5 @@
 import * as SecureStore from "expo-secure-store";
-import { API_ENDPOINTS } from "../constants/api";
+import { API_ENDPOINTS } from "@/constants/api";
 
 const TOKEN_KEY = "auth_token";
 
@@ -39,18 +39,28 @@ export const resendVerificationEmail = async (email: string): Promise<{ message:
 // Verify email with verification code
 export const verifyEmail = async (email: string, verificationCode: string): Promise<{ message: string }> => {
   try {
-    const response = await fetch(API_ENDPOINTS.AUTH.VERIFY_EMAIL, {
+    const endpoint = API_ENDPOINTS.AUTH.VERIFY_EMAIL;
+    const requestData = { 
+      email, 
+      verificationCode: verificationCode 
+    };
+    
+    console.log('[verifyEmail] Endpoint:', endpoint);
+    console.log('[verifyEmail] Request data:', JSON.stringify(requestData, null, 2));
+    
+    const response = await fetch(endpoint, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ 
-        email, 
-        verificationCode 
-      }),
+      body: JSON.stringify(requestData),
     });
 
+    console.log('[verifyEmail] Response status:', response.status);
+    console.log('[verifyEmail] Response headers:', Object.fromEntries(response.headers.entries()));
+
     const data = await response.json();
+    console.log('[verifyEmail] Response data:', data);
 
     if (!response.ok) {
       throw new Error(data.message || 'Failed to verify email');

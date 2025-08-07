@@ -14,7 +14,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { WorkoutService, AssignWorkoutPlanRequest } from '../services/workoutService';
 import { CoachClientService, Client } from '../services/coachClientService';
 import { useAuth } from '../contexts/AuthContext';
-import { API_ENDPOINTS } from '../constants/api';
+import { API_ENDPOINTS } from '@/constants/api';
 
 interface AssignWorkoutPlanModalProps {
   visible: boolean;

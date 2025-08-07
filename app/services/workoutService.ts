@@ -360,7 +360,7 @@ export const WorkoutService = {
     
     try {
       // Hardcoded endpoint to bypass TypeScript caching issues
-      const endpoint = `http://52.15.195.49:8000/api/workouts/workout-plans/${planId}/`;
+      const endpoint = `http://52.15.195.49:8000/workouts/workout-plans/${planId}/`;
       const response = await fetch(endpoint, {
         method: 'GET',
         headers,
@@ -412,7 +412,7 @@ export const WorkoutService = {
   updateWorkoutPlan: async (planId: string, data: UpdateWorkoutPlanRequest): Promise<WorkoutPlanResponse> => {
     const headers = await getAuthHeaders();
     // Hardcoded endpoint to bypass TypeScript caching issues
-    const endpoint = `http://52.15.195.49:8000/api/workouts/workout-plans/${planId}/`;
+    const endpoint = `http://52.15.195.49:8000/workouts/workout-plans/${planId}/`;
     const response = await fetch(endpoint, {
       method: 'PUT',
       headers,
@@ -445,7 +445,7 @@ export const WorkoutService = {
         }, 5000);
         
         // Hardcoded endpoint to bypass TypeScript caching issues
-        const endpoint = `http://52.15.195.49:8000/api/workouts/workout-plans/${planId}/`;
+        const endpoint = `http://52.15.195.49:8000/workouts/workout-plans/${planId}/`;
         const response = await fetch(endpoint, {
           method: 'DELETE',
           headers,
@@ -498,7 +498,7 @@ export const WorkoutService = {
   addDay: async (planId: string, data: AddDayRequest): Promise<DailyPlanResponse> => {
     const headers = await getAuthHeaders();
     // Hardcoded endpoint to bypass TypeScript caching issues
-    const endpoint = `http://52.15.195.49:8000/api/workouts/workout-plans/${planId}/days/`;
+    const endpoint = `http://52.15.195.49:8000/workouts/workout-plans/${planId}/days/`;
     const response = await fetch(endpoint, {
       method: 'POST',
       headers,
@@ -523,7 +523,7 @@ export const WorkoutService = {
   removeDay: async (planId: string, dayId: number): Promise<{ message: string }> => {
     const headers = await getAuthHeadersForDelete();
     // Hardcoded endpoint to bypass TypeScript caching issues
-    const url = `http://52.15.195.49:8000/api/workouts/workout-plans/${planId}/days/${dayId}/`;
+    const url = `http://52.15.195.49:8000/workouts/workout-plans/${planId}/days/${dayId}/`;
     
     console.log(`[removeDay] Making DELETE request to: ${url}`);
     console.log(`[removeDay] Headers:`, headers);
@@ -603,7 +603,7 @@ export const WorkoutService = {
   addExercise: async (planId: string, dayId: number, data: AddExerciseRequest): Promise<ExerciseResponse> => {
     const headers = await getAuthHeaders();
     // Hardcoded endpoint to bypass TypeScript caching issues
-    const endpoint = `http://52.15.195.49:8000/api/workouts/workout-plans/${planId}/days/${dayId}/exercises/`;
+    const endpoint = `http://52.15.195.49:8000/workouts/workout-plans/${planId}/days/${dayId}/exercises/`;
     const response = await fetch(endpoint, {
       method: 'POST',
       headers,
@@ -628,7 +628,7 @@ export const WorkoutService = {
   updateExercise: async (planId: string, dayId: number, exerciseId: number, data: UpdateExerciseRequest): Promise<ExerciseResponse> => {
     const headers = await getAuthHeaders();
     // Hardcoded endpoint to bypass TypeScript caching issues
-    const endpoint = `http://52.15.195.49:8000/api/workouts/workout-plans/${planId}/days/${dayId}/exercises/${exerciseId}/`;
+    const endpoint = `http://52.15.195.49:8000/workouts/workout-plans/${planId}/days/${dayId}/exercises/${exerciseId}/`;
     const response = await fetch(endpoint, {
       method: 'PUT',
       headers,
@@ -655,7 +655,7 @@ export const WorkoutService = {
     
     try {
       // Hardcoded endpoint to bypass TypeScript caching issues
-      const endpoint = `http://52.15.195.49:8000/api/workouts/workout-plans/${planId}/days/${dayId}/exercises/${exerciseId}/`;
+      const endpoint = `http://52.15.195.49:8000/workouts/workout-plans/${planId}/days/${dayId}/exercises/${exerciseId}/`;
       const response = await fetch(endpoint, {
         method: 'DELETE',
         headers,
@@ -1099,7 +1099,7 @@ export const WorkoutService = {
     }
 
     // Hardcoded endpoint to bypass TypeScript caching issues
-    const endpoint = 'http://52.15.195.49:8000/api/workouts/assign-workout-plan/';
+    const endpoint = 'http://52.15.195.49:8000/workouts/assign-workout-plan/';
     
     console.log('[assignWorkoutPlan] Using endpoint:', endpoint);
     console.log('[assignWorkoutPlan] Request data:', JSON.stringify(data, null, 2));
@@ -1158,7 +1158,7 @@ export const WorkoutService = {
     if (params?.status) queryParams.append('status', params.status);
 
     // Hardcoded endpoint to bypass TypeScript caching issues
-    const baseUrl = 'http://52.15.195.49:8000/api/workouts/workout-plan-assignments/';
+    const baseUrl = 'http://52.15.195.49:8000/workouts/workout-plan-assignments/';
     const url = `${baseUrl}${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
 
     try {
@@ -1196,7 +1196,7 @@ export const WorkoutService = {
 
     try {
       // Hardcoded endpoint to bypass TypeScript caching issues
-      const endpoint = 'http://52.15.195.49:8000/api/workouts/accept-workout-plan-assignment/';
+      const endpoint = 'http://52.15.195.49:8000/workouts/accept-workout-plan-assignment/';
       
       const response = await fetch(endpoint, {
         method: 'POST',
@@ -1237,7 +1237,7 @@ export const WorkoutService = {
 
     try {
       // Hardcoded endpoint to bypass TypeScript caching issues
-      const endpoint = `http://52.15.195.49:8000/api/workouts/reject-workout-plan-assignment/${assignmentId}/`;
+      const endpoint = `http://52.15.195.49:8000/workouts/reject-workout-plan-assignment/${assignmentId}/`;
       
       const response = await fetch(endpoint, {
         method: 'DELETE',
@@ -1289,7 +1289,7 @@ export const WorkoutService = {
     if (params?.include_public !== undefined) queryParams.append('include_public', params.include_public.toString());
 
     // Hardcoded endpoint to bypass TypeScript caching issues
-    const baseUrl = `http://52.15.195.49:8000/api/workouts/assignable-plans/${clientId}/`;
+    const baseUrl = `http://52.15.195.49:8000/workouts/assignable-plans/${clientId}/`;
     const url = `${baseUrl}${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
 
     try {
