@@ -114,6 +114,8 @@ class WebSocketService {
 
       try {
         // Match web frontend URL pattern - remove the extra /chat/ path
+        console.log('[WebSocketService] WS_BASE_URL:', WS_BASE_URL);
+        console.log('[WebSocketService] Environment var:', process.env.EXPO_PUBLIC_WS_BASE_URL);
         const wsUrl = `${WS_BASE_URL}/chat/${userId}/`;
         console.log('[WebSocketService] Connecting to:', wsUrl);
         console.log('[WebSocketService] User ID:', userId);

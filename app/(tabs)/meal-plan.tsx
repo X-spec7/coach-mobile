@@ -2,7 +2,7 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, ActivityIn
 import React, { useState, useEffect } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import { MealService, MealPlan } from '../services/mealService';
-import CreateMealPlanModal from '../modals/CreateMealPlanModal';
+import { CreateMealPlanModal } from '../modals/CreateMealPlanModal';
 import { MealPlanDetailsModal } from '../modals/MealPlanDetailsModal';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -270,18 +270,14 @@ export default function MealPlanScreen() {
       <CreateMealPlanModal
         visible={showCreateModal}
         onClose={() => setShowCreateModal(false)}
-        onSubmit={async (data: FormData) => {
-          // Handle form submission
+        onSubmit={async () => {
           try {
-            console.log('Meal plan form submitted:', data);
             await fetchMealPlans();
             setShowCreateModal(false);
           } catch (error) {
-            console.error('Error creating meal plan:', error);
-            Alert.alert('Error', 'Failed to create meal plan');
+            console.error('Error refreshing meal plans:', error);
           }
         }}
-        selectedClient={undefined}
       />
 
       <MealPlanDetailsModal

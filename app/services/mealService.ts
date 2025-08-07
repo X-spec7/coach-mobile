@@ -25,6 +25,9 @@ const MEAL_ENDPOINTS = {
 // Weekday type
 export type WeekDay = 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday' | 'sunday';
 
+// Goal options as per API documentation
+export type MealPlanGoal = 'weight_loss' | 'weight_gain' | 'muscle_gain' | 'maintenance' | 'athletic_performance' | 'general_health';
+
 // Food Item interfaces
 export interface FoodItem {
   id: string;
@@ -93,6 +96,8 @@ export interface MealPlan {
   id: string;
   title: string;
   description: string;
+  goal: MealPlanGoal;
+  goal_display: string;
   image?: string | null;
   created_by: string;
   created_by_name: string;
@@ -138,13 +143,15 @@ export interface AppliedMealPlan {
 
 // Request/Response interfaces
 export interface CreateMealPlanRequest {
-  title: string;
+  title?: string;
   description?: string;
+  goal?: MealPlanGoal;
 }
 
 export interface UpdateMealPlanRequest {
   title?: string;
   description?: string;
+  goal?: MealPlanGoal;
   status?: 'draft' | 'published';
   is_public?: boolean;
 }

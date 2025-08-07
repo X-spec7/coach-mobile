@@ -150,7 +150,9 @@ export const fetchMealPlanDetails = async (
 export const fetchAllFoods = async (): Promise<Food[]> => {
   try {
     const headers = await getAuthHeaders();
-    const url = `${API_BASE_URL}/mealplan/food-items/`;
+    const url = `${API_BASE_URL}/api/mealplan/food-items/`;
+    
+    console.log('[fetchAllFoods] Fetching from:', url);
 
     const response = await fetch(url, {
       headers,
@@ -162,11 +164,15 @@ export const fetchAllFoods = async (): Promise<Food[]> => {
         throw new Error("Authentication required");
       }
       const errorText = await response.text();
-      throw new Error("Failed to fetch foods");
+      console.error('[fetchAllFoods] Error response:', errorText);
+      throw new Error(`Failed to fetch food items: ${response.status}`);
     }
 
     const data = await response.json();
-    return data.foodItems || [];
+    console.log('[fetchAllFoods] Response data:', data);
+    
+    // Based on the API documentation, the response should have food_items array
+    return data.food_items || data.foodItems || data.foods || data;
   } catch (error) {
     console.error("Error fetching foods:", error);
     throw error;

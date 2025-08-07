@@ -18,7 +18,7 @@ const getWsBaseUrl = () => {
 };
 
 export const API_BASE_URL = getApiBaseUrl();
-export const WS_BASE_URL = getWsBaseUrl()
+export const WS_BASE_URL = getWsBaseUrl();
 
 export const API_ENDPOINTS = {
   AUTH: {
