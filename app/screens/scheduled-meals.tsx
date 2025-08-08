@@ -10,16 +10,17 @@ import {
   RefreshControl,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { useAuth } from '../contexts/AuthContext';
 import { MealTrackingService, ScheduledMeal } from '../services/mealTrackingService';
 
 export default function ScheduledMealsScreen() {
   const { user } = useAuth();
+  const { date } = useLocalSearchParams<{ date?: string }>();
   const [scheduledMeals, setScheduledMeals] = useState<ScheduledMeal[]>([]);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
-  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
+  const [selectedDate, setSelectedDate] = useState(date || new Date().toISOString().split('T')[0]);
   const [filter, setFilter] = useState<'all' | 'pending' | 'completed'>('all');
 
   useEffect(() => {
@@ -100,6 +101,9 @@ export default function ScheduledMealsScreen() {
         <View style={styles.mealInfo}>
           <Text style={styles.mealName}>{meal.meal_time_name}</Text>
           <Text style={styles.mealTime}>{formatTime(meal.meal_time_time)}</Text>
+          <Text style={styles.mealPlanInfo}>
+            Week {meal.week_number} • {meal.daily_plan_day}
+          </Text>
         </View>
         <View style={styles.mealStatus}>
           <View style={[
@@ -132,9 +136,8 @@ export default function ScheduledMealsScreen() {
       </View>
 
       <View style={styles.mealFooter}>
-        <Text style={styles.dayLabel}>{meal.daily_plan_day}</Text>
         <View style={styles.actionHint}>
-          <Text style={styles.actionText}>Tap to log food</Text>
+          <Text style={styles.actionText}>Tap to log food consumption</Text>
           <Ionicons name="chevron-forward" size={16} color="#A78BFA" />
         </View>
       </View>
@@ -372,6 +375,12 @@ const styles = StyleSheet.create({
   mealTime: {
     fontSize: 14,
     color: '#666',
+  },
+  mealPlanInfo: {
+    fontSize: 12,
+    color: '#A78BFA',
+    fontWeight: '600',
+    marginTop: 2,
   },
   mealStatus: {
     alignItems: 'flex-end',

@@ -20,7 +20,8 @@ import {
   ConsumedFood, 
   ConsumptionUnit,
   LogFoodRequest,
-  UpdateConsumedFoodRequest 
+  UpdateConsumedFoodRequest,
+  PlannedFoodItem
 } from '../services/mealTrackingService';
 
 const CONSUMPTION_UNITS: { value: ConsumptionUnit; label: string }[] = [
@@ -38,6 +39,9 @@ export default function MealDetailScreen() {
   const [mealDetails, setMealDetails] = useState<ScheduledMealDetails | null>(null);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  
+  // Planned food items state - now comes from API
+  const [plannedFoodItems, setPlannedFoodItems] = useState<PlannedFoodItem[]>([]);
   
   // Modal states
   const [showLogModal, setShowLogModal] = useState(false);
@@ -69,6 +73,11 @@ export default function MealDetailScreen() {
     try {
       const response = await MealTrackingService.getScheduledMealDetails(mealId);
       setMealDetails(response.scheduled_meal);
+      
+      // Use planned_foods from the API response
+      if (response.scheduled_meal.planned_foods) {
+        setPlannedFoodItems(response.scheduled_meal.planned_foods);
+      }
     } catch (error) {
       console.error('Error fetching meal details:', error);
       const errorMessage = error instanceof Error ? error.message : 'Failed to load meal details';
@@ -86,8 +95,9 @@ export default function MealDetailScreen() {
     fetchMealDetails(true);
   };
 
-  const handleLogFood = (foodItem: any) => {
+  const handleLogFood = (foodItem: PlannedFoodItem) => {
     setSelectedFoodItem(foodItem);
+    // Pre-fill with planned amount as default
     setConsumedAmount(foodItem.amount.toString());
     setConsumedUnit(foodItem.unit || 'gram');
     setNotes('');
@@ -188,6 +198,48 @@ export default function MealDetailScreen() {
     );
   };
 
+  // Helper functions for planned food items
+  const isFoodItemCompleted = (foodItemId: string) => {
+    return mealDetails?.consumed_foods.some(cf => cf.meal_plan_food_item === foodItemId) || false;
+  };
+
+  const getConsumedFoodForPlannedItem = (foodItemId: string) => {
+    return mealDetails?.consumed_foods.find(cf => cf.meal_plan_food_item === foodItemId);
+  };
+
+  const handleQuickComplete = async (plannedFoodItem: PlannedFoodItem) => {
+    const isCompleted = isFoodItemCompleted(plannedFoodItem.id);
+    
+    if (isCompleted) {
+      // Remove consumption
+      const consumedFood = getConsumedFoodForPlannedItem(plannedFoodItem.id);
+      if (consumedFood) {
+        await handleDeleteConsumed(consumedFood);
+      }
+    } else {
+      // Log full planned amount as consumed
+      setSubmitting(true);
+      try {
+        const logData: LogFoodRequest = {
+          meal_plan_food_item_id: plannedFoodItem.id,
+          consumed_amount: plannedFoodItem.amount,
+          consumed_unit: plannedFoodItem.unit || 'gram',
+          notes: undefined,
+        };
+
+        await MealTrackingService.logFoodConsumption(mealId!, logData);
+        await fetchMealDetails();
+        Alert.alert('Success', 'Food marked as completed!');
+      } catch (error) {
+        console.error('Error logging food:', error);
+        const errorMessage = error instanceof Error ? error.message : 'Failed to log food consumption';
+        Alert.alert('Error', errorMessage);
+      } finally {
+        setSubmitting(false);
+      }
+    }
+  };
+
   const formatTime = (timeString: string) => {
     return new Date(`2000-01-01T${timeString}`).toLocaleTimeString('en-US', {
       hour: 'numeric',
@@ -268,6 +320,53 @@ export default function MealDetailScreen() {
     </View>
   );
 
+  const renderPlannedFoodItem = (plannedFoodItem: PlannedFoodItem) => {
+    const isCompleted = isFoodItemCompleted(plannedFoodItem.id);
+    const consumedFood = getConsumedFoodForPlannedItem(plannedFoodItem.id);
+    
+    return (
+      <View key={plannedFoodItem.id} style={styles.plannedFoodItem}>
+        <TouchableOpacity
+          style={styles.completionCheckbox}
+          onPress={() => handleQuickComplete(plannedFoodItem)}
+          disabled={submitting}
+        >
+          <Ionicons 
+            name={isCompleted ? "checkmark-circle" : "ellipse-outline"} 
+            size={24} 
+            color={isCompleted ? "#4CAF50" : "#ddd"} 
+          />
+        </TouchableOpacity>
+        
+        <View style={styles.plannedFoodInfo}>
+          <Text style={[styles.plannedFoodName, isCompleted && styles.completedText]}>
+            {plannedFoodItem.food_item_details.name}
+          </Text>
+          <Text style={[styles.plannedFoodAmount, isCompleted && styles.completedText]}>
+            Planned: {plannedFoodItem.amount}{plannedFoodItem.unit} • {Math.round(plannedFoodItem.calories)} cal
+          </Text>
+          {consumedFood && (
+            <Text style={styles.consumedAmount}>
+              Consumed: {consumedFood.consumed_amount}{consumedFood.consumed_unit} 
+              ({Math.round(consumedFood.completion_percentage)}%)
+            </Text>
+          )}
+          <Text style={styles.plannedFoodNutritionInfo}>
+            P: {plannedFoodItem.protein}g • C: {plannedFoodItem.carbs}g • F: {plannedFoodItem.fat}g
+          </Text>
+        </View>
+        
+        <TouchableOpacity
+          style={styles.logButton}
+          onPress={() => handleLogFood(plannedFoodItem)}
+          disabled={submitting}
+        >
+          <Ionicons name="add-circle-outline" size={20} color="#A78BFA" />
+        </TouchableOpacity>
+      </View>
+    );
+  };
+
   const renderLogModal = () => (
     <Modal
       visible={showLogModal}
@@ -289,6 +388,9 @@ export default function MealDetailScreen() {
               <Text style={styles.selectedFoodName}>{selectedFoodItem.food_item_details?.name || 'Food Item'}</Text>
               <Text style={styles.plannedAmountText}>
                 Planned: {selectedFoodItem.amount}{selectedFoodItem.unit}
+              </Text>
+              <Text style={styles.nutritionInfo}>
+                {Math.round(selectedFoodItem.calories)} cal • P: {selectedFoodItem.protein}g • C: {selectedFoodItem.carbs}g • F: {selectedFoodItem.fat}g
               </Text>
 
               <View style={styles.inputGroup}>
@@ -509,6 +611,21 @@ export default function MealDetailScreen() {
               </View>
             </View>
           </View>
+
+                     {/* Planned Food Items */}
+           <View style={styles.section}>
+             <Text style={styles.sectionTitle}>Planned Foods</Text>
+             {plannedFoodItems.length > 0 ? (
+               <View style={styles.plannedFoodsList}>
+                 {plannedFoodItems.map(renderPlannedFoodItem)}
+               </View>
+             ) : (
+               <View style={styles.emptyState}>
+                 <Text style={styles.emptyText}>No planned foods found</Text>
+                 <Text style={styles.emptySubtext}>This meal has no planned food items</Text>
+               </View>
+             )}
+           </View>
 
           {/* Consumed Foods */}
           <View style={styles.section}>
@@ -783,7 +900,17 @@ const styles = StyleSheet.create({
   plannedAmountText: {
     fontSize: 14,
     color: '#666',
+    marginBottom: 8,
+  },
+  nutritionInfo: {
+    fontSize: 12,
+    color: '#A78BFA',
     marginBottom: 20,
+  },
+  plannedFoodNutritionInfo: {
+    fontSize: 11,
+    color: '#999',
+    marginTop: 2,
   },
   inputGroup: {
     marginBottom: 20,
@@ -857,5 +984,49 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#fff',
+  },
+  // Planned food items styles
+  plannedFoodsList: {
+    gap: 12,
+  },
+  plannedFoodItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f8f9fa',
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+  },
+  completionCheckbox: {
+    marginRight: 12,
+  },
+  plannedFoodInfo: {
+    flex: 1,
+  },
+  plannedFoodName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1a1a1a',
+    marginBottom: 4,
+  },
+  plannedFoodAmount: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 2,
+  },
+  consumedAmount: {
+    fontSize: 12,
+    color: '#A78BFA',
+    fontWeight: '600',
+  },
+  completedText: {
+    textDecorationLine: 'line-through',
+    color: '#999',
+  },
+  logButton: {
+    padding: 8,
+    borderRadius: 20,
+    backgroundColor: 'rgba(167, 139, 250, 0.1)',
   },
 });

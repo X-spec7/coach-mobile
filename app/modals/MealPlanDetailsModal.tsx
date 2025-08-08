@@ -13,6 +13,7 @@ import {
   RefreshControl,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { router } from 'expo-router';
 import { MealService, MealPlan, DailyPlan, MealTime, MealPlanFoodItem, FoodItem, MealPlanGoal } from '../services/mealService';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -340,7 +341,21 @@ export const MealPlanDetailsModal = ({
         </View>
 
         {mealTime.food_items.length > 0 ? (
-          mealTime.food_items.map(foodItem => renderFoodItem(foodItem, dayId, mealTime.id))
+          <>
+            {mealTime.food_items.map(foodItem => renderFoodItem(foodItem, dayId, mealTime.id))}
+            <TouchableOpacity
+              style={styles.trackMealButton}
+              onPress={() => {
+                onClose();
+                // Navigate to scheduled meals with today's date
+                const today = new Date().toISOString().split('T')[0];
+                router.push(`/scheduled-meals?date=${today}`);
+              }}
+            >
+              <Ionicons name="checkbox-outline" size={16} color="#A78BFA" />
+              <Text style={styles.trackMealText}>Track This Meal</Text>
+            </TouchableOpacity>
+          </>
         ) : (
           <Text style={styles.noFoodText}>
             No food items yet. Tap + to add foods.
@@ -1094,5 +1109,21 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     marginBottom: 4,
+  },
+  trackMealButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(167, 139, 250, 0.1)',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    marginTop: 8,
+    gap: 6,
+  },
+  trackMealText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#A78BFA',
   },
 });

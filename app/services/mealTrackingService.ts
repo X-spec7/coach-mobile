@@ -31,6 +31,17 @@ export interface FoodItemDetails {
   serving_unit: string;
 }
 
+export interface PlannedFoodItem {
+  id: string;
+  food_item_details: FoodItemDetails;
+  amount: number;
+  unit: string;
+  calories: number;
+  protein: number;
+  carbs: number;
+  fat: number;
+}
+
 export interface ConsumedFood {
   id: string;
   meal_plan_food_item: string;
@@ -79,6 +90,7 @@ export interface ScheduledMealDetails {
   consumed_nutrition: NutritionInfo;
   planned_nutrition: NutritionInfo;
   consumed_foods: ConsumedFood[];
+  planned_foods: PlannedFoodItem[];
   created_at: string;
 }
 
