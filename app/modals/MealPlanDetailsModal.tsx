@@ -71,8 +71,7 @@ export const MealPlanDetailsModal = ({
   const [foodAmount, setFoodAmount] = useState('100');
   const [foodUnit, setFoodUnit] = useState('gram');
   
-  // Track completion state for food items
-  const [completedFoodItems, setCompletedFoodItems] = useState<Set<string>>(new Set());
+
 
   useEffect(() => {
     if (visible && plan.mealPlan) {
@@ -321,13 +320,7 @@ export const MealPlanDetailsModal = ({
   );
 
   const renderMealTime = (mealTime: MealTime, dayId: string) => {
-    const progress = getMealTimeProgress(mealTime);
-    const completedCount = mealTime.food_items.filter(item => 
-      completedFoodItems.has(item.id)
-    ).length;
-    const totalCount = mealTime.food_items.length;
-
-  return (
+    return (
       <View key={mealTime.id} style={styles.mealTimeCard}>
         <View style={styles.mealTimeHeader}>
           <View style={styles.mealTimeInfo}>
@@ -335,23 +328,8 @@ export const MealPlanDetailsModal = ({
             <Text style={styles.mealTimeStats}>
               {mealTime.food_items.length} foods • {mealTime.total_calories} cal
             </Text>
-            {totalCount > 0 && (
-              <View style={styles.progressContainer}>
-                <View style={styles.progressBar}>
-                  <View style={[styles.progressFill, { width: `${progress}%` }]} />
-                </View>
-                <Text style={styles.progressText}>
-                  {completedCount}/{totalCount} consumed ({Math.round(progress)}%)
-                </Text>
-              </View>
-            )}
           </View>
           <View style={styles.mealTimeActions}>
-            {progress === 100 && (
-              <View style={styles.completedBadge}>
-                <Ionicons name="checkmark-circle" size={20} color="#4CAF50" />
-              </View>
-            )}
             <TouchableOpacity
               onPress={() => handleAddFood(dayId, mealTime.id)}
               style={styles.addFoodButton}
@@ -372,59 +350,19 @@ export const MealPlanDetailsModal = ({
     );
   };
 
-  const handleToggleFoodComplete = (foodItemId: string) => {
-    const newCompleted = new Set(completedFoodItems);
-    if (newCompleted.has(foodItemId)) {
-      newCompleted.delete(foodItemId);
-    } else {
-      newCompleted.add(foodItemId);
-    }
-    setCompletedFoodItems(newCompleted);
-    
-    // Here you could call the meal tracking API to log consumption
-    // For now, we'll just toggle the visual state
-  };
 
-  const getMealTimeProgress = (mealTime: MealTime) => {
-    const totalFoods = mealTime.food_items.length;
-    const completedFoods = mealTime.food_items.filter(item => 
-      completedFoodItems.has(item.id)
-    ).length;
-    return totalFoods > 0 ? (completedFoods / totalFoods) * 100 : 0;
-  };
-
-  const getDayProgress = (day: DailyPlan) => {
-    const allFoodItems = day.meal_times.flatMap(mt => mt.food_items);
-    const totalFoods = allFoodItems.length;
-    const completedFoods = allFoodItems.filter(item => 
-      completedFoodItems.has(item.id)
-    ).length;
-    return totalFoods > 0 ? (completedFoods / totalFoods) * 100 : 0;
-  };
 
   const renderFoodItem = (foodItem: MealPlanFoodItem, dayId: string, mealTimeId: string) => {
-    const isCompleted = completedFoodItems.has(foodItem.id);
-    
     return (
       <View key={foodItem.id} style={styles.foodItemCard}>
-        <TouchableOpacity
-          onPress={() => handleToggleFoodComplete(foodItem.id)}
-          style={[styles.completionCheckbox, isCompleted && styles.completionCheckboxChecked]}
-        >
-          {isCompleted && <Ionicons name="checkmark" size={16} color="#fff" />}
-        </TouchableOpacity>
-        
-        <View style={[styles.foodItemInfo, isCompleted && styles.foodItemInfoCompleted]}>
-          <Text style={[styles.foodItemName, isCompleted && styles.foodItemNameCompleted]}>
+        <View style={styles.foodItemInfo}>
+          <Text style={styles.foodItemName}>
             {foodItem.food_item_details.name}
-                  </Text>
-          <Text style={[styles.foodItemStats, isCompleted && styles.foodItemStatsCompleted]}>
+          </Text>
+          <Text style={styles.foodItemStats}>
             {foodItem.amount}{foodItem.unit} • {Math.round(foodItem.calories)} cal
           </Text>
-          {isCompleted && (
-            <Text style={styles.completedLabel}>✓ Consumed</Text>
-          )}
-                </View>
+        </View>
         
         <View style={styles.foodItemActions}>
           <TouchableOpacity
@@ -439,19 +377,12 @@ export const MealPlanDetailsModal = ({
           >
             <Ionicons name="trash-outline" size={18} color="#FF6B6B" />
           </TouchableOpacity>
-              </View>
-                  </View>
+        </View>
+      </View>
     );
   };
 
   const renderDay = (day: DailyPlan) => {
-    const progress = getDayProgress(day);
-    const allFoodItems = day.meal_times.flatMap(mt => mt.food_items);
-    const completedCount = allFoodItems.filter(item => 
-      completedFoodItems.has(item.id)
-    ).length;
-    const totalCount = allFoodItems.length;
-    
     return (
       <View key={day.id} style={styles.dayCard}>
         <TouchableOpacity
@@ -461,24 +392,13 @@ export const MealPlanDetailsModal = ({
           <View style={styles.dayInfo}>
             <View style={styles.dayTitleRow}>
               <Text style={styles.dayTitle}>{day.day_display}</Text>
-              {progress === 100 && totalCount > 0 && (
-                <View style={styles.dayCompletedBadge}>
-                  <Ionicons name="checkmark-circle" size={18} color="#4CAF50" />
-                  <Text style={styles.dayCompletedText}>Complete</Text>
-              </View>
-              )}
             </View>
             <Text style={styles.dayStats}>
               {day.meal_times.length} meal times • {day.total_calories} cal
             </Text>
-            {totalCount > 0 && (
-              <Text style={styles.dayProgress}>
-                {completedCount}/{totalCount} foods consumed ({Math.round(progress)}%)
-              </Text>
-            )}
           </View>
           <View style={styles.dayActions}>
-                  <TouchableOpacity
+            <TouchableOpacity
               onPress={() => handleAddMealTime(day.id)}
               style={styles.addMealTimeButton}
             >
@@ -495,25 +415,23 @@ export const MealPlanDetailsModal = ({
               size={20}
               color="#666"
             />
-                          </View>
+          </View>
         </TouchableOpacity>
 
-      {expandedDay === day.id && (
-        <View style={styles.mealTimesList}>
-          {day.meal_times.length > 0 ? (
-            day.meal_times.map(mealTime => renderMealTime(mealTime, day.id))
-          ) : (
-            <Text style={styles.noMealTimesText}>
-              No meal times added yet. Tap + to add meal times.
-            </Text>
-          )}
-        </View>
-      )}
-    </View>
-  );
-
- 
-};
+        {expandedDay === day.id && (
+          <View style={styles.mealTimesList}>
+            {day.meal_times.length > 0 ? (
+              day.meal_times.map(mealTime => renderMealTime(mealTime, day.id))
+            ) : (
+              <Text style={styles.noMealTimesText}>
+                No meal times added yet. Tap + to add meal times.
+              </Text>
+            )}
+          </View>
+        )}
+      </View>
+    );
+  };
 
 if (!mealPlan && !loading) {
   return null;
@@ -1158,38 +1076,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   
-  // Completion styles
-  completionCheckbox: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    borderWidth: 2,
-    borderColor: '#ddd',
-    backgroundColor: '#fff',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 12,
-  },
-  completionCheckboxChecked: {
-    backgroundColor: '#4CAF50',
-    borderColor: '#4CAF50',
-  },
-  foodItemInfoCompleted: {
-    opacity: 0.7,
-  },
-  foodItemNameCompleted: {
-    textDecorationLine: 'line-through',
-    color: '#666',
-  },
-  foodItemStatsCompleted: {
-    color: '#999',
-  },
-  completedLabel: {
-    fontSize: 12,
-    color: '#4CAF50',
-    fontWeight: '600',
-    marginTop: 4,
-  },
+
   foodItemActions: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1198,59 +1085,14 @@ const styles = StyleSheet.create({
   editButton: {
     padding: 4,
   },
-  
-  // Progress styles
-  progressContainer: {
-    marginTop: 8,
-  },
-  progressBar: {
-    height: 4,
-    backgroundColor: '#E0E0E0',
-    borderRadius: 2,
-    overflow: 'hidden',
-    marginBottom: 4,
-  },
-  progressFill: {
-    height: '100%',
-    backgroundColor: '#4CAF50',
-    borderRadius: 2,
-  },
-  progressText: {
-    fontSize: 12,
-    color: '#666',
-  },
-  completedBadge: {
-    marginLeft: 8,
-  },
   mealTimeActions: {
     flexDirection: 'row',
     alignItems: 'center',
   },
-  
-  // Day completion styles
   dayTitleRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     marginBottom: 4,
-  },
-  dayCompletedBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(76, 175, 80, 0.1)',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  dayCompletedText: {
-    fontSize: 12,
-    color: '#4CAF50',
-    fontWeight: '600',
-    marginLeft: 4,
-  },
-  dayProgress: {
-    fontSize: 12,
-    color: '#A78BFA',
-    marginTop: 4,
   },
 });
