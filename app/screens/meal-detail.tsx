@@ -200,7 +200,13 @@ export default function MealDetailScreen() {
 
   // Helper functions for planned food items
   const isFoodItemCompleted = (foodItemId: string) => {
-    return mealDetails?.consumed_foods.some(cf => cf.meal_plan_food_item === foodItemId) || false;
+    const consumedFood = getConsumedFoodForPlannedItem(foodItemId);
+    const plannedFoodItem = plannedFoodItems.find(pf => pf.id === foodItemId);
+    
+    if (!consumedFood || !plannedFoodItem) return false;
+    
+    // Check if the consumed amount equals or exceeds the planned amount
+    return consumedFood.consumed_amount >= plannedFoodItem.amount;
   };
 
   const getConsumedFoodForPlannedItem = (foodItemId: string) => {
@@ -321,8 +327,19 @@ export default function MealDetailScreen() {
   );
 
   const renderPlannedFoodItem = (plannedFoodItem: PlannedFoodItem) => {
-    const isCompleted = isFoodItemCompleted(plannedFoodItem.id);
     const consumedFood = getConsumedFoodForPlannedItem(plannedFoodItem.id);
+    const isCompleted = isFoodItemCompleted(plannedFoodItem.id);
+    
+    // Calculate completion percentage for this specific food item
+    let completionPercentage = 0;
+    if (consumedFood) {
+      // Use backend's completion_percentage if available, otherwise calculate locally
+      if (consumedFood.completion_percentage !== undefined) {
+        completionPercentage = consumedFood.completion_percentage;
+      } else if (plannedFoodItem.amount > 0) {
+        completionPercentage = (consumedFood.consumed_amount / plannedFoodItem.amount) * 100;
+      }
+    }
     
     return (
       <View key={plannedFoodItem.id} style={styles.plannedFoodItem}>
@@ -348,7 +365,7 @@ export default function MealDetailScreen() {
           {consumedFood && (
             <Text style={styles.consumedAmount}>
               Consumed: {consumedFood.consumed_amount}{consumedFood.consumed_unit} 
-              ({Math.round(consumedFood.completion_percentage)}%)
+              ({Math.round(completionPercentage)}%)
             </Text>
           )}
           <Text style={styles.plannedFoodNutritionInfo}>
@@ -569,16 +586,22 @@ export default function MealDetailScreen() {
               })}
             </Text>
             
-            <View style={styles.completionStatus}>
-              <View style={[
-                styles.statusBadge,
-                { backgroundColor: mealDetails.is_completed ? '#4CAF50' : '#FFA726' }
-              ]}>
-                <Text style={styles.statusText}>
-                  {mealDetails.is_completed ? 'Completed' : `${Math.round(mealDetails.completion_percentage)}% Complete`}
-                </Text>
-              </View>
-            </View>
+                         <View style={styles.completionStatus}>
+               <View style={styles.progressContainer}>
+                 <View style={styles.progressBar}>
+                   <View style={[
+                     styles.progressFill,
+                     { 
+                       width: `${mealDetails.completion_percentage}%`,
+                       backgroundColor: mealDetails.is_completed ? '#4CAF50' : '#FFA726'
+                     }
+                   ]} />
+                 </View>
+                 <Text style={styles.progressText}>
+                   {Math.round(mealDetails.completion_percentage)}% Complete
+                 </Text>
+               </View>
+             </View>
           </View>
 
           {/* Nutrition Summary */}
@@ -732,6 +755,27 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     color: '#fff',
+  },
+  progressContainer: {
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  progressBar: {
+    width: 200,
+    height: 8,
+    backgroundColor: '#E0E0E0',
+    borderRadius: 4,
+    overflow: 'hidden',
+    marginBottom: 8,
+  },
+  progressFill: {
+    height: '100%',
+    borderRadius: 4,
+  },
+  progressText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#666',
   },
   nutritionSummary: {
     backgroundColor: '#f8f9fa',

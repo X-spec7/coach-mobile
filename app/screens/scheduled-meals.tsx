@@ -106,15 +106,12 @@ export default function ScheduledMealsScreen() {
           </Text>
         </View>
         <View style={styles.mealStatus}>
-          <View style={[
-            styles.completionBadge,
-            { backgroundColor: meal.is_completed ? '#4CAF50' : meal.completion_percentage > 0 ? '#FFA726' : '#E0E0E0' }
-          ]}>
-            <Text style={[
-              styles.completionText,
-              { color: meal.is_completed || meal.completion_percentage > 0 ? '#fff' : '#666' }
-            ]}>
-              {meal.is_completed ? '✓' : `${Math.round(meal.completion_percentage)}%`}
+          <View style={styles.progressInfo}>
+            <Text style={styles.progressPercentage}>
+              {Math.round(meal.completion_percentage)}%
+            </Text>
+            <Text style={styles.progressLabel}>
+              {meal.is_completed ? 'Complete' : 'In Progress'}
             </Text>
           </View>
         </View>
@@ -384,6 +381,19 @@ const styles = StyleSheet.create({
   },
   mealStatus: {
     alignItems: 'flex-end',
+  },
+  progressInfo: {
+    alignItems: 'center',
+  },
+  progressPercentage: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#A78BFA',
+    marginBottom: 2,
+  },
+  progressLabel: {
+    fontSize: 12,
+    color: '#666',
   },
   completionBadge: {
     width: 40,
