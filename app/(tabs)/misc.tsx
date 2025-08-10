@@ -7,21 +7,16 @@ import {
   TouchableOpacity,
   ActivityIndicator,
 } from "react-native";
-import ClientsModal from "../modals/ClientsModal";
 
 const menuItems = [
-  { id: 1, title: "Coach", icon: "user" },
-  { id: 2, title: "Client", icon: "user" },
-  { id: 3, title: "Terms of Service", icon: "user" },
-  { id: 4, title: "Privacy Policy", icon: "activity" },
-  { id: 5, title: "Help & Support", icon: "target" },
+  { id: 1, title: "Terms of Service", icon: "user" },
+  { id: 2, title: "Privacy Policy", icon: "activity" },
+  { id: 3, title: "Help & Support", icon: "target" },
 ];
 
 export default function TermsScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [coachModalVisible, setCoachModalVisible] = useState(false);
-  const [clientModalVisible, setClientModalVisible] = useState(false);
   const [termsModalVisible, setTermsModalVisible] = useState(false);
 
   useEffect(() => {
@@ -65,12 +60,6 @@ export default function TermsScreen() {
                 if (item.title === "Terms of Service") {
                   setTermsModalVisible(true);
                 }
-                if (item.title === "Coach") {
-                  setCoachModalVisible(true);
-                }
-                if (item.title === "Client") {
-                  setClientModalVisible(true);
-                }
               }}
             >
               <Text style={styles.menuTitle}>{item.title}</Text>
@@ -79,12 +68,6 @@ export default function TermsScreen() {
           ))}
         </View>
       </ScrollView>
-
-      {/* Clients Modal */}
-      <ClientsModal
-        visible={clientModalVisible}
-        onClose={() => setClientModalVisible(false)}
-      />
     </View>
   );
 }

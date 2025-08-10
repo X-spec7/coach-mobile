@@ -8,39 +8,28 @@ import {
   ActivityIndicator,
   Alert,
   RefreshControl,
-  TextInput,
   Image,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { Colors } from '@/constants/Colors';
-import { ChatService, Contact, User } from '../services/chatService';
+import { ChatService, Contact } from '../services/chatService';
+import { UserService, User } from '../services/userService';
 import { useChat } from '../contexts/ChatContext';
 import { useAuth } from '../contexts/AuthContext';
+import UserSearchModal from '../components/UserSearchModal';
 
 export default function ChatContactsScreen() {
   const { user } = useAuth();
   const { contacts, updateContacts, unreadMessagesCount, isConnected } = useChat();
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [searchResults, setSearchResults] = useState<User[]>([]);
-  const [searchLoading, setSearchLoading] = useState(false);
-  const [showSearch, setShowSearch] = useState(false);
+  const [showSearchModal, setShowSearchModal] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [searching, setSearching] = useState(false);
 
   useEffect(() => {
     fetchContacts();
   }, []);
-
-  useEffect(() => {
-    if (searchQuery.trim()) {
-      searchUsers(searchQuery);
-    } else {
-      setSearchResults([]);
-    }
-  }, [searchQuery]);
 
   const fetchContacts = async () => {
     setRefreshing(true);
@@ -61,38 +50,6 @@ export default function ChatContactsScreen() {
     }
   };
 
-  const searchUsers = async (query: string) => {
-    if (!query.trim()) {
-      setSearchResults([]);
-      return;
-    }
-
-    setSearching(true);
-    try {
-      const response = await ChatService.searchUsers({
-        query: query.trim(),
-        limit: 20,
-        offset: 0,
-      });
-      
-      // Filter out current user from search results
-      const filteredUsers = response.users.filter(u => u.id !== user?.id);
-      setSearchResults(filteredUsers);
-      setError(null);
-    } catch (error) {
-      console.error('Error searching users:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Search failed';
-      
-      // Only show error alert if it's not an authentication issue
-      if (!errorMessage.includes('Authentication required')) {
-        setError('Unable to search users. Please check your connection.');
-      }
-      setSearchResults([]);
-    } finally {
-      setSearching(false);
-    }
-  };
-
   const handleRefresh = async () => {
     setRefreshing(true);
     await fetchContacts();
@@ -110,13 +67,13 @@ export default function ChatContactsScreen() {
     });
   };
 
-  const handleUserPress = (searchUser: User) => {
+  const handleUserSelect = (selectedUser: User) => {
     router.push({
       pathname: '/chat',
       params: {
-        userId: searchUser.id,
-        userName: searchUser.fullName,
-        userAvatar: searchUser.avatarUrl || '',
+        userId: selectedUser.id,
+        userName: selectedUser.full_name,
+        userAvatar: selectedUser.avatarUrl || '',
       },
     });
   };
@@ -190,33 +147,6 @@ export default function ChatContactsScreen() {
     </TouchableOpacity>
   );
 
-  const renderSearchResult = ({ item }: { item: User }) => (
-    <TouchableOpacity
-      style={styles.searchResultCard}
-      onPress={() => handleUserPress(item)}
-    >
-      <View style={styles.contactHeader}>
-        {item.avatarUrl ? (
-          <Image
-            source={{ uri: item.avatarUrl }}
-            style={styles.avatar}
-          />
-        ) : (
-          <View style={styles.avatarPlaceholder}>
-            <Ionicons name="person" size={24} color="#A78BFA" />
-          </View>
-        )}
-        
-        <View style={styles.contactInfo}>
-          <Text style={styles.contactName}>{item.fullName}</Text>
-          <Text style={styles.userType}>{item.userType}</Text>
-        </View>
-
-        <Ionicons name="mail-outline" size={20} color="#A78BFA" />
-      </View>
-    </TouchableOpacity>
-  );
-
   return (
     <View style={styles.container}>
       {/* Header */}
@@ -241,114 +171,65 @@ export default function ChatContactsScreen() {
           </View>
         </View>
         <TouchableOpacity 
-          onPress={() => setShowSearch(!showSearch)} 
+          onPress={() => setShowSearchModal(true)} 
           style={styles.searchButton}
         >
-          <Ionicons name={showSearch ? "close" : "search"} size={24} color="#A78BFA" />
+          <Ionicons name="search" size={24} color="#A78BFA" />
         </TouchableOpacity>
       </View>
 
-      {/* Search */}
-      {showSearch && (
-        <View style={styles.searchContainer}>
-          <View style={styles.searchInput}>
-            <Ionicons name="search" size={20} color="#666" />
-            <TextInput
-              style={styles.searchTextInput}
-              placeholder={`Search ${user?.userType === 'Coach' ? 'clients' : 'coaches'}...`}
-              placeholderTextColor="#666"
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-            />
-            {searchQuery.length > 0 && (
-              <TouchableOpacity onPress={() => setSearchQuery('')}>
-                <Ionicons name="close-circle" size={20} color="#666" />
-              </TouchableOpacity>
-            )}
-          </View>
-        </View>
-      )}
-
       {/* Content */}
-      {showSearch && searchQuery ? (
-        // Search Results
-        <View style={styles.content}>
-          <Text style={styles.sectionTitle}>Search Results</Text>
-          {searching ? (
-            <View style={styles.loadingContainer}>
-              <ActivityIndicator size="large" color="#A78BFA" />
-              <Text style={styles.loadingText}>Searching users...</Text>
-            </View>
-          ) : (
-            <FlatList
-              data={searchResults}
-              renderItem={renderSearchResult}
-              keyExtractor={(item) => item.id.toString()}
-              contentContainerStyle={styles.listContainer}
-              ListEmptyComponent={
-                <View style={styles.emptyState}>
-                  <Ionicons name="search-outline" size={64} color="#666" />
-                  <Text style={styles.emptyStateText}>No users found</Text>
-                  <Text style={styles.emptyStateSubtext}>
-                    Try adjusting your search terms
-                  </Text>
-                </View>
-              }
-            />
-          )}
-          {error && (
-            <View style={styles.errorContainer}>
-              <Text style={styles.errorText}>{error}</Text>
-            </View>
-          )}
-        </View>
-      ) : (
-        // Recent Conversations
-        <View style={styles.content}>
-          <Text style={styles.sectionTitle}>Recent Conversations</Text>
-          {loading && !refreshing ? (
-            <View style={styles.loadingContainer}>
-              <ActivityIndicator size="large" color="#A78BFA" />
-              <Text style={styles.loadingText}>Loading conversations...</Text>
-            </View>
-          ) : (
-            <FlatList
-              data={contacts}
-              renderItem={renderContact}
-              keyExtractor={(item) => item.id.toString()}
-              contentContainerStyle={styles.listContainer}
-              refreshControl={
-                <RefreshControl
-                  refreshing={refreshing}
-                  onRefresh={handleRefresh}
-                  colors={['#A78BFA']}
-                  tintColor="#A78BFA"
-                />
-              }
-              ListEmptyComponent={
-                <View style={styles.emptyState}>
-                  <Ionicons name="mail-outline" size={64} color="#666" />
-                  <Text style={styles.emptyStateText}>No conversations yet</Text>
-                  <Text style={styles.emptyStateSubtext}>
-                    Start a conversation by searching for {user?.userType === 'Coach' ? 'clients' : 'coaches'}
-                  </Text>
-                  <TouchableOpacity 
-                    style={styles.startChatButton}
-                    onPress={() => setShowSearch(true)}
-                  >
-                    <Text style={styles.startChatButtonText}>Start Chatting</Text>
-                  </TouchableOpacity>
-                </View>
-              }
-            />
-          )}
-          {error && (
-            <View style={styles.errorContainer}>
-              <Text style={styles.errorText}>{error}</Text>
-            </View>
-          )}
-        </View>
-      )}
+      <View style={styles.content}>
+        <Text style={styles.sectionTitle}>Recent Conversations</Text>
+        {loading && !refreshing ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color="#A78BFA" />
+            <Text style={styles.loadingText}>Loading conversations...</Text>
+          </View>
+        ) : (
+          <FlatList
+            data={contacts}
+            renderItem={renderContact}
+            keyExtractor={(item) => item.id.toString()}
+            contentContainerStyle={styles.listContainer}
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={handleRefresh}
+                colors={['#A78BFA']}
+                tintColor="#A78BFA"
+              />
+            }
+            ListEmptyComponent={
+              <View style={styles.emptyState}>
+                <Ionicons name="mail-outline" size={64} color="#666" />
+                <Text style={styles.emptyStateText}>No conversations yet</Text>
+                <Text style={styles.emptyStateSubtext}>
+                  Start a conversation by searching for {user?.userType === 'Coach' ? 'clients' : 'coaches'}
+                </Text>
+                <TouchableOpacity 
+                  style={styles.startChatButton}
+                  onPress={() => setShowSearchModal(true)}
+                >
+                  <Text style={styles.startChatButtonText}>Start Chatting</Text>
+                </TouchableOpacity>
+              </View>
+            }
+          />
+        )}
+        {error && (
+          <View style={styles.errorContainer}>
+            <Text style={styles.errorText}>{error}</Text>
+          </View>
+        )}
+      </View>
+
+      {/* User Search Modal */}
+      <UserSearchModal
+        visible={showSearchModal}
+        onClose={() => setShowSearchModal(false)}
+        onUserSelect={handleUserSelect}
+      />
     </View>
   );
 }
@@ -410,26 +291,6 @@ const styles = StyleSheet.create({
   searchButton: {
     padding: 8,
   },
-  searchContainer: {
-    padding: 20,
-    backgroundColor: '#fff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
-  },
-  searchInput: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#f0f0f0',
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    gap: 8,
-  },
-  searchTextInput: {
-    flex: 1,
-    fontSize: 16,
-    color: '#1a1a1a',
-  },
   content: {
     flex: 1,
   },
@@ -455,19 +316,6 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
   },
   contactCard: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: '#e0e0e0',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  searchResultCard: {
     backgroundColor: '#fff',
     borderRadius: 12,
     padding: 16,

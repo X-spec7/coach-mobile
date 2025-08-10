@@ -12,16 +12,14 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 import { useAuth } from "../contexts/AuthContext";
-import { ContactsModal } from "../components/ContactsModal";
 
 const menuItems = [
   { id: 1, title: "Personal Information", icon: "user" },
   { id: 2, title: "Workout History", icon: "activity" },
   { id: 3, title: "Goals", icon: "target" },
-  { id: 4, title: "Contacts", icon: "users" },
-  { id: 5, title: "Notifications", icon: "bell" },
-  { id: 6, title: "Privacy", icon: "lock" },
-  { id: 7, title: "Help & Support", icon: "help-circle" },
+  { id: 4, title: "Notifications", icon: "bell" },
+  { id: 5, title: "Privacy", icon: "lock" },
+  { id: 6, title: "Help & Support", icon: "help-circle" },
 ];
 
 export default function ProfileScreen() {
@@ -30,7 +28,6 @@ export default function ProfileScreen() {
   const { user, isLoading, signOut } = useAuth();
   const [error, setError] = useState<string | null>(null);
   const [menuVisible, setMenuVisible] = useState(false);
-  const [contactsModalVisible, setContactsModalVisible] = useState(false);
   const router = useRouter();
 
   const handleLogout = async () => {
@@ -151,10 +148,8 @@ export default function ProfileScreen() {
                 key={item.id}
                 style={styles.menuItem}
                 onPress={() => {
-                  if (item.title === "Contacts") {
-                    console.log('Contacts button pressed - temporarily disabled');
-                    // setContactsModalVisible(true);
-                  }
+                  // Handle menu item press
+                  console.log(`${item.title} button pressed`);
                 }}
               >
                 <Text style={styles.menuTitle}>{item.title}</Text>
@@ -163,13 +158,6 @@ export default function ProfileScreen() {
             ))}
           </View>
         </ScrollView>
-
-        {/* Temporarily commented out ContactsModal to prevent crashes
-        <ContactsModal
-          visible={contactsModalVisible}
-          onClose={() => setContactsModalVisible(false)}
-        />
-        */}
       </View>
     );
   } catch (error) {

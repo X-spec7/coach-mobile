@@ -61,30 +61,6 @@ export default function ActivityScreen() {
       onPress: () => router.push('/find-coaches'),
     },
     {
-      id: 'workout-assignments',
-      title: 'Workout Assignments',
-      subtitle: 'View assigned workout plans',
-      icon: 'clipboard' as const,
-      color: '#FFA726',
-      onPress: () => router.push('/workout-assignments'),
-    },
-    {
-      id: 'meal-assignments',
-      title: 'Meal Plan Assignments',
-      subtitle: 'View applied meal plans',
-      icon: 'restaurant' as const,
-      color: '#66BB6A',
-      onPress: () => router.push('/meal-assignments'),
-    },
-    {
-      id: 'messages',
-      title: 'Messages',
-      subtitle: 'Chat with coaches and clients',
-      icon: 'chatbubbles' as const,
-      color: '#FF6B6B',
-      onPress: () => router.push('/chat-contacts'),
-    },
-    {
       id: 'workout-history',
       title: 'Workout History',
       subtitle: 'View your workout performance over time',
@@ -173,39 +149,6 @@ export default function ActivityScreen() {
 
               <TouchableOpacity 
                 style={styles.menuItem}
-                onPress={() => router.push('/workouts')}
-              >
-                <View style={styles.menuIcon}>
-                  <Ionicons name="barbell" size={24} color="#A78BFA" />
-                </View>
-                <Text style={styles.menuTitle}>My Programs</Text>
-                <Text style={styles.menuSubtitle}>Create and manage workout plans</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity 
-                style={styles.menuItem}
-                onPress={() => router.push('/workout-assignments')}
-              >
-                <View style={styles.menuIcon}>
-                  <Ionicons name="clipboard" size={24} color="#A78BFA" />
-                </View>
-                <Text style={styles.menuTitle}>Workout Assignments</Text>
-                <Text style={styles.menuSubtitle}>Track assigned workout plans</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity 
-                style={styles.menuItem}
-                onPress={() => router.push('/meal-assignments')}
-              >
-                <View style={styles.menuIcon}>
-                  <Ionicons name="restaurant" size={24} color="#A78BFA" />
-                </View>
-                <Text style={styles.menuTitle}>Meal Assignments</Text>
-                <Text style={styles.menuSubtitle}>Track applied meal plans</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity 
-                style={styles.menuItem}
                 onPress={() => router.push('/public-workouts')}
               >
                 <View style={styles.menuIcon}>
@@ -213,17 +156,6 @@ export default function ActivityScreen() {
                 </View>
                 <Text style={styles.menuTitle}>Public Library</Text>
                 <Text style={styles.menuSubtitle}>Browse community workouts</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity 
-                style={styles.menuItem}
-                onPress={() => router.push('/chat-contacts')}
-              >
-                <View style={styles.menuIcon}>
-                  <Ionicons name="mail" size={24} color="#A78BFA" />
-                </View>
-                <Text style={styles.menuTitle}>Messages</Text>
-                <Text style={styles.menuSubtitle}>Chat with clients</Text>
               </TouchableOpacity>
             </>
           ) : (
@@ -275,28 +207,6 @@ export default function ActivityScreen() {
 
               <TouchableOpacity 
                 style={styles.menuItem}
-                onPress={() => router.push('/workout-assignments')}
-              >
-                <View style={styles.menuIcon}>
-                  <Ionicons name="trophy" size={24} color="#A78BFA" />
-                </View>
-                <Text style={styles.menuTitle}>Assigned Programs</Text>
-                <Text style={styles.menuSubtitle}>Programs from your coaches</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity 
-                style={styles.menuItem}
-                onPress={() => router.push('/meal-assignments')}
-              >
-                <View style={styles.menuIcon}>
-                  <Ionicons name="restaurant" size={24} color="#A78BFA" />
-                </View>
-                <Text style={styles.menuTitle}>Meal Assignments</Text>
-                <Text style={styles.menuSubtitle}>Applied meal plans</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity 
-                style={styles.menuItem}
                 onPress={() => router.push('/scheduled-meals')}
               >
                 <View style={styles.menuIcon}>
@@ -304,28 +214,6 @@ export default function ActivityScreen() {
                 </View>
                 <Text style={styles.menuTitle}>Meal Tracking</Text>
                 <Text style={styles.menuSubtitle}>Log daily food consumption</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity 
-                style={styles.menuItem}
-                onPress={() => router.push('/workouts')}
-              >
-                <View style={styles.menuIcon}>
-                  <Ionicons name="create" size={24} color="#A78BFA" />
-                </View>
-                <Text style={styles.menuTitle}>My Programs</Text>
-                <Text style={styles.menuSubtitle}>Personal workout plans</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity 
-                style={styles.menuItem}
-                onPress={() => router.push('/chat-contacts')}
-              >
-                <View style={styles.menuIcon}>
-                  <Ionicons name="mail" size={24} color="#A78BFA" />
-                </View>
-                <Text style={styles.menuTitle}>Messages</Text>
-                <Text style={styles.menuSubtitle}>Chat with coaches</Text>
               </TouchableOpacity>
             </>
           )}

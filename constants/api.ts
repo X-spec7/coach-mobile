@@ -40,7 +40,8 @@ export const API_ENDPOINTS = {
   },
   USERS: {
     USERS_LIST: `${API_BASE_URL}/users/`,
-    COACHES: `${API_BASE_URL}/users/coaches/`,
+    COACHES: `${API_BASE_URL}/users/coaches-list/`,
+    CLIENTS_LIST: `${API_BASE_URL}/users/clients-list/`,
     COACH_CLIENT_RELATIONSHIP: `${API_BASE_URL}/users/coach-client-relationship/`,
     MY_RELATIONSHIPS: `${API_BASE_URL}/users/my-relationships/`,
     COACH_CLIENT_RELATIONSHIP_DETAILS: (relationshipId: string) => `${API_BASE_URL}/users/coach-client-relationship/${relationshipId}/`,
