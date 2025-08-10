@@ -149,6 +149,17 @@ export default function ActivityScreen() {
 
               <TouchableOpacity 
                 style={styles.menuItem}
+                onPress={() => router.push('/coach-sessions')}
+              >
+                <View style={styles.menuIcon}>
+                  <Ionicons name="videocam" size={24} color="#A78BFA" />
+                </View>
+                <Text style={styles.menuTitle}>My Sessions</Text>
+                <Text style={styles.menuSubtitle}>Manage live fitness sessions</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity 
+                style={styles.menuItem}
                 onPress={() => router.push('/public-workouts')}
               >
                 <View style={styles.menuIcon}>
@@ -170,6 +181,17 @@ export default function ActivityScreen() {
                 </View>
                 <Text style={styles.menuTitle}>My Schedule</Text>
                 <Text style={styles.menuSubtitle}>View scheduled workouts</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity 
+                style={styles.menuItem}
+                onPress={() => router.push('/sessions')}
+              >
+                <View style={styles.menuIcon}>
+                  <Ionicons name="videocam" size={24} color="#A78BFA" />
+                </View>
+                <Text style={styles.menuTitle}>Live Sessions</Text>
+                <Text style={styles.menuSubtitle}>Join live fitness sessions</Text>
               </TouchableOpacity>
 
               <TouchableOpacity 

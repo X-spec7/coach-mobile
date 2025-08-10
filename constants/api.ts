@@ -50,6 +50,16 @@ export const API_ENDPOINTS = {
     GET_USER_INFO: `${API_BASE_URL}/users/client/profile/`,
     UPDATE_USER_INFO: `${API_BASE_URL}/users/client/profile/`,
   },
+  SESSIONS: {
+    CREATE: `${API_BASE_URL}/session/create/`,
+    CREATE_INSTANT: `${API_BASE_URL}/session/create/instant/`,
+    GET_ALL: `${API_BASE_URL}/session/get/`,
+    GET_COUNT: `${API_BASE_URL}/session/get/count/`,
+    GET_MINE: `${API_BASE_URL}/session/get/mine/`,
+    GET_MINE_COUNT: `${API_BASE_URL}/session/get/mine/count/`,
+    BOOK: `${API_BASE_URL}/session/book/`,
+    JOIN: `${API_BASE_URL}/session/join/`,
+  },
   WORKOUTS: {
     WORKOUT_PLANS: `${API_BASE_URL}/workouts/workout-plans/`,
     WORKOUT_PLAN_DETAILS: (planId: number) => `${API_BASE_URL}/workouts/workout-plans/${planId}/`,
