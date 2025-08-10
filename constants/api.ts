@@ -50,6 +50,14 @@ export const API_ENDPOINTS = {
     GET_USER_INFO: `${API_BASE_URL}/users/client/profile/`,
     UPDATE_USER_INFO: `${API_BASE_URL}/users/client/profile/`,
   },
+  WEIGHT_TRACKING: {
+    CREATE: `${API_BASE_URL}/weight-tracking/create/`,
+    UPDATE: (entryId: string) => `${API_BASE_URL}/weight-tracking/${entryId}/update/`,
+    DELETE: (entryId: string) => `${API_BASE_URL}/weight-tracking/${entryId}/delete/`,
+    GET_ENTRY: (entryId: string) => `${API_BASE_URL}/weight-tracking/${entryId}/`,
+    HISTORY: `${API_BASE_URL}/weight-tracking/history/`,
+    LATEST: `${API_BASE_URL}/weight-tracking/latest/`,
+  },
   SESSIONS: {
     CREATE: `${API_BASE_URL}/session/create/`,
     CREATE_INSTANT: `${API_BASE_URL}/session/create/instant/`,

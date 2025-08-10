@@ -10,6 +10,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useAuth } from '../contexts/AuthContext';
 import UnreadMessages from '../components/UnreadMessages';
+import WeightDisplay from '../components/WeightDisplay';
 
 const activityData = [
   { date: 'Mon', calories: 450 },
@@ -96,6 +97,14 @@ export default function ActivityScreen() {
 
       {/* Unread Messages */}
       <UnreadMessages />
+
+      {/* Weight Display for Clients */}
+      {user?.userType === 'Client' && (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Quick Stats</Text>
+          <WeightDisplay />
+        </View>
+      )}
 
       {/* Weekly Progress */}
       <View style={styles.section}>
@@ -192,6 +201,17 @@ export default function ActivityScreen() {
                 </View>
                 <Text style={styles.menuTitle}>Live Sessions</Text>
                 <Text style={styles.menuSubtitle}>Join live fitness sessions</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity 
+                style={styles.menuItem}
+                onPress={() => router.push('/weight-tracking')}
+              >
+                <View style={styles.menuIcon}>
+                  <Ionicons name="scale" size={24} color="#A78BFA" />
+                </View>
+                <Text style={styles.menuTitle}>Weight Tracking</Text>
+                <Text style={styles.menuSubtitle}>Monitor your weight progress</Text>
               </TouchableOpacity>
 
               <TouchableOpacity 
