@@ -9,9 +9,12 @@ import {
   Alert,
   RefreshControl,
   TextInput,
+  Modal,
+  Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { WeightTrackingService, WeightEntry, WeightStatistics } from '../services/weightTrackingService';
 import { useAuth } from '../contexts/AuthContext';
 import WeightEntryCard from '../components/WeightEntryCard';
@@ -32,6 +35,11 @@ export default function WeightTrackingScreen() {
   const [error, setError] = useState<string | null>(null);
   const [showLogModal, setShowLogModal] = useState(false);
   const [editingEntry, setEditingEntry] = useState<WeightEntry | null>(null);
+  
+  // Date picker states
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [datePickerMode, setDatePickerMode] = useState<'from' | 'to'>('from');
+  const [tempDate, setTempDate] = useState(new Date());
 
   const limit = 20;
 
@@ -98,8 +106,6 @@ export default function WeightTrackingScreen() {
 
   const handleRefresh = async () => {
     setRefreshing(true);
-    setOffset(0);
-    setHasMore(true);
     await fetchWeightData(true);
     await fetchLatestEntry();
     setRefreshing(false);
@@ -123,8 +129,8 @@ export default function WeightTrackingScreen() {
 
   const handleDeleteEntry = async (entryId: string) => {
     Alert.alert(
-      'Delete Entry',
-      'Are you sure you want to delete this weight entry?',
+      'Delete Weight Entry',
+      'Are you sure you want to delete this weight entry? This action cannot be undone.',
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -133,7 +139,7 @@ export default function WeightTrackingScreen() {
           onPress: async () => {
             try {
               await WeightTrackingService.deleteWeightEntry(entryId);
-              Alert.alert('Success', 'Weight entry deleted successfully!');
+              Alert.alert('Success', 'Weight entry deleted successfully');
               fetchWeightData(true);
               fetchLatestEntry();
             } catch (error) {
@@ -157,22 +163,105 @@ export default function WeightTrackingScreen() {
     setDateTo('');
   };
 
+  // Date picker functions
+  const openDatePicker = (mode: 'from' | 'to') => {
+    setDatePickerMode(mode);
+    const currentDate = mode === 'from' && dateFrom ? new Date(dateFrom) : 
+                       mode === 'to' && dateTo ? new Date(dateTo) : new Date();
+    setTempDate(currentDate);
+    setShowDatePicker(true);
+  };
+
+  const handleDateChange = (event: any, selectedDate?: Date) => {
+    if (Platform.OS === 'android') {
+      setShowDatePicker(false);
+    }
+    
+    if (selectedDate) {
+      setTempDate(selectedDate);
+      
+      if (Platform.OS === 'ios') {
+        return;
+      }
+      
+      const dateString = selectedDate.toISOString().split('T')[0];
+      if (datePickerMode === 'from') {
+        setDateFrom(dateString);
+      } else {
+        setDateTo(dateString);
+      }
+    }
+  };
+
+  const confirmDate = () => {
+    const dateString = tempDate.toISOString().split('T')[0];
+    if (datePickerMode === 'from') {
+      setDateFrom(dateString);
+    } else {
+      setDateTo(dateString);
+    }
+    setShowDatePicker(false);
+  };
+
+  const cancelDate = () => {
+    setShowDatePicker(false);
+  };
+
+  // Quick date range functions
+  const setDateRange = (range: 'today' | 'week' | 'month' | 'all') => {
+    const today = new Date();
+    const todayString = today.toISOString().split('T')[0];
+    
+    switch (range) {
+      case 'today':
+        setDateFrom(todayString);
+        setDateTo(todayString);
+        break;
+      case 'week':
+        const weekAgo = new Date(today);
+        weekAgo.setDate(today.getDate() - 7);
+        setDateFrom(weekAgo.toISOString().split('T')[0]);
+        setDateTo(todayString);
+        break;
+      case 'month':
+        const monthAgo = new Date(today);
+        monthAgo.setMonth(today.getMonth() - 1);
+        setDateFrom(monthAgo.toISOString().split('T')[0]);
+        setDateTo(todayString);
+        break;
+      case 'all':
+        setDateFrom('');
+        setDateTo('');
+        break;
+    }
+  };
+
+  const formatDateDisplay = (dateString: string) => {
+    if (!dateString) return 'Select Date';
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+    });
+  };
+
   const renderWeightEntry = ({ item }: { item: WeightEntry }) => (
     <WeightEntryCard
       entry={item}
-      onEdit={handleEditEntry}
-      onDelete={handleDeleteEntry}
+      onPress={() => handleEditEntry(item)}
+      onEdit={() => handleEditEntry(item)}
+      onDelete={() => handleDeleteEntry(item.id)}
       showActions={true}
     />
   );
 
   const renderFooter = () => {
-    if (!loading || !hasMore) return null;
-    
+    if (!loading) return null;
     return (
-      <View style={styles.loadingFooter}>
+      <View style={styles.footer}>
         <ActivityIndicator size="small" color="#A78BFA" />
-        <Text style={styles.loadingText}>Loading more entries...</Text>
+        <Text style={styles.footerText}>Loading more entries...</Text>
       </View>
     );
   };
@@ -253,27 +342,84 @@ export default function WeightTrackingScreen() {
         </View>
       )}
 
-      {/* Date Filters */}
+      {/* Quick Date Range Buttons */}
+      <View style={styles.quickFiltersContainer}>
+        <Text style={styles.quickFiltersTitle}>Quick Filters</Text>
+        <View style={styles.quickFiltersRow}>
+          <TouchableOpacity
+            style={[styles.quickFilterButton, dateFrom && dateTo && dateFrom === dateTo && new Date().toISOString().split('T')[0] === dateFrom && styles.quickFilterButtonActive]}
+            onPress={() => setDateRange('today')}
+          >
+            <Text style={[styles.quickFilterText, dateFrom && dateTo && dateFrom === dateTo && new Date().toISOString().split('T')[0] === dateFrom && styles.quickFilterTextActive]}>Today</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.quickFilterButton, dateFrom && dateTo && (() => {
+              const today = new Date();
+              const weekAgo = new Date(today);
+              weekAgo.setDate(today.getDate() - 7);
+              return dateFrom === weekAgo.toISOString().split('T')[0] && dateTo === today.toISOString().split('T')[0];
+            })() && styles.quickFilterButtonActive]}
+            onPress={() => setDateRange('week')}
+          >
+            <Text style={[styles.quickFilterText, dateFrom && dateTo && (() => {
+              const today = new Date();
+              const weekAgo = new Date(today);
+              weekAgo.setDate(today.getDate() - 7);
+              return dateFrom === weekAgo.toISOString().split('T')[0] && dateTo === today.toISOString().split('T')[0];
+            })() && styles.quickFilterTextActive]}>Week</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.quickFilterButton, dateFrom && dateTo && (() => {
+              const today = new Date();
+              const monthAgo = new Date(today);
+              monthAgo.setMonth(today.getMonth() - 1);
+              return dateFrom === monthAgo.toISOString().split('T')[0] && dateTo === today.toISOString().split('T')[0];
+            })() && styles.quickFilterButtonActive]}
+            onPress={() => setDateRange('month')}
+          >
+            <Text style={[styles.quickFilterText, dateFrom && dateTo && (() => {
+              const today = new Date();
+              const monthAgo = new Date(today);
+              monthAgo.setMonth(today.getMonth() - 1);
+              return dateFrom === monthAgo.toISOString().split('T')[0] && dateTo === today.toISOString().split('T')[0];
+            })() && styles.quickFilterTextActive]}>Month</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.quickFilterButton, !dateFrom && !dateTo && styles.quickFilterButtonActive]}
+            onPress={() => setDateRange('all')}
+          >
+            <Text style={[styles.quickFilterText, !dateFrom && !dateTo && styles.quickFilterTextActive]}>All</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      {/* Custom Date Range */}
       <View style={styles.filtersContainer}>
+        <Text style={styles.filtersTitle}>Custom Date Range</Text>
         <View style={styles.filterRow}>
-          <View style={styles.dateInputContainer}>
-            <Text style={styles.filterLabel}>From:</Text>
-            <TextInput
-              style={styles.dateInput}
-              value={dateFrom}
-              onChangeText={setDateFrom}
-              placeholder="YYYY-MM-DD"
-            />
-          </View>
-          <View style={styles.dateInputContainer}>
-            <Text style={styles.filterLabel}>To:</Text>
-            <TextInput
-              style={styles.dateInput}
-              value={dateTo}
-              onChangeText={setDateTo}
-              placeholder="YYYY-MM-DD"
-            />
-          </View>
+          <TouchableOpacity
+            style={styles.dateButton}
+            onPress={() => openDatePicker('from')}
+          >
+            <Ionicons name="calendar-outline" size={20} color="#666" />
+            <View style={styles.dateButtonContent}>
+              <Text style={styles.dateButtonLabel}>From</Text>
+              <Text style={styles.dateButtonValue}>{formatDateDisplay(dateFrom)}</Text>
+            </View>
+            <Ionicons name="chevron-down" size={16} color="#666" />
+          </TouchableOpacity>
+          
+          <TouchableOpacity
+            style={styles.dateButton}
+            onPress={() => openDatePicker('to')}
+          >
+            <Ionicons name="calendar-outline" size={20} color="#666" />
+            <View style={styles.dateButtonContent}>
+              <Text style={styles.dateButtonLabel}>To</Text>
+              <Text style={styles.dateButtonValue}>{formatDateDisplay(dateTo)}</Text>
+            </View>
+            <Ionicons name="chevron-down" size={16} color="#666" />
+          </TouchableOpacity>
         </View>
         {(dateFrom || dateTo) && (
           <TouchableOpacity
@@ -309,21 +455,7 @@ export default function WeightTrackingScreen() {
             tintColor="#A78BFA"
           />
         }
-        showsVerticalScrollIndicator={false}
       />
-
-      {/* Error Message */}
-      {error && (
-        <View style={styles.errorContainer}>
-          <Text style={styles.errorText}>{error}</Text>
-          <TouchableOpacity
-            style={styles.retryButton}
-            onPress={() => fetchWeightData(true)}
-          >
-            <Text style={styles.retryButtonText}>Retry</Text>
-          </TouchableOpacity>
-        </View>
-      )}
 
       {/* Weight Log Modal */}
       <WeightLogModal
@@ -332,6 +464,47 @@ export default function WeightTrackingScreen() {
         onWeightLogged={handleWeightLogged}
         editingEntry={editingEntry}
       />
+
+      {/* Date Picker Modal */}
+      {showDatePicker && (
+        <Modal
+          visible={showDatePicker}
+          transparent={true}
+          animationType="slide"
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.datePickerContainer}>
+              <View style={styles.datePickerHeader}>
+                <Text style={styles.datePickerTitle}>
+                  Select {datePickerMode === 'from' ? 'Start' : 'End'} Date
+                </Text>
+                <TouchableOpacity onPress={cancelDate}>
+                  <Ionicons name="close" size={24} color="#666" />
+                </TouchableOpacity>
+              </View>
+              
+              <DateTimePicker
+                value={tempDate}
+                mode="date"
+                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                onChange={handleDateChange}
+                maximumDate={new Date()}
+              />
+              
+              {Platform.OS === 'ios' && (
+                <View style={styles.datePickerActions}>
+                  <TouchableOpacity style={styles.datePickerButton} onPress={cancelDate}>
+                    <Text style={styles.datePickerButtonText}>Cancel</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={[styles.datePickerButton, styles.datePickerButtonConfirm]} onPress={confirmDate}>
+                    <Text style={[styles.datePickerButtonText, styles.datePickerButtonTextConfirm]}>Confirm</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+            </View>
+          </View>
+        </Modal>
+      )}
     </View>
   );
 }
@@ -429,27 +602,39 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#e0e0e0',
   },
+  filtersTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 12,
+  },
   filterRow: {
     flexDirection: 'row',
     gap: 12,
     marginBottom: 12,
   },
-  dateInputContainer: {
+  dateButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#f0f0f0',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
     flex: 1,
   },
-  filterLabel: {
-    fontSize: 14,
+  dateButtonContent: {
+    marginLeft: 10,
+  },
+  dateButtonLabel: {
+    fontSize: 12,
+    color: '#666',
+    marginBottom: 2,
+  },
+  dateButtonValue: {
+    fontSize: 16,
     fontWeight: '600',
     color: '#333',
-    marginBottom: 8,
-  },
-  dateInput: {
-    borderWidth: 1,
-    borderColor: '#e0e0e0',
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 14,
-    backgroundColor: '#fff',
   },
   clearFiltersButton: {
     flexDirection: 'row',
@@ -465,13 +650,13 @@ const styles = StyleSheet.create({
   entriesList: {
     padding: 20,
   },
-  loadingFooter: {
+  footer: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     padding: 16,
   },
-  loadingText: {
+  footerText: {
     marginLeft: 8,
     fontSize: 14,
     color: '#666',
@@ -532,5 +717,96 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 14,
     fontWeight: '600',
+  },
+  quickFiltersContainer: {
+    backgroundColor: '#fff',
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e0e0e0',
+  },
+  quickFiltersTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 12,
+  },
+  quickFiltersRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    flexWrap: 'wrap',
+  },
+  quickFilterButton: {
+    paddingHorizontal: 15,
+    paddingVertical: 10,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+    marginHorizontal: 5,
+    marginVertical: 8,
+  },
+  quickFilterButtonActive: {
+    backgroundColor: '#A78BFA',
+    borderColor: '#A78BFA',
+  },
+  quickFilterText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#666',
+  },
+  quickFilterTextActive: {
+    color: '#fff',
+  },
+  modalOverlay: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.5)',
+  },
+  datePickerContainer: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    width: '90%',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 5,
+  },
+  datePickerHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 15,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e0e0e0',
+  },
+  datePickerTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  datePickerActions: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    paddingVertical: 10,
+    borderTopWidth: 1,
+    borderTopColor: '#e0e0e0',
+  },
+  datePickerButton: {
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 8,
+  },
+  datePickerButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#A78BFA',
+  },
+  datePickerButtonConfirm: {
+    backgroundColor: '#A78BFA',
+  },
+  datePickerButtonTextConfirm: {
+    color: '#fff',
   },
 }); 
