@@ -12,7 +12,7 @@ import {
 } from "react-native";
 import { MealPlan, selectMealPlan } from "../services/api";
 import { API_BASE_URL } from "@/constants/api";
-import MealPlanDetailsModal from "./MealPlanDetailsModal";
+import { MealPlanDetailsModal } from "./MealPlanDetailsModal";
 
 // Extend MealPlan interface for additional properties
 interface ExtendedMealPlan extends MealPlan {
@@ -221,9 +221,8 @@ export const ChangePlanModal: React.FC<ChangePlanModalProps> = ({
       <MealPlanDetailsModal
         visible={showPlanDetails}
         onClose={handleClosePlanDetails}
-        plan={selectedPlan ? { mealPlan: selectedPlan } : null}
+        plan={{ mealPlan: selectedPlan as any }}
         onChoose={handleChoosePlan}
-        isLoading={isSelectingPlan}
         onAssign={() => {}}
       />
     </Modal>

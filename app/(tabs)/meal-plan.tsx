@@ -5,6 +5,7 @@ import { MealService, MealPlan } from '../services/mealService';
 import { CreateMealPlanModal } from '../modals/CreateMealPlanModal';
 import { MealPlanDetailsModal } from '../modals/MealPlanDetailsModal';
 import { ApplyMealPlanModal } from '../modals/ApplyMealPlanModal';
+import AssignMealPlanModal from '../modals/AssignMealPlanModal';
 import { useAuth } from '../contexts/AuthContext';
 
 export default function MealPlanScreen() {
@@ -17,6 +18,7 @@ export default function MealPlanScreen() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [showApplyModal, setShowApplyModal] = useState(false);
+  const [showAssignModal, setShowAssignModal] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<MealPlan | null>(null);
 
   useEffect(() => {
@@ -89,10 +91,10 @@ export default function MealPlanScreen() {
     setShowApplyModal(true);
   };
 
-  const handleAssignPlan = () => {
-    // Handle assigning the meal plan to client
+  const handleAssignPlan = (plan: MealPlan) => {
+    setSelectedPlan(plan);
     setShowDetailsModal(false);
-    Alert.alert('Info', 'Assignment functionality coming soon!');
+    setShowAssignModal(true);
   };
 
   const renderMealPlan = (plan: MealPlan) => (
@@ -302,6 +304,17 @@ export default function MealPlanScreen() {
         mealPlan={selectedPlan}
         onSuccess={() => {
           setShowApplyModal(false);
+          fetchMealPlans();
+        }}
+      />
+
+      <AssignMealPlanModal
+        visible={showAssignModal}
+        onClose={() => setShowAssignModal(false)}
+        mealPlanId={selectedPlan?.id || ''}
+        mealPlanName={selectedPlan?.title || ''}
+        onAssignSuccess={() => {
+          setShowAssignModal(false);
           fetchMealPlans();
         }}
       />

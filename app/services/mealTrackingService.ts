@@ -1,4 +1,5 @@
-import { getAuthHeaders, handle401Error } from './api';
+import { getAuthHeaders } from './api';
+import { handle401Error } from '../utils/auth';
 
 // Hardcoded API base URL and endpoints to bypass TypeScript caching issues
 const API_BASE_URL = 'http://52.15.195.49:8000';

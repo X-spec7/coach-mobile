@@ -1,19 +1,19 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
-  TouchableOpacity,
-  Modal,
-  TextInput,
-  ScrollView,
-  ActivityIndicator,
-  Alert,
   StyleSheet,
-} from "react-native";
-import { Ionicons } from "@expo/vector-icons";
-import ClientSelector from "../components/ClientSelector";
-import { API_BASE_URL } from "@/constants/api";
-import { getAuthHeaders } from "../services/api";
+  Modal,
+  TouchableOpacity,
+  ScrollView,
+  Alert,
+  ActivityIndicator,
+  TextInput,
+} from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { MealService, AssignMealPlanRequest, WeekDay } from '../services/mealService';
+import { CoachClientService, Client } from '../services/coachClientService';
+import { useAuth } from '../contexts/AuthContext';
 
 interface AssignMealPlanModalProps {
   visible: boolean;
@@ -23,256 +23,283 @@ interface AssignMealPlanModalProps {
   onAssignSuccess?: () => void;
 }
 
-interface Assignment {
-  id: string;
-  mealPlanId: string;
-  client: {
-    id: number;
-    name: string;
-    email: string;
-  };
-  assignedAt: string;
-  notes?: string;
-}
+const DAYS_OF_WEEK = [
+  { key: 'monday', label: 'Monday' },
+  { key: 'tuesday', label: 'Tuesday' },
+  { key: 'wednesday', label: 'Wednesday' },
+  { key: 'thursday', label: 'Thursday' },
+  { key: 'friday', label: 'Friday' },
+  { key: 'saturday', label: 'Saturday' },
+  { key: 'sunday', label: 'Sunday' },
+];
 
-const AssignMealPlanModal: React.FC<AssignMealPlanModalProps> = ({
+export const AssignMealPlanModal: React.FC<AssignMealPlanModalProps> = ({
   visible,
   onClose,
   mealPlanId,
   mealPlanName,
   onAssignSuccess,
 }) => {
-  const [selectedClient, setSelectedClient] = useState<string>("");
-  const [isLoading, setIsLoading] = useState(false);
-  const [notes, setNotes] = useState("");
-  const [assignedClientIds, setAssignedClientIds] = useState<string[]>([]);
-  const [isLoadingAssignments, setIsLoadingAssignments] = useState(false);
+  const { user } = useAuth();
+  
+  const [loading, setLoading] = useState(false);
+  const [clients, setClients] = useState<Client[]>([]);
+  const [selectedClient, setSelectedClient] = useState<Client | null>(null);
+  const [selectedDays, setSelectedDays] = useState<WeekDay[]>([]);
+  const [weeksCount, setWeeksCount] = useState<string>('4');
+  const [startDate, setStartDate] = useState<string>('');
+  const [step, setStep] = useState<'select-client' | 'configure'>('select-client');
 
-  // Fetch current assignments when modal opens
   useEffect(() => {
-    if (visible && mealPlanId) {
-      fetchCurrentAssignments();
+    if (visible) {
+      fetchClients();
+      // Set default start date to tomorrow
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      setStartDate(tomorrow.toISOString().split('T')[0]);
+    } else {
+      // Reset form when modal closes
+      setSelectedClient(null);
+      setSelectedDays([]);
+      setWeeksCount('4');
+      setStep('select-client');
     }
-  }, [visible, mealPlanId]);
+  }, [visible]);
 
-  const fetchCurrentAssignments = async () => {
-    setIsLoadingAssignments(true);
+  const fetchClients = async () => {
+    setLoading(true);
     try {
-      const headers = await getAuthHeaders();
-      const response = await fetch(
-        `${API_BASE_URL}/mealplan/assignments/${mealPlanId}`,
-        {
-          method: "GET",
-          headers,
-        }
-      );
-
-      if (response.ok) {
-        const data = await response.json();
-        console.log("Raw assignments data:", data);
-
-        // Extract client IDs from assignments - handle multiple possible response structures
-        let clientIds: string[] = [];
-
-        // Try different possible data structures
-        const assignments = data.assignments || data.data || data.results || [];
-
-        if (Array.isArray(assignments)) {
-          clientIds = assignments
-            .map((assignment: any) => {
-              // Handle different possible client structures
-              if (assignment.client && typeof assignment.client === "object") {
-                return assignment.client.id?.toString();
-              } else if (assignment.clientId) {
-                return assignment.clientId.toString();
-              } else if (
-                assignment.client &&
-                typeof assignment.client === "string"
-              ) {
-                return assignment.client;
-              } else if (
-                assignment.client &&
-                typeof assignment.client === "number"
-              ) {
-                return assignment.client.toString();
-              }
-              return null;
-            })
-            .filter(Boolean);
-        }
-
-        console.log("Extracted client IDs:", clientIds);
-        setAssignedClientIds(clientIds);
-      } else {
-        console.error(
-          "Failed to fetch assignments:",
-          response.status,
-          response.statusText
-        );
-        setAssignedClientIds([]);
+      const response = await CoachClientService.getMyRelationships({ status: 'active' });
+      if (user?.userType === 'Coach') {
+        // For coaches, get the clients from relationships
+        const activeClients = response.relationships
+          .filter(rel => rel.status === 'active')
+          .map(rel => rel.client) as Client[];
+        setClients(activeClients);
       }
     } catch (error) {
-      console.error("Error fetching assignments:", error);
-      setAssignedClientIds([]);
+      console.error('Error fetching clients:', error);
+      Alert.alert('Error', 'Failed to load clients. Please try again.');
     } finally {
-      setIsLoadingAssignments(false);
+      setLoading(false);
     }
+  };
+
+  const handleSelectClient = (client: Client) => {
+    setSelectedClient(client);
+    setStep('configure');
+  };
+
+  const handleBackToClientSelection = () => {
+    setStep('select-client');
+  };
+
+  const toggleDay = (day: WeekDay) => {
+    setSelectedDays(prev => 
+      prev.includes(day) 
+        ? prev.filter(d => d !== day)
+        : [...prev, day]
+    );
   };
 
   const handleAssign = async () => {
-    if (!selectedClient) {
-      Alert.alert("Error", "Please select a client");
+    if (!selectedClient || selectedDays.length === 0 || !weeksCount) {
+      Alert.alert('Error', 'Please fill in all required fields.');
       return;
     }
 
-    console.log("selectedClient:", selectedClient);
-    console.log("assignedClientIds:", assignedClientIds);
-
-    // Check if client is already assigned
-    if (assignedClientIds.includes(selectedClient)) {
-      Alert.alert("Error", "This client is already assigned to this meal plan");
+    const weeks = parseInt(weeksCount);
+    if (isNaN(weeks) || weeks < 1 || weeks > 52) {
+      Alert.alert('Error', 'Please enter a valid number of weeks (1-52).');
       return;
     }
 
-    setIsLoading(true);
+    if (!startDate) {
+      Alert.alert('Error', 'Please select a start date.');
+      return;
+    }
+
+    setLoading(true);
     try {
-      const headers = await getAuthHeaders();
-      const response = await fetch(`${API_BASE_URL}/mealplan/assign/`, {
-        method: "POST",
-        headers: {
-          ...headers,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          mealPlanId,
-          clientId: selectedClient, // Keep as string since that's what the API expects
-          notes: notes.trim() || undefined,
-        }),
-      });
+      const assignmentData: AssignMealPlanRequest = {
+        client_id: selectedClient.id,
+        meal_plan_id: mealPlanId,
+        selected_days: selectedDays,
+        weeks_count: weeks,
+        start_date: startDate,
+      };
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to assign meal plan");
-      }
-
-      Alert.alert("Success", "Meal plan assigned successfully!");
-
-      // Refresh assignments list
-      await fetchCurrentAssignments();
-
-      // Reset form
-      setSelectedClient("");
-      setNotes("");
-
-      onAssignSuccess?.();
-    } catch (error) {
-      console.error("Error assigning meal plan:", error);
+      console.log('[AssignMealPlan] Assignment data:', JSON.stringify(assignmentData, null, 2));
+      
+      await MealService.assignMealPlan(assignmentData);
+      
       Alert.alert(
-        "Error",
-        error instanceof Error ? error.message : "Failed to assign meal plan"
+        'Success',
+        `Meal plan "${mealPlanName}" has been assigned to ${selectedClient.fullName}!`,
+        [
+          {
+            text: 'OK',
+            onPress: () => {
+              onAssignSuccess?.();
+              onClose();
+            },
+          },
+        ]
       );
+    } catch (error) {
+      console.error('Error assigning meal plan:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to assign meal plan';
+      Alert.alert('Error', errorMessage);
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
-  const handleClientChange = (clientId: string) => {
-    setSelectedClient(clientId);
-  };
+  const renderClientSelection = () => (
+    <View style={styles.content}>
+      <Text style={styles.title}>Select Client</Text>
+      <Text style={styles.subtitle}>
+        Choose which client to assign "{mealPlanName}" to:
+      </Text>
+
+      {loading ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#A78BFA" />
+          <Text style={styles.loadingText}>Loading clients...</Text>
+        </View>
+      ) : clients.length > 0 ? (
+        <ScrollView style={styles.clientsList}>
+          {clients.map((client) => (
+            <TouchableOpacity
+              key={client.id}
+              style={styles.clientCard}
+              onPress={() => handleSelectClient(client)}
+            >
+              <View style={styles.clientInfo}>
+                <Text style={styles.clientName}>{client.fullName}</Text>
+                <Text style={styles.clientEmail}>{client.email}</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color="#666" />
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      ) : (
+        <View style={styles.emptyState}>
+          <Ionicons name="people-outline" size={48} color="#ccc" />
+          <Text style={styles.emptyStateTitle}>No Active Clients</Text>
+          <Text style={styles.emptyStateText}>
+            You need to have active client relationships to assign meal plans.
+          </Text>
+        </View>
+      )}
+    </View>
+  );
+
+  const renderConfiguration = () => (
+    <View style={styles.content}>
+      <TouchableOpacity style={styles.backButton} onPress={handleBackToClientSelection}>
+        <Ionicons name="arrow-back" size={20} color="#A78BFA" />
+        <Text style={styles.backText}>Back to clients</Text>
+      </TouchableOpacity>
+
+      <Text style={styles.title}>Configure Assignment</Text>
+      <Text style={styles.subtitle}>
+        Assigning "{mealPlanName}" to {selectedClient?.fullName}
+      </Text>
+
+      <ScrollView style={styles.configForm}>
+        {/* Days Selection */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Meal Days *</Text>
+          <View style={styles.daysGrid}>
+            {DAYS_OF_WEEK.map((day) => (
+              <TouchableOpacity
+                key={day.key}
+                style={[
+                  styles.dayButton,
+                  selectedDays.includes(day.key as WeekDay) && styles.dayButtonSelected,
+                ]}
+                onPress={() => toggleDay(day.key as WeekDay)}
+              >
+                <Text style={[
+                  styles.dayButtonText,
+                  selectedDays.includes(day.key as WeekDay) && styles.dayButtonTextSelected,
+                ]}>
+                  {day.label.slice(0, 3)}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+
+        {/* Duration */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Duration (weeks) *</Text>
+          <TextInput
+            style={styles.input}
+            value={weeksCount}
+            onChangeText={setWeeksCount}
+            placeholder="4"
+            keyboardType="numeric"
+            maxLength={2}
+          />
+        </View>
+
+        {/* Start Date */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Start Date *</Text>
+          <TextInput
+            style={styles.input}
+            value={startDate}
+            onChangeText={setStartDate}
+            placeholder="YYYY-MM-DD"
+          />
+          <Text style={styles.inputHint}>Format: YYYY-MM-DD (e.g., 2025-02-01)</Text>
+        </View>
+
+        {/* Assignment Summary */}
+        <View style={styles.summarySection}>
+          <Text style={styles.summaryTitle}>Assignment Summary</Text>
+          <Text style={styles.summaryText}>
+            • {selectedDays.length} meal days per week
+          </Text>
+          <Text style={styles.summaryText}>
+            • {weeksCount} weeks duration
+          </Text>
+          <Text style={styles.summaryText}>
+            • Total: {selectedDays.length * parseInt(weeksCount || '0')} meal sessions
+          </Text>
+        </View>
+      </ScrollView>
+
+      <TouchableOpacity
+        style={[styles.assignButton, loading && styles.assignButtonDisabled]}
+        onPress={handleAssign}
+        disabled={loading || selectedDays.length === 0}
+      >
+        {loading ? (
+          <ActivityIndicator size="small" color="#fff" />
+        ) : (
+          <Text style={styles.assignButtonText}>Assign Meal Plan</Text>
+        )}
+      </TouchableOpacity>
+    </View>
+  );
 
   return (
-    <Modal
-      visible={visible}
-      animationType="slide"
-      transparent
-      onRequestClose={onClose}
-    >
-      <View style={styles.modalOverlay}>
-        <View style={styles.modalContent}>
+    <Modal visible={visible} animationType="slide" transparent>
+      <View style={styles.overlay}>
+        <View style={styles.container}>
+          {/* Header */}
           <View style={styles.header}>
-            <Text style={styles.title}>Assign Meal Plan</Text>
-            <TouchableOpacity
-              onPress={onClose}
-              style={styles.closeButton}
-              disabled={isLoading}
-            >
-              <Ionicons name="close" size={24} color="#6B7280" />
+            <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+              <Ionicons name="close" size={24} color="#333" />
             </TouchableOpacity>
+            <Text style={styles.headerTitle}>Assign Meal Plan</Text>
+            <View style={styles.headerSpacer} />
           </View>
 
-          <View style={styles.infoSection}>
-            <Text style={styles.infoText}>
-              Assigning: <Text style={styles.mealPlanName}>{mealPlanName}</Text>
-            </Text>
-            {assignedClientIds.length > 0 && (
-              <Text style={styles.assignedText}>
-                {assignedClientIds.length} client
-                {assignedClientIds.length !== 1 ? "s" : ""} already assigned
-              </Text>
-            )}
-          </View>
-
-          <View style={styles.section}>
-            <Text style={styles.label}>Select Client</Text>
-            {isLoadingAssignments ? (
-              <View style={styles.loadingContainer}>
-                <ActivityIndicator size="large" color="#7C3AED" />
-              </View>
-            ) : (
-              <View style={styles.clientSelectorContainer}>
-                <ClientSelector
-                  selectedClient={selectedClient}
-                  onChange={handleClientChange}
-                  assignedClientIds={assignedClientIds}
-                  useFlatList={false}
-                />
-              </View>
-            )}
-          </View>
-
-          <View style={styles.section}>
-            <Text style={styles.label}>Notes (Optional)</Text>
-            <TextInput
-              value={notes}
-              onChangeText={setNotes}
-              placeholder="Add any notes or instructions for this meal plan assignment..."
-              style={styles.textInput}
-              multiline
-              numberOfLines={3}
-              editable={!isLoading}
-              textAlignVertical="top"
-            />
-          </View>
-
-          <View style={styles.footer}>
-            <TouchableOpacity
-              style={[styles.button, styles.cancelButton]}
-              onPress={onClose}
-              disabled={isLoading}
-            >
-              <Text style={styles.cancelButtonText}>Cancel</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[
-                styles.button,
-                styles.assignButton,
-                (!selectedClient ||
-                  isLoading ||
-                  assignedClientIds.includes(selectedClient)) &&
-                  styles.disabledButton,
-              ]}
-              onPress={handleAssign}
-              disabled={
-                !selectedClient ||
-                isLoading ||
-                assignedClientIds.includes(selectedClient)
-              }
-            >
-              <Text style={styles.assignButtonText}>
-                {isLoading ? "Assigning..." : "Assign Meal Plan"}
-              </Text>
-            </TouchableOpacity>
-          </View>
+          {step === 'select-client' ? renderClientSelection() : renderConfiguration()}
         </View>
       </View>
     </Modal>
@@ -280,124 +307,201 @@ const AssignMealPlanModal: React.FC<AssignMealPlanModalProps> = ({
 };
 
 const styles = StyleSheet.create({
-  modalOverlay: {
+  overlay: {
     flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
-    justifyContent: "center",
-    alignItems: "center",
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
   },
-  modalContent: {
-    backgroundColor: "#fff",
-    borderRadius: 16,
-    margin: 20,
-    maxHeight: "80%",
-    width: "90%",
-    maxWidth: 400,
+  container: {
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    maxHeight: '90%',
+    minHeight: '60%',
   },
   header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     padding: 20,
     borderBottomWidth: 1,
-    borderBottomColor: "#E5E7EB",
-  },
-  title: {
-    fontSize: 20,
-    fontWeight: "600",
-    color: "#1F2937",
+    borderBottomColor: '#f0f0f0',
   },
   closeButton: {
-    padding: 4,
-    borderRadius: 20,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#f5f5f5',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  infoSection: {
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  headerSpacer: {
+    width: 32,
+  },
+  content: {
+    flex: 1,
     padding: 20,
-    paddingTop: 0,
   },
-  infoText: {
+  title: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 8,
+  },
+  subtitle: {
+    fontSize: 16,
+    color: '#666',
+    marginBottom: 20,
+  },
+  loadingContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  loadingText: {
+    marginTop: 10,
+    fontSize: 16,
+    color: '#666',
+  },
+  clientsList: {
+    flex: 1,
+  },
+  clientCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    backgroundColor: '#f8f9fa',
+    borderRadius: 12,
+    marginBottom: 12,
+  },
+  clientInfo: {
+    flex: 1,
+  },
+  clientName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 4,
+  },
+  clientEmail: {
     fontSize: 14,
-    color: "#6B7280",
+    color: '#666',
   },
-  mealPlanName: {
-    fontWeight: "500",
-    color: "#1F2937",
+  emptyState: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 40,
   },
-  assignedText: {
-    fontSize: 12,
-    color: "#EA580C",
-    marginTop: 4,
+  emptyStateTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
+    marginTop: 16,
+    marginBottom: 8,
   },
-  scrollContent: {
+  emptyStateText: {
+    fontSize: 14,
+    color: '#666',
+    textAlign: 'center',
+    paddingHorizontal: 20,
+  },
+  backButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  backText: {
+    fontSize: 16,
+    color: '#A78BFA',
+    marginLeft: 8,
+  },
+  configForm: {
     flex: 1,
   },
   section: {
-    paddingHorizontal: 20,
-    marginBottom: 20,
+    marginBottom: 24,
   },
-  label: {
-    fontSize: 14,
-    fontWeight: "500",
-    color: "#374151",
-    marginBottom: 8,
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 12,
   },
-  loadingContainer: {
-    justifyContent: "center",
-    alignItems: "center",
-    paddingVertical: 20,
+  daysGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
   },
-  clientSelectorContainer: {
-    height: 250,
-    marginTop: 8,
+  dayButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 12,
     borderRadius: 8,
+    backgroundColor: '#f5f5f5',
     borderWidth: 1,
-    borderColor: "#E5E7EB",
-    backgroundColor: "#F9FAFB",
+    borderColor: '#e0e0e0',
   },
-  textInput: {
+  dayButtonSelected: {
+    backgroundColor: '#A78BFA',
+    borderColor: '#A78BFA',
+  },
+  dayButtonText: {
+    fontSize: 14,
+    color: '#666',
+    fontWeight: '500',
+  },
+  dayButtonTextSelected: {
+    color: '#fff',
+  },
+  input: {
     borderWidth: 1,
-    borderColor: "#D1D5DB",
+    borderColor: '#e0e0e0',
     borderRadius: 8,
     padding: 12,
-    fontSize: 14,
-    color: "#1F2937",
-    minHeight: 80,
-  },
-  footer: {
-    flexDirection: "row",
-    justifyContent: "flex-end",
-    gap: 12,
-    padding: 20,
-    borderTopWidth: 1,
-    borderTopColor: "#E5E7EB",
-  },
-  button: {
-    paddingHorizontal: 24,
-    paddingVertical: 10,
-    borderRadius: 8,
-    minWidth: 100,
-    alignItems: "center",
-  },
-  cancelButton: {
-    backgroundColor: "transparent",
-    borderWidth: 1,
-    borderColor: "#D1D5DB",
-  },
-  cancelButtonText: {
-    color: "#374151",
     fontSize: 16,
-    fontWeight: "500",
+    backgroundColor: '#fff',
+  },
+  inputHint: {
+    fontSize: 12,
+    color: '#666',
+    marginTop: 4,
+  },
+  summarySection: {
+    backgroundColor: '#f8f9fa',
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 20,
+  },
+  summaryTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 8,
+  },
+  summaryText: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 4,
   },
   assignButton: {
-    backgroundColor: "#10B981",
+    backgroundColor: '#A78BFA',
+    paddingVertical: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+    marginTop: 10,
+  },
+  assignButtonDisabled: {
+    backgroundColor: '#ccc',
   },
   assignButtonText: {
-    color: "#fff",
     fontSize: 16,
-    fontWeight: "500",
-  },
-  disabledButton: {
-    opacity: 0.5,
+    fontWeight: '600',
+    color: '#fff',
   },
 });
 

@@ -12,6 +12,7 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { ClientService, Client } from "../services/clientService";
+import { CoachClientService, CoachClientRelationship } from "../services/coachClientService";
 import { Colors } from "@/constants/Colors";
 import { useColorScheme } from "@/hooks/useColorScheme";
 
@@ -22,6 +23,7 @@ interface ClientSelectorProps {
   onChange: (clientId: string) => void;
   assignedClientIds?: string[];
   useFlatList?: boolean;
+  connectedClientsOnly?: boolean; // New prop to control whether to show only connected clients
 }
 
 const ClientSelector: React.FC<ClientSelectorProps> = ({
@@ -29,6 +31,7 @@ const ClientSelector: React.FC<ClientSelectorProps> = ({
   onChange,
   assignedClientIds = [],
   useFlatList = true,
+  connectedClientsOnly = false, // Default to false for backward compatibility
 }) => {
   const colorScheme = useColorScheme();
   const [searchTerm, setSearchTerm] = useState("");
@@ -40,16 +43,33 @@ const ClientSelector: React.FC<ClientSelectorProps> = ({
     const fetchClients = async () => {
       setIsLoading(true);
       try {
-        // Fetch clients from API with search term if provided
-        const response = await ClientService.getClients(
-          { search: searchTerm },
-          { page: 1, limit: 50 } // Get more clients for better selection
-        );
+        if (connectedClientsOnly) {
+          // Fetch only connected clients using relationships
+          const response = await CoachClientService.getMyRelationships({ status: 'active' });
+          console.log("Connected clients response>>", response);
 
-        console.log("response>>", response);
+          // Transform relationships to client format
+          const connectedClients: Client[] = response.relationships.map((relationship: CoachClientRelationship) => ({
+            id: relationship.client.id,
+            name: relationship.client.fullName,
+            email: relationship.client.email,
+            avatar: undefined, // Relationships don't include avatar
+          }));
 
-        setClients(response.clients);
-        setFilteredClients(response.clients);
+          setClients(connectedClients);
+          setFilteredClients(connectedClients);
+        } else {
+          // Fetch all clients (existing behavior)
+          const response = await ClientService.getClients(
+            { search: searchTerm },
+            { page: 1, limit: 50 }
+          );
+
+          console.log("All clients response>>", response);
+
+          setClients(response.clients);
+          setFilteredClients(response.clients);
+        }
       } catch (error) {
         console.error("Error fetching clients:", error);
         // Fallback to empty array on error
@@ -61,7 +81,20 @@ const ClientSelector: React.FC<ClientSelectorProps> = ({
     };
 
     fetchClients();
-  }, [searchTerm]);
+  }, [searchTerm, connectedClientsOnly]);
+
+  // Filter clients by search term for connected clients
+  useEffect(() => {
+    if (connectedClientsOnly && searchTerm) {
+      const filtered = clients.filter(client =>
+        client.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        client.email.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+      setFilteredClients(filtered);
+    } else if (connectedClientsOnly) {
+      setFilteredClients(clients);
+    }
+  }, [clients, searchTerm, connectedClientsOnly]);
 
   const isClientAssigned = (clientId: string) => {
     return assignedClientIds.includes(clientId);

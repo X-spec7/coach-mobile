@@ -38,6 +38,13 @@ export const API_ENDPOINTS = {
     GET_USER_INFO: `${API_BASE_URL}/users/profile/`,
     SELECT_MEAL_PLAN: `${API_BASE_URL}/users/select-meal-plan/`,
   },
+  USERS: {
+    USERS_LIST: `${API_BASE_URL}/users/`,
+    COACHES: `${API_BASE_URL}/users/coaches/`,
+    COACH_CLIENT_RELATIONSHIP: `${API_BASE_URL}/users/coach-client-relationship/`,
+    MY_RELATIONSHIPS: `${API_BASE_URL}/users/my-relationships/`,
+    COACH_CLIENT_RELATIONSHIP_DETAILS: (relationshipId: string) => `${API_BASE_URL}/users/coach-client-relationship/${relationshipId}/`,
+  },
   CLIENT_USER: {
     GET_USER_INFO: `${API_BASE_URL}/users/client/profile/`,
     UPDATE_USER_INFO: `${API_BASE_URL}/users/client/profile/`,
@@ -69,6 +76,12 @@ export const API_ENDPOINTS = {
     // Exercise completion
     COMPLETE_EXERCISE: `${API_BASE_URL}/workouts/complete-exercise/`,
     COMPLETE_WORKOUT: `${API_BASE_URL}/workouts/complete-workout/`,
+    
+    // Workout plan assignment
+    ASSIGN_WORKOUT_PLAN: `${API_BASE_URL}/workouts/assign-workout-plan/`,
+    WORKOUT_PLAN_ASSIGNMENTS: `${API_BASE_URL}/workouts/workout-plan-assignments/`,
+    ACCEPT_WORKOUT_ASSIGNMENT: `${API_BASE_URL}/workouts/accept-workout-assignment/`,
+    REJECT_WORKOUT_ASSIGNMENT: (assignmentId: string) => `${API_BASE_URL}/workouts/reject-workout-assignment/${assignmentId}/`,
   },
   EXERCISES: {
     GET_ALL: `${API_BASE_URL}/exercises/`,
