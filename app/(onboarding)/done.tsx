@@ -4,187 +4,234 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  SafeAreaView,
+  ScrollView,
+  Image,
 } from "react-native";
-import { router } from "expo-router";
-import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
 import { useOnboarding } from "./onboarding-context";
-import { API_ENDPOINTS } from "@/constants/api";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export default function DoneScreen() {
+  const router = useRouter();
   const { data } = useOnboarding();
-  console.log(data);
 
-  const handleUpdateUserInfo = async () => {
-    try {
-      const heightValue =
-        data.height.unit === "cm"
-          ? parseFloat(String(data.height.cm))
-          : data.height.feet !== undefined && data.height.inches !== undefined
-          ? parseFloat(
-              (data.height.feet * 30.48 + data.height.inches * 2.54).toFixed(1)
-            )
-          : null;
+  const handleGetStarted = () => {
+    // Navigate to the main app
+    router.replace("/(tabs)");
+  };
 
-      const userData = {
-        notificationsEnabled: data.notificationsEnabled,
-        height: {
-          value: heightValue,
-          unit: data.height.unit,
-          feet: data.height.unit === "ft" ? data.height.feet ?? null : null,
-          inches: data.height.unit === "ft" ? data.height.inches ?? null : null,
-        },
-        weight: {
-          value: parseFloat(data.weight.value),
-          unit: data.weight.unit,
-        },
-        gender: data.gender,
-        interests: data.interests,
-        helpCategories: Array.isArray(data.helpOption)
-          ? data.helpOption
-          : [data.helpOption].filter(Boolean),
-      };
+  const formatInterests = () => {
+    return data.interests.length > 0 ? data.interests.join(", ") : "None selected";
+  };
 
-      const token = await AsyncStorage.getItem("token");
-      if (!token) {
-        console.error("No authentication token found");
-        return;
-      }
+  const formatHelpCategories = () => {
+    return data.helpCategories.length > 0 ? data.helpCategories.join(", ") : "None selected";
+  };
 
-      const response = await fetch(API_ENDPOINTS.CLIENT_USER.UPDATE_USER_INFO, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(userData),
-      });
-
-      console.log("Response status:", response.status);
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error("API Error:", {
-          status: response.status,
-          statusText: response.statusText,
-          body: errorText,
-        });
-        return;
-      }
-
-      const contentType = response.headers.get("content-type");
-      if (contentType && contentType.includes("application/json")) {
-        const responseData = await response.json();
-        console.log("Success response:", responseData);
-        router.replace("/(tabs)");
-      } else {
-        const text = await response.text();
-        console.error("Unexpected response format:", {
-          contentType,
-          body: text,
-        });
-      }
-    } catch (error) {
-      console.error("Error updating user info:", error);
-    }
+  const formatGoals = () => {
+    return data.goals.length > 0 ? data.goals.join(", ") : "None selected";
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <ScrollView style={styles.container}>
       <View style={styles.content}>
+        {/* Success Icon */}
         <View style={styles.iconContainer}>
-          <Ionicons name="man" size={80} color="#A26FFD" />
-          <Ionicons
-            name="barbell"
-            size={32}
-            color="#A26FFD"
-            style={styles.barbellIcon}
-          />
+          <Text style={styles.icon}>🎉</Text>
         </View>
-        <Text style={styles.doneText}>Done</Text>
-        <Text style={styles.title}>You are ready to{"\n"}exercise!</Text>
+
+        {/* Title */}
+        <Text style={styles.title}>Welcome to Coach Mobile!</Text>
         <Text style={styles.subtitle}>
-          Thanks for signing up! Let's{"\n"}begin your journey to a healthier{" "}
-          <Text style={styles.highlight}>life.</Text>
+          Your profile has been created successfully. Here's what we've captured:
+        </Text>
+
+        {/* Profile Summary */}
+        <View style={styles.summaryContainer}>
+          <Text style={styles.summaryTitle}>Profile Summary</Text>
+          
+          <View style={styles.summaryItem}>
+            <Text style={styles.summaryLabel}>Name:</Text>
+            <Text style={styles.summaryValue}>
+              {data.firstName} {data.lastName}
+            </Text>
+          </View>
+
+          <View style={styles.summaryItem}>
+            <Text style={styles.summaryLabel}>Email:</Text>
+            <Text style={styles.summaryValue}>{data.email}</Text>
+          </View>
+
+          <View style={styles.summaryItem}>
+            <Text style={styles.summaryLabel}>Gender:</Text>
+            <Text style={styles.summaryValue}>
+              {data.gender === "not_specified" ? "Not specified" : data.gender}
+            </Text>
+          </View>
+
+          <View style={styles.summaryItem}>
+            <Text style={styles.summaryLabel}>Weight:</Text>
+            <Text style={styles.summaryValue}>
+              {data.weight.value} {data.weight.unit}
+            </Text>
+          </View>
+
+          <View style={styles.summaryItem}>
+            <Text style={styles.summaryLabel}>Height:</Text>
+            <Text style={styles.summaryValue}>
+              {data.height.unit === "ft" 
+                ? `${data.height.feet}'${data.height.inches}"`
+                : `${data.height.cm} cm`
+              }
+            </Text>
+          </View>
+
+          <View style={styles.summaryItem}>
+            <Text style={styles.summaryLabel}>Interests:</Text>
+            <Text style={styles.summaryValue}>{formatInterests()}</Text>
+          </View>
+
+          <View style={styles.summaryItem}>
+            <Text style={styles.summaryLabel}>Help Categories:</Text>
+            <Text style={styles.summaryValue}>{formatHelpCategories()}</Text>
+          </View>
+
+          <View style={styles.summaryItem}>
+            <Text style={styles.summaryLabel}>Goals:</Text>
+            <Text style={styles.summaryValue}>{formatGoals()}</Text>
+          </View>
+
+          {data.specialization && (
+            <View style={styles.summaryItem}>
+              <Text style={styles.summaryLabel}>Specialization:</Text>
+              <Text style={styles.summaryValue}>{data.specialization}</Text>
+            </View>
+          )}
+
+          {data.yearsOfExperience > 0 && (
+            <View style={styles.summaryItem}>
+              <Text style={styles.summaryLabel}>Years of Experience:</Text>
+              <Text style={styles.summaryValue}>{data.yearsOfExperience}</Text>
+            </View>
+          )}
+
+          <View style={styles.summaryItem}>
+            <Text style={styles.summaryLabel}>Notifications:</Text>
+            <Text style={styles.summaryValue}>
+              {data.notificationsEnabled ? "Enabled" : "Disabled"}
+            </Text>
+          </View>
+        </View>
+
+        {/* Get Started Button */}
+        <TouchableOpacity style={styles.button} onPress={handleGetStarted}>
+          <Text style={styles.buttonText}>Get Started</Text>
+        </TouchableOpacity>
+
+        {/* Additional Info */}
+        <Text style={styles.infoText}>
+          You can update your profile information anytime from the settings menu.
         </Text>
       </View>
-      <View style={styles.bottomContainer}>
-        <TouchableOpacity
-          style={styles.getStartedButton}
-          onPress={handleUpdateUserInfo}
-        >
-          <Text style={styles.getStartedButtonText}>Get Started</Text>
-        </TouchableOpacity>
-      </View>
-    </SafeAreaView>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "white",
+    backgroundColor: "#f8f9fa",
   },
   content: {
     flex: 1,
+    padding: 20,
+    paddingTop: 60,
     alignItems: "center",
-    justifyContent: "center",
-    paddingHorizontal: 24,
   },
   iconContainer: {
-    width: 160,
-    height: 160,
-    borderRadius: 80,
-    borderWidth: 1,
-    borderColor: "#A26FFD",
-    alignItems: "center",
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: "#A26FFD",
     justifyContent: "center",
-    marginBottom: 24,
-    position: "relative",
+    alignItems: "center",
+    marginBottom: 20,
   },
-  barbellIcon: {
-    position: "absolute",
-    top: 40,
-    left: 90,
-  },
-  doneText: {
-    color: "#A26FFD",
-    fontSize: 18,
-    fontWeight: "600",
-    marginBottom: 12,
+  icon: {
+    fontSize: 48,
   },
   title: {
-    fontSize: 32,
+    fontSize: 28,
     fontWeight: "bold",
-    color: "#000",
+    color: "#1a1a1a",
     textAlign: "center",
-    marginBottom: 16,
+    marginBottom: 10,
   },
   subtitle: {
     fontSize: 16,
     color: "#666",
     textAlign: "center",
-    marginBottom: 24,
-    lineHeight: 22,
+    marginBottom: 30,
+    lineHeight: 24,
   },
-  highlight: {
-    color: "#A26FFD",
-    fontWeight: "700",
+  summaryContainer: {
+    backgroundColor: "#fff",
+    borderRadius: 16,
+    padding: 20,
+    width: "100%",
+    marginBottom: 30,
+    borderWidth: 1,
+    borderColor: "#e0e0e0",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
-  bottomContainer: {
-    padding: 24,
+  summaryTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#1a1a1a",
+    marginBottom: 16,
+    textAlign: "center",
   },
-  getStartedButton: {
+  summaryItem: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: "#f0f0f0",
+  },
+  summaryLabel: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#666",
+    flex: 1,
+  },
+  summaryValue: {
+    fontSize: 14,
+    color: "#1a1a1a",
+    flex: 2,
+    textAlign: "right",
+  },
+  button: {
     backgroundColor: "#A26FFD",
-    height: 50,
-    borderRadius: 25,
-    justifyContent: "center",
+    paddingVertical: 16,
+    paddingHorizontal: 32,
+    borderRadius: 12,
+    marginBottom: 20,
+    width: "100%",
     alignItems: "center",
   },
-  getStartedButtonText: {
-    color: "white",
-    fontSize: 16,
+  buttonText: {
+    color: "#fff",
+    fontSize: 18,
     fontWeight: "600",
+  },
+  infoText: {
+    fontSize: 14,
+    color: "#666",
+    textAlign: "center",
+    lineHeight: 20,
   },
 });

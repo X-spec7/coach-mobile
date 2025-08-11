@@ -12,14 +12,14 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 import { useAuth } from "../contexts/AuthContext";
+import { Ionicons } from "@expo/vector-icons";
 
 const menuItems = [
-  { id: 1, title: "Personal Information", icon: "user" },
-  { id: 2, title: "Workout History", icon: "activity" },
-  { id: 3, title: "Goals", icon: "target" },
-  { id: 4, title: "Notifications", icon: "bell" },
-  { id: 5, title: "Privacy", icon: "lock" },
-  { id: 6, title: "Help & Support", icon: "help-circle" },
+  { id: 1, title: "Personal Information", icon: "person", route: "/personal-information" },
+  { id: 2, title: "Notifications", icon: "notifications", route: "/notifications-settings" },
+  { id: 3, title: "Privacy & Security", icon: "shield", route: "/privacy-settings" },
+  { id: 4, title: "Goals", icon: "target", route: "/goals" },
+  { id: 5, title: "Help & Support", icon: "help-circle", route: "/help-support" },
 ];
 
 export default function ProfileScreen() {
@@ -40,28 +40,25 @@ export default function ProfileScreen() {
     }
   };
 
+  const handleMenuPress = (route: string) => {
+    setMenuVisible(false);
+    router.push(route as any);
+  };
+
   try {
     if (isLoading) {
       return (
-        <View
-          style={[
-            styles.container,
-            { justifyContent: "center", alignItems: "center" },
-          ]}
-        >
+        <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#A26FFD" />
+          <Text style={styles.loadingText}>Loading profile...</Text>
         </View>
       );
     }
     if (error) {
       return (
-        <View
-          style={[
-            styles.container,
-            { justifyContent: "center", alignItems: "center" },
-          ]}
-        >
-          <Text style={{ color: "#1a1a1a" }}>{error}</Text>
+        <View style={styles.errorContainer}>
+          <Ionicons name="alert-circle" size={48} color="#FF6B6B" />
+          <Text style={styles.errorText}>{error}</Text>
         </View>
       );
     }
@@ -81,10 +78,7 @@ export default function ProfileScreen() {
             <View style={styles.menuModal}>
               <TouchableOpacity
                 style={styles.menuModalItem}
-                onPress={() => {
-                  setMenuVisible(false);
-                  // Navigate to settings page if you have one
-                }}
+                onPress={() => handleMenuPress("/personal-information")}
               >
                 <Text style={styles.menuModalText}>Settings</Text>
               </TouchableOpacity>
@@ -99,74 +93,87 @@ export default function ProfileScreen() {
             </View>
           </Pressable>
         </Modal>
-        <ScrollView style={styles.scrollView}>
-          <View style={styles.header}>
+
+        <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+          {/* Profile Header */}
+          <View style={styles.profileHeader}>
             <View style={styles.profileInfo}>
-              {user?.avatarImageUrl ? (
-                <Image
-                  source={{ uri: user.avatarImageUrl }}
-                  style={styles.avatar}
-                />
-              ) : (
-                <View style={[styles.avatar, styles.defaultAvatar]}>
-                  <Text style={{color: '#fff', fontSize: 20}}>👤</Text>
-                </View>
-              )}
+              <View style={styles.avatarContainer}>
+                {user?.avatarImageUrl ? (
+                  <Image source={{ uri: user.avatarImageUrl }} style={styles.avatar} />
+                ) : (
+                  <View style={styles.avatarPlaceholder}>
+                    <Text style={styles.avatarText}>
+                      {user?.firstName?.charAt(0) || user?.email?.charAt(0) || "U"}
+                    </Text>
+                  </View>
+                )}
+              </View>
               <View style={styles.userInfo}>
-                <Text style={styles.name}>{user?.fullName || "-"}</Text>
-                <Text style={styles.email}>{user?.email || "-"}</Text>
+                <Text style={styles.userName}>
+                  {user?.firstName && user?.lastName
+                    ? `${user.firstName} ${user.lastName}`
+                    : user?.email || "User"}
+                </Text>
+                <View style={styles.userTypeContainer}>
+                  <Ionicons 
+                    name={user?.userType === "Coach" ? "fitness" : "person"} 
+                    size={16} 
+                    color="#A26FFD" 
+                  />
+                  <Text style={styles.userType}>
+                    {user?.userType === "Coach" ? "Fitness Coach" : "Fitness Client"}
+                  </Text>
+                </View>
+                <Text style={styles.userEmail}>{user?.email}</Text>
               </View>
             </View>
             <TouchableOpacity
-              style={styles.settingsButton}
+              style={styles.menuButton}
               onPress={() => setMenuVisible(true)}
             >
-              <Text style={{color: '#000', fontSize: 20}}>⚙️</Text>
+              <Ionicons name="ellipsis-vertical" size={24} color="#666" />
             </TouchableOpacity>
           </View>
 
-          <View style={styles.statsContainer}>
-            <View style={styles.statItem}>
-              <Text style={styles.statValue}>156</Text>
-              <Text style={styles.statLabel}>Workouts</Text>
-            </View>
-            <View style={styles.statDivider} />
-            <View style={styles.statItem}>
-              <Text style={styles.statValue}>42.5k</Text>
-              <Text style={styles.statLabel}>Calories</Text>
-            </View>
-            <View style={styles.statDivider} />
-            <View style={styles.statItem}>
-              <Text style={styles.statValue}>23</Text>
-              <Text style={styles.statLabel}>Achievements</Text>
-            </View>
-          </View>
-
+          {/* Menu Items */}
           <View style={styles.menuContainer}>
             {menuItems.map((item) => (
               <TouchableOpacity
                 key={item.id}
                 style={styles.menuItem}
-                onPress={() => {
-                  // Handle menu item press
-                  console.log(`${item.title} button pressed`);
-                }}
+                onPress={() => handleMenuPress(item.route)}
               >
-                <Text style={styles.menuTitle}>{item.title}</Text>
-                {/* <ChevronRight size={20} color="#666" /> */}
+                <View style={styles.menuIcon}>
+                  <Ionicons name={item.icon as any} size={24} color="#A26FFD" />
+                </View>
+                <View style={styles.menuContent}>
+                  <Text style={styles.menuTitle}>{item.title}</Text>
+                </View>
+                <Ionicons name="chevron-forward" size={20} color="#666" />
               </TouchableOpacity>
             ))}
+          </View>
+
+          {/* Logout Button */}
+          <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+            <Ionicons name="log-out-outline" size={20} color="#FF4444" />
+            <Text style={styles.logoutButtonText}>Log Out</Text>
+          </TouchableOpacity>
+
+          {/* App Version */}
+          <View style={styles.versionContainer}>
+            <Text style={styles.versionText}>Coach Mobile v1.0.0</Text>
           </View>
         </ScrollView>
       </View>
     );
   } catch (error) {
-    console.error('ProfileScreen error:', error);
+    console.error("Error in ProfileScreen:", error);
     return (
-      <View style={styles.container}>
-        <Text style={{color: '#fff', textAlign: 'center', marginTop: 50}}>
-          Error loading profile
-        </Text>
+      <View style={styles.errorContainer}>
+        <Ionicons name="alert-circle" size={48} color="#FF6B6B" />
+        <Text style={styles.errorText}>Something went wrong</Text>
       </View>
     );
   }
@@ -177,152 +184,199 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#f8f9fa",
   },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#f8f9fa",
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 16,
+    color: "#666",
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#f8f9fa",
+    padding: 20,
+  },
+  errorText: {
+    marginTop: 12,
+    fontSize: 16,
+    color: "#666",
+    textAlign: "center",
+  },
   scrollView: {
     flex: 1,
   },
-  header: {
+  profileHeader: {
+    backgroundColor: "#fff",
+    padding: 24,
+    paddingTop: 60,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    padding: 20,
-    paddingTop: 40,
+    borderBottomWidth: 1,
+    borderBottomColor: "#f0f0f0",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
   },
   profileInfo: {
     flexDirection: "row",
     alignItems: "center",
-  },
-  avatar: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-  },
-  userInfo: {
-    marginLeft: 16,
-  },
-  name: {
-    fontSize: 24,
-    fontWeight: "bold",
-    color: "#1a1a1a",
-    marginBottom: 4,
-  },
-  email: {
-    fontSize: 14,
-    color: "#666",
-  },
-  settingsButton: {
-    width: 48,
-    height: 48,
-    backgroundColor: "#fff",
-    borderRadius: 24,
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 1,
-    borderColor: "#e0e0e0",
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  statsContainer: {
-    flexDirection: "row",
-    backgroundColor: "#fff",
-    margin: 20,
-    padding: 20,
-    borderRadius: 16,
-    justifyContent: "space-between",
-    borderWidth: 1,
-    borderColor: "#e0e0e0",
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  statItem: {
-    alignItems: "center",
     flex: 1,
   },
-  statValue: {
+  avatarContainer: {
+    marginRight: 16,
+  },
+  avatar: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    borderWidth: 3,
+    borderColor: "#A26FFD",
+  },
+  avatarPlaceholder: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: "#A26FFD",
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 3,
+    borderColor: "#A26FFD",
+  },
+  avatarText: {
+    color: "#fff",
+    fontSize: 28,
+    fontWeight: "bold",
+  },
+  userInfo: {
+    flex: 1,
+  },
+  userName: {
     fontSize: 24,
     fontWeight: "bold",
     color: "#1a1a1a",
+    marginBottom: 6,
+  },
+  userTypeContainer: {
+    flexDirection: "row",
+    alignItems: "center",
     marginBottom: 4,
   },
-  statLabel: {
+  userType: {
+    fontSize: 14,
+    color: "#A26FFD",
+    fontWeight: "600",
+    marginLeft: 6,
+  },
+  userEmail: {
     fontSize: 14,
     color: "#666",
   },
-  statDivider: {
-    width: 1,
-    height: "100%",
-    backgroundColor: "#e0e0e0",
+  menuButton: {
+    padding: 8,
+    borderRadius: 20,
+    backgroundColor: "#f8f9fa",
   },
   menuContainer: {
-    margin: 20,
+    backgroundColor: "#fff",
+    marginTop: 20,
+    marginHorizontal: 20,
+    borderRadius: 16,
+    overflow: "hidden",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
   },
   menuItem: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
-    paddingVertical: 16,
-    paddingHorizontal: 16,
-    backgroundColor: "#fff",
-    borderRadius: 12,
-    marginBottom: 8,
-    borderWidth: 1,
-    borderColor: "#e0e0e0",
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: "#f0f0f0",
+  },
+  menuIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: "#A26FFD20",
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 16,
+  },
+  menuContent: {
+    flex: 1,
   },
   menuTitle: {
     fontSize: 16,
+    fontWeight: "600",
     color: "#1a1a1a",
-    fontWeight: '600',
   },
   logoutButton: {
-    margin: 20,
-    padding: 16,
-    backgroundColor: "#fff",
-    borderRadius: 12,
-    alignItems: "center",
-    borderWidth: 2,
-    borderColor: "#FF4444",
-  },
-  logoutText: {
-    fontSize: 16,
-    color: "#FF4444",
-    fontWeight: "bold",
-  },
-  defaultAvatar: {
-    backgroundColor: "#A78BFA",
+    flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
+    backgroundColor: "#fff",
+    marginHorizontal: 20,
+    marginTop: 20,
+    padding: 16,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: "#FF444420",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  logoutButtonText: {
+    color: "#FF4444",
+    fontSize: 16,
+    fontWeight: "600",
+    marginLeft: 8,
+  },
+  versionContainer: {
+    alignItems: "center",
+    paddingVertical: 20,
+    marginTop: 20,
+  },
+  versionText: {
+    fontSize: 12,
+    color: "#999",
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.5)",
-    justifyContent: "flex-end",
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "center",
+    alignItems: "center",
   },
   menuModal: {
     backgroundColor: "#fff",
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
-    paddingBottom: 32,
-    paddingTop: 8,
-    paddingHorizontal: 24,
+    borderRadius: 16,
+    padding: 8,
+    minWidth: 200,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 8,
   },
   menuModalItem: {
-    paddingVertical: 18,
-    borderBottomWidth: 1,
-    borderBottomColor: "#e0e0e0",
+    padding: 16,
+    borderRadius: 8,
   },
   menuModalText: {
+    fontSize: 16,
     color: "#1a1a1a",
-    fontSize: 18,
     fontWeight: "500",
   },
 });

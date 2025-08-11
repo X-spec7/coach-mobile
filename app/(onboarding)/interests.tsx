@@ -5,82 +5,40 @@ import {
   StyleSheet,
   TouchableOpacity,
   SafeAreaView,
-  Image,
-  Dimensions,
-  FlatList,
+  ScrollView,
 } from "react-native";
 import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useOnboarding } from "./onboarding-context";
 
-const INTERESTS = [
-  {
-    id: 1,
-    key: "vegan",
-    label: "Vegan",
-    image: require("@/assets/images/vegan.png"),
-  },
-  {
-    id: 2,
-    key: "sports",
-    label: "Sports",
-    image: require("@/assets/images/sports.png"),
-  },
-  {
-    id: 3,
-    key: "running",
-    label: "Running",
-    image: require("@/assets/images/running.png"),
-  },
-  {
-    id: 4,
-    key: "nurition",
-    label: "Nutrition",
-    image: require("@/assets/images/nurition.png"),
-  },
-  {
-    id: 5,
-    key: "meditation",
-    label: "Meditation",
-    image: require("@/assets/images/meditation.png"),
-  },
-  {
-    id: 6,
-    key: "organic",
-    label: "Organic",
-    image: require("@/assets/images/organic.png"),
-  },
-  {
-    id: 7,
-    key: "dance",
-    label: "Dance",
-    image: require("@/assets/images/dance.png"),
-  },
-  {
-    id: 8,
-    key: "workout",
-    label: "Workout",
-    image: require("@/assets/images/workout.png"),
-  },
-  {
-    id: 9,
-    key: "bodybuilding",
-    label: "Bodybuilding",
-    image: require("@/assets/images/bodybuilding.png"),
-  },
+const interestOptions = [
+  { id: "strength_training", label: "Strength Training", icon: "fitness" },
+  { id: "cardio", label: "Cardio", icon: "heart" },
+  { id: "yoga", label: "Yoga", icon: "body" },
+  { id: "pilates", label: "Pilates", icon: "body" },
+  { id: "running", label: "Running", icon: "walk" },
+  { id: "cycling", label: "Cycling", icon: "bicycle" },
+  { id: "swimming", label: "Swimming", icon: "water" },
+  { id: "boxing", label: "Boxing", icon: "hand" },
+  { id: "dance", label: "Dance", icon: "musical-notes" },
+  { id: "martial_arts", label: "Martial Arts", icon: "shield" },
+  { id: "crossfit", label: "CrossFit", icon: "fitness" },
+  { id: "meditation", label: "Meditation", icon: "leaf" },
 ];
 
 export default function InterestsScreen() {
   const { data, setInterests } = useOnboarding();
-  const [selected, setSelected] = useState<number[]>(data.interests);
+  const [selected, setSelected] = useState<string[]>(data.interests);
 
-  const handleToggle = (id: number) => {
+  const toggleInterest = (interestId: string) => {
     setSelected((prev) =>
-      prev.includes(id) ? prev.filter((k) => k !== id) : [...prev, id]
+      prev.includes(interestId)
+        ? prev.filter((id) => id !== interestId)
+        : [...prev, interestId]
     );
   };
 
-  const handleContinue = () => {
+  const handleNext = () => {
     setInterests(selected);
     router.push("/(onboarding)/select-help");
   };
@@ -89,67 +47,91 @@ export default function InterestsScreen() {
     router.push("/(onboarding)/select-help");
   };
 
-  const handleBack = () => {
-    router.back();
-  };
-
   return (
     <SafeAreaView style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={handleBack} style={styles.backButton}>
-          <Ionicons name="chevron-back" size={24} color="black" />
-        </TouchableOpacity>
-        <View style={styles.progressBar}>
-          <View style={styles.progressFill} />
-        </View>
-        <TouchableOpacity onPress={handleSkip}>
-          <Text style={styles.skipText}>Skip</Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* Content */}
       <View style={styles.content}>
-        <Text style={styles.stepText}>Step 7/9</Text>
-        <Text style={styles.title}>Customize your interests</Text>
-        <Text style={styles.subtitle}>What are you interested in?</Text>
-
-        <View style={styles.grid}>
-          {INTERESTS.map((item) => (
-            <TouchableOpacity
-              key={item.key}
-              style={styles.gridItem}
-              onPress={() => handleToggle(item.id)}
-              activeOpacity={0.8}
-            >
-              <Image source={item.image} style={styles.gridImage} />
-              {selected.includes(item.id) ? (
-                <View style={styles.checkCircle}>
-                  <Ionicons name="checkmark-circle" size={24} color="#4ADE80" />
-                </View>
-              ) : (
-                <View style={styles.uncheckedCircle} />
-              )}
-              <Text style={styles.gridLabel}>{item.label}</Text>
-            </TouchableOpacity>
-          ))}
+        {/* Header */}
+        <View style={styles.header}>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => router.back()}
+          >
+            <Ionicons name="arrow-back" size={24} color="#1a1a1a" />
+          </TouchableOpacity>
+          <View style={styles.progressContainer}>
+            <View style={styles.progressBar}>
+              <View style={[styles.progressFill, { width: "80%" }]} />
+            </View>
+            <Text style={styles.progressText}>Step 4 of 5</Text>
+          </View>
         </View>
-      </View>
 
-      {/* Bottom Button */}
-      <View style={styles.bottomContainer}>
-        <TouchableOpacity
-          style={[
-            styles.continueButton,
-            selected.length > 0 && styles.continueButtonActive,
-          ]}
-          onPress={handleContinue}
-          disabled={selected.length === 0}
-        >
-          <Text style={styles.continueButtonText}>Continue</Text>
-        </TouchableOpacity>
-        <View style={styles.progressIndicator}>
-          <View style={styles.progressDot} />
+        {/* Title */}
+        <Text style={styles.title}>What are your interests?</Text>
+        <Text style={styles.subtitle}>
+          Select all that apply to help us personalize your experience
+        </Text>
+
+        {/* Interests Grid */}
+        <ScrollView style={styles.interestsContainer} showsVerticalScrollIndicator={false}>
+          <View style={styles.interestsGrid}>
+            {interestOptions.map((interest) => (
+              <TouchableOpacity
+                key={interest.id}
+                style={[
+                  styles.interestItem,
+                  selected.includes(interest.id) && styles.selectedInterest,
+                ]}
+                onPress={() => toggleInterest(interest.id)}
+              >
+                <View
+                  style={[
+                    styles.iconContainer,
+                    selected.includes(interest.id) && styles.selectedIconContainer,
+                  ]}
+                >
+                  <Ionicons
+                    name={interest.icon as any}
+                    size={24}
+                    color={
+                      selected.includes(interest.id) ? "#fff" : "#A26FFD"
+                    }
+                  />
+                </View>
+                <Text
+                  style={[
+                    styles.interestLabel,
+                    selected.includes(interest.id) && styles.selectedInterestLabel,
+                  ]}
+                >
+                  {interest.label}
+                </Text>
+                {selected.includes(interest.id) && (
+                  <View style={styles.checkmark}>
+                    <Ionicons name="checkmark" size={16} color="#fff" />
+                  </View>
+                )}
+              </TouchableOpacity>
+            ))}
+          </View>
+        </ScrollView>
+
+        {/* Navigation Buttons */}
+        <View style={styles.buttonContainer}>
+          <TouchableOpacity style={styles.skipButton} onPress={handleSkip}>
+            <Text style={styles.skipButtonText}>Skip</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[
+              styles.nextButton,
+              selected.length === 0 && styles.disabledButton,
+            ]}
+            onPress={handleNext}
+            disabled={selected.length === 0}
+          >
+            <Text style={styles.nextButtonText}>Next</Text>
+            <Ionicons name="arrow-forward" size={20} color="#fff" />
+          </TouchableOpacity>
         </View>
       </View>
     </SafeAreaView>
@@ -159,140 +141,146 @@ export default function InterestsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "white",
+    backgroundColor: "#fff",
+  },
+  content: {
+    flex: 1,
+    padding: 20,
+    paddingTop: 40,
   },
   header: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 16,
-    paddingVertical: 8,
+    justifyContent: "space-between",
+    marginBottom: 40,
   },
   backButton: {
     padding: 8,
   },
-  progressBar: {
+  progressContainer: {
     flex: 1,
+    marginLeft: 20,
+  },
+  progressBar: {
     height: 4,
     backgroundColor: "#E0E0E0",
-    marginHorizontal: 16,
     borderRadius: 2,
+    marginBottom: 8,
   },
   progressFill: {
-    width: "77.77%", // 7/9 of the total width
     height: "100%",
     backgroundColor: "#A26FFD",
     borderRadius: 2,
   },
-  skipText: {
+  progressText: {
+    fontSize: 12,
     color: "#666",
-    fontSize: 16,
-  },
-  content: {
-    flex: 1,
-    paddingHorizontal: 24,
-    paddingTop: 24,
-  },
-  stepText: {
-    color: "#A26FFD",
-    fontSize: 16,
-    marginBottom: 8,
-    alignSelf: "center",
+    textAlign: "right",
   },
   title: {
-    fontSize: 20,
-    fontWeight: "700",
-    marginBottom: 4,
+    fontSize: 28,
+    fontWeight: "bold",
+    color: "#1a1a1a",
+    marginBottom: 12,
     textAlign: "center",
   },
   subtitle: {
-    fontSize: 14,
+    fontSize: 16,
     color: "#666",
-    marginBottom: 24,
     textAlign: "center",
+    marginBottom: 30,
+    lineHeight: 24,
   },
-  grid: {
+  interestsContainer: {
+    flex: 1,
+  },
+  interestsGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
     justifyContent: "space-between",
-    gap: 12,
   },
-  gridItem: {
-    width: "30%",
-    aspectRatio: 1,
+  interestItem: {
+    width: "48%",
+    backgroundColor: "#f8f9fa",
     borderRadius: 16,
+    padding: 16,
     marginBottom: 16,
-    overflow: "hidden",
-    backgroundColor: "#F5F5F5",
     alignItems: "center",
-    justifyContent: "center",
+    borderWidth: 2,
+    borderColor: "transparent",
     position: "relative",
   },
-  gridImage: {
-    width: "100%",
-    height: "70%",
-    resizeMode: "cover",
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
-  },
-  checkCircle: {
-    position: "absolute",
-    top: 6,
-    right: 6,
-    width: 24,
-    height: 24,
-    borderRadius: 14,
-    backgroundColor: "#FFF",
-    alignItems: "center",
-    justifyContent: "center",
-    zIndex: 2,
-    borderWidth: 0,
-    borderColor: "#fff",
-  },
-  uncheckedCircle: {
-    position: "absolute",
-    top: 6,
-    right: 6,
-    width: 24,
-    height: 24,
-    borderRadius: 14,
+  selectedInterest: {
     backgroundColor: "#fff",
-    borderWidth: 2,
-    borderColor: "#E0E0E0",
-    zIndex: 2,
+    borderColor: "#A26FFD",
+    shadowColor: "#A26FFD",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 4,
   },
-  gridLabel: {
-    fontSize: 14,
-    fontWeight: "500",
-    color: "#000",
-    marginTop: 4,
-    textAlign: "center",
-  },
-  bottomContainer: {
-    padding: 24,
-  },
-  continueButton: {
-    backgroundColor: "#E0E0E0",
-    height: 50,
-    borderRadius: 25,
+  iconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: "#A26FFD20",
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: 24,
+    marginBottom: 12,
   },
-  continueButtonActive: {
+  selectedIconContainer: {
     backgroundColor: "#A26FFD",
   },
-  continueButtonText: {
-    color: "white",
-    fontSize: 16,
+  interestLabel: {
+    fontSize: 14,
     fontWeight: "600",
+    color: "#1a1a1a",
+    textAlign: "center",
   },
-  progressIndicator: {
+  selectedInterestLabel: {
+    color: "#A26FFD",
+  },
+  checkmark: {
+    position: "absolute",
+    top: 8,
+    right: 8,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: "#A26FFD",
+    justifyContent: "center",
     alignItems: "center",
   },
-  progressDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: "#000",
+  buttonContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingTop: 20,
+  },
+  skipButton: {
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+  },
+  skipButtonText: {
+    fontSize: 16,
+    color: "#666",
+    fontWeight: "500",
+  },
+  nextButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#A26FFD",
+    paddingVertical: 16,
+    paddingHorizontal: 32,
+    borderRadius: 12,
+    gap: 8,
+  },
+  disabledButton: {
+    backgroundColor: "#E0E0E0",
+  },
+  nextButtonText: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#fff",
   },
 });

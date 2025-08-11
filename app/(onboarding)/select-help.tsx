@@ -8,144 +8,166 @@ import {
   ScrollView,
 } from "react-native";
 import { router } from "expo-router";
-import { Ionicons, FontAwesome5 } from "@expo/vector-icons";
+import { Ionicons } from "@expo/vector-icons";
 import { useOnboarding } from "./onboarding-context";
 
-const HELP_OPTIONS = [
+const helpOptions = [
   {
-    id: 1,
-    key: "nutrition",
-    icon: <Ionicons name="restaurant" size={28} color="#A26FFD" />,
-    label: "Option 1 – es. Nutrition",
-    description: "Description section",
+    id: "fitness",
+    label: "Fitness",
+    description: "Improve strength, endurance, and overall fitness",
+    icon: "fitness",
+    color: "#4CAF50",
   },
   {
-    id: 2,
-    key: "weight",
-    icon: <FontAwesome5 name="weight" size={28} color="#A26FFD" />,
-    label: "Option 2 – es. Weight",
-    description: "Description section",
+    id: "weight_loss",
+    label: "Weight Loss",
+    description: "Lose weight in a healthy and sustainable way",
+    icon: "trending-down",
+    color: "#FF9800",
   },
   {
-    id: 3,
-    key: "sleep",
-    icon: <Ionicons name="bed-outline" size={28} color="#A26FFD" />,
-    label: "Option 3 – es. Sleep",
-    description: "Sleep section",
+    id: "muscle_gain",
+    label: "Muscle Gain",
+    description: "Build muscle mass and increase strength",
+    icon: "body",
+    color: "#2196F3",
   },
   {
-    id: 4,
-    key: "workout",
-    icon: <FontAwesome5 name="dumbbell" size={28} color="#A26FFD" />,
-    label: "Option 4 – es. Workout",
-    description: "Workout - Description",
+    id: "nutrition",
+    label: "Nutrition",
+    description: "Learn about healthy eating and meal planning",
+    icon: "restaurant",
+    color: "#9C27B0",
+  },
+  {
+    id: "flexibility",
+    label: "Flexibility",
+    description: "Improve mobility and reduce injury risk",
+    icon: "body",
+    color: "#00BCD4",
+  },
+  {
+    id: "stress_management",
+    label: "Stress Management",
+    description: "Reduce stress through exercise and mindfulness",
+    icon: "leaf",
+    color: "#4CAF50",
   },
 ];
 
 export default function SelectHelpScreen() {
-  const { data, setHelpOption } = useOnboarding();
-  const [selected, setSelected] = useState<number>(data.helpOption);
+  const { data, setHelpCategories } = useOnboarding();
+  const [selected, setSelected] = useState<string[]>(data.helpCategories);
 
-  const handleContinue = () => {
-    setHelpOption(selected);
-    router.push("/(onboarding)/experience");
+  const toggleHelpOption = (helpId: string) => {
+    setSelected((prev) =>
+      prev.includes(helpId)
+        ? prev.filter((id) => id !== helpId)
+        : [...prev, helpId]
+    );
+  };
+
+  const handleNext = () => {
+    setHelpCategories(selected);
+    router.push("/(onboarding)/done");
   };
 
   const handleSkip = () => {
-    router.push("/(onboarding)/experience");
-  };
-
-  const handleBack = () => {
-    router.back();
+    router.push("/(onboarding)/done");
   };
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={handleBack} style={styles.backButton}>
-          <Ionicons name="chevron-back" size={24} color="black" />
-        </TouchableOpacity>
-        <View style={styles.progressBar}>
-          <View style={styles.progressFill} />
+      <View style={styles.content}>
+        {/* Header */}
+        <View style={styles.header}>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => router.back()}
+          >
+            <Ionicons name="arrow-back" size={24} color="#1a1a1a" />
+          </TouchableOpacity>
+          <View style={styles.progressContainer}>
+            <View style={styles.progressBar}>
+              <View style={[styles.progressFill, { width: "100%" }]} />
+            </View>
+            <Text style={styles.progressText}>Step 5 of 5</Text>
+          </View>
         </View>
-        <TouchableOpacity onPress={handleSkip}>
-          <Text style={styles.skipText}>Skip</Text>
-        </TouchableOpacity>
-      </View>
 
-      {/* Content */}
-      <ScrollView
-        style={styles.content}
-        contentContainerStyle={styles.contentContainerScroll}
-        keyboardShouldPersistTaps="handled"
-      >
-        <Text style={styles.stepText}>Step 8/9</Text>
-        <Text style={styles.title}>Let us know how we{"\n"}can help you</Text>
-        <Text style={styles.subtitle}>You always can change this</Text>
+        {/* Title */}
+        <Text style={styles.title}>How can we help you?</Text>
+        <Text style={styles.subtitle}>
+          Select the areas where you'd like to receive guidance and support
+        </Text>
 
-        <View style={styles.optionsList}>
-          {HELP_OPTIONS.map((option) => {
-            const isSelected = selected === option.id;
-            return (
-              <TouchableOpacity
-                key={option.key}
+        {/* Help Options */}
+        <ScrollView style={styles.optionsContainer} showsVerticalScrollIndicator={false}>
+          {helpOptions.map((option) => (
+            <TouchableOpacity
+              key={option.id}
+              style={[
+                styles.option,
+                selected.includes(option.id) && styles.selectedOption,
+              ]}
+              onPress={() => toggleHelpOption(option.id)}
+            >
+              <View
                 style={[
-                  styles.optionItem,
-                  isSelected && styles.optionItemSelected,
+                  styles.iconContainer,
+                  { backgroundColor: option.color + "20" },
+                  selected.includes(option.id) && {
+                    backgroundColor: option.color,
+                  },
                 ]}
-                onPress={() => setSelected(option.id)}
-                activeOpacity={0.8}
               >
-                <View style={styles.optionIcon}>{option.icon}</View>
-                <View style={styles.optionTextContainer}>
-                  <Text
-                    style={[
-                      styles.optionLabel,
-                      isSelected && styles.optionLabelSelected,
-                    ]}
-                  >
-                    {option.label}
-                  </Text>
-                  <Text style={styles.optionDescription}>
-                    {option.description}
-                  </Text>
+                <Ionicons
+                  name={option.icon as any}
+                  size={24}
+                  color={
+                    selected.includes(option.id) ? "#fff" : option.color
+                  }
+                />
+              </View>
+              <View style={styles.optionContent}>
+                <Text
+                  style={[
+                    styles.optionLabel,
+                    selected.includes(option.id) && styles.selectedOptionLabel,
+                  ]}
+                >
+                  {option.label}
+                </Text>
+                <Text style={styles.optionDescription}>
+                  {option.description}
+                </Text>
+              </View>
+              {selected.includes(option.id) && (
+                <View style={styles.checkmark}>
+                  <Ionicons name="checkmark" size={20} color="#fff" />
                 </View>
-                <View style={styles.optionRadioContainer}>
-                  {isSelected ? (
-                    <Ionicons
-                      name="checkmark-circle"
-                      size={24}
-                      color="#4ADE80"
-                    />
-                  ) : (
-                    <Ionicons
-                      name="ellipse-outline"
-                      size={24}
-                      color="#A26FFD"
-                    />
-                  )}
-                </View>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
-      </ScrollView>
+              )}
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
 
-      {/* Bottom Button */}
-      <View style={styles.bottomContainer}>
-        <TouchableOpacity
-          style={[
-            styles.continueButton,
-            selected !== 0 && styles.continueButtonActive,
-          ]}
-          onPress={handleContinue}
-          disabled={selected === 0}
-        >
-          <Text style={styles.continueButtonText}>Continue</Text>
-        </TouchableOpacity>
-        <View style={styles.progressIndicator}>
-          <View style={styles.progressDot} />
+        {/* Navigation Buttons */}
+        <View style={styles.buttonContainer}>
+          <TouchableOpacity style={styles.skipButton} onPress={handleSkip}>
+            <Text style={styles.skipButtonText}>Skip</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[
+              styles.nextButton,
+              selected.length === 0 && styles.disabledButton,
+            ]}
+            onPress={handleNext}
+            disabled={selected.length === 0}
+          >
+            <Text style={styles.nextButtonText}>Complete</Text>
+            <Ionicons name="checkmark" size={20} color="#fff" />
+          </TouchableOpacity>
         </View>
       </View>
     </SafeAreaView>
@@ -155,129 +177,141 @@ export default function SelectHelpScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "white",
+    backgroundColor: "#fff",
+  },
+  content: {
+    flex: 1,
+    padding: 20,
+    paddingTop: 40,
   },
   header: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 16,
-    paddingVertical: 8,
+    justifyContent: "space-between",
+    marginBottom: 40,
   },
   backButton: {
     padding: 8,
   },
-  progressBar: {
+  progressContainer: {
     flex: 1,
+    marginLeft: 20,
+  },
+  progressBar: {
     height: 4,
     backgroundColor: "#E0E0E0",
-    marginHorizontal: 16,
     borderRadius: 2,
+    marginBottom: 8,
   },
   progressFill: {
-    width: "88.88%", // 8/9 of the total width
     height: "100%",
     backgroundColor: "#A26FFD",
     borderRadius: 2,
   },
-  skipText: {
+  progressText: {
+    fontSize: 12,
     color: "#666",
-    fontSize: 16,
-  },
-  content: {
-    flex: 1,
-    paddingHorizontal: 24,
-    paddingTop: 24,
-  },
-  contentContainerScroll: {
-    paddingBottom: 32,
-  },
-  stepText: {
-    color: "#A26FFD",
-    fontSize: 16,
-    marginBottom: 8,
-    alignSelf: "center",
+    textAlign: "right",
   },
   title: {
-    fontSize: 20,
-    fontWeight: "700",
-    marginBottom: 4,
+    fontSize: 28,
+    fontWeight: "bold",
+    color: "#1a1a1a",
+    marginBottom: 12,
     textAlign: "center",
   },
   subtitle: {
-    fontSize: 14,
+    fontSize: 16,
     color: "#666",
-    marginBottom: 24,
     textAlign: "center",
+    marginBottom: 30,
+    lineHeight: 24,
   },
-  optionsList: {
-    gap: 16,
+  optionsContainer: {
+    flex: 1,
   },
-  optionItem: {
+  option: {
     flexDirection: "row",
     alignItems: "center",
-    borderWidth: 1,
-    borderColor: "#E0E0E0",
-    borderRadius: 16,
     padding: 16,
-    marginBottom: 8,
+    backgroundColor: "#f8f9fa",
+    borderRadius: 12,
+    marginBottom: 12,
+    borderWidth: 2,
+    borderColor: "transparent",
+  },
+  selectedOption: {
     backgroundColor: "#fff",
-  },
-  optionItemSelected: {
     borderColor: "#A26FFD",
-    backgroundColor: "#F3EFFF",
     shadowColor: "#A26FFD",
-    shadowOpacity: 0.08,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
     shadowRadius: 8,
-    shadowOffset: { width: 0, height: 2 },
+    elevation: 4,
   },
-  optionIcon: {
+  iconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    justifyContent: "center",
+    alignItems: "center",
     marginRight: 16,
   },
-  optionTextContainer: {
+  optionContent: {
     flex: 1,
   },
   optionLabel: {
     fontSize: 16,
-    fontWeight: "700",
-    color: "#222",
+    fontWeight: "600",
+    color: "#1a1a1a",
     marginBottom: 4,
   },
-  optionLabelSelected: {
+  selectedOptionLabel: {
     color: "#A26FFD",
   },
   optionDescription: {
     fontSize: 14,
-    color: "#888",
+    color: "#666",
+    lineHeight: 20,
   },
-  optionRadioContainer: {
-    marginLeft: 12,
-  },
-  bottomContainer: {
-    padding: 24,
-  },
-  continueButton: {
-    backgroundColor: "#E0E0E0",
-    height: 50,
-    borderRadius: 25,
+  checkmark: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: "#A26FFD",
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: 24,
   },
-  continueButtonActive: {
+  buttonContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingTop: 20,
+  },
+  skipButton: {
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+  },
+  skipButtonText: {
+    fontSize: 16,
+    color: "#666",
+    fontWeight: "500",
+  },
+  nextButton: {
+    flexDirection: "row",
+    alignItems: "center",
     backgroundColor: "#A26FFD",
+    paddingVertical: 16,
+    paddingHorizontal: 32,
+    borderRadius: 12,
+    gap: 8,
   },
-  continueButtonText: {
-    color: "white",
+  disabledButton: {
+    backgroundColor: "#E0E0E0",
+  },
+  nextButtonText: {
     fontSize: 16,
     fontWeight: "600",
-  },
-  progressIndicator: {
-    alignItems: "center",
-  },
-  progressDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: "#000",
+    color: "#fff",
   },
 });
