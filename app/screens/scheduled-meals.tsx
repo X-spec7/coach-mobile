@@ -8,9 +8,12 @@ import {
   ActivityIndicator,
   Alert,
   RefreshControl,
+  Modal,
+  Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { useAuth } from '../contexts/AuthContext';
 import { MealTrackingService, ScheduledMeal } from '../services/mealTrackingService';
 
@@ -22,6 +25,10 @@ export default function ScheduledMealsScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [selectedDate, setSelectedDate] = useState(date || new Date().toISOString().split('T')[0]);
   const [filter, setFilter] = useState<'all' | 'pending' | 'completed'>('all');
+  
+  // Date picker states
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [tempDate, setTempDate] = useState(new Date());
 
   useEffect(() => {
     fetchScheduledMeals();
@@ -76,6 +83,67 @@ export default function ScheduledMealsScreen() {
       minute: '2-digit',
       hour12: true,
     });
+  };
+
+  // Date picker functions
+  const openDatePicker = () => {
+    setTempDate(new Date(selectedDate));
+    setShowDatePicker(true);
+  };
+
+  const handleDateChange = (event: any, selectedDate?: Date) => {
+    if (Platform.OS === 'android') {
+      setShowDatePicker(false);
+    }
+    
+    if (selectedDate) {
+      setTempDate(selectedDate);
+      
+      if (Platform.OS === 'ios') {
+        return;
+      }
+      
+      const dateString = selectedDate.toISOString().split('T')[0];
+      setSelectedDate(dateString);
+    }
+  };
+
+  const confirmDate = () => {
+    const dateString = tempDate.toISOString().split('T')[0];
+    setSelectedDate(dateString);
+    setShowDatePicker(false);
+  };
+
+  const cancelDate = () => {
+    setShowDatePicker(false);
+  };
+
+  const setToday = () => {
+    const today = new Date().toISOString().split('T')[0];
+    setSelectedDate(today);
+  };
+
+  const formatDateDisplay = (dateString: string) => {
+    const date = new Date(dateString);
+    const today = new Date();
+    const tomorrow = new Date(today);
+    tomorrow.setDate(today.getDate() + 1);
+    const yesterday = new Date(today);
+    yesterday.setDate(today.getDate() - 1);
+    
+    if (date.toDateString() === today.toDateString()) {
+      return 'Today';
+    } else if (date.toDateString() === tomorrow.toDateString()) {
+      return 'Tomorrow';
+    } else if (date.toDateString() === yesterday.toDateString()) {
+      return 'Yesterday';
+    } else {
+      return date.toLocaleDateString('en-US', {
+        weekday: 'short',
+        month: 'short',
+        day: 'numeric',
+      });
+    }
   };
 
   const getDateOptions = () => {
@@ -166,31 +234,58 @@ export default function ScheduledMealsScreen() {
         <View style={styles.placeholder} />
       </View>
 
-      {/* Date Selector */}
-      <ScrollView 
-        horizontal 
-        showsHorizontalScrollIndicator={false}
-        style={styles.dateSelector}
-        contentContainerStyle={styles.dateSelectorContent}
-      >
-        {getDateOptions().map((option) => (
+      {/* Date Selector with Today Button */}
+      <View style={styles.dateSelectorContainer}>
+        <View style={styles.dateSelectorHeader}>
+          <Text style={styles.dateSelectorTitle}>
+            {formatDateDisplay(selectedDate)}
+          </Text>
+        </View>
+        
+        <View style={styles.datePickerRow}>
           <TouchableOpacity
-            key={option.value}
-            style={[
-              styles.dateButton,
-              selectedDate === option.value && styles.selectedDateButton
-            ]}
-            onPress={() => setSelectedDate(option.value)}
+            style={styles.customDateButton}
+            onPress={openDatePicker}
           >
-            <Text style={[
-              styles.dateButtonText,
-              selectedDate === option.value && styles.selectedDateText
-            ]}>
-              {option.label}
-            </Text>
+            <Ionicons name="calendar-outline" size={20} color="#666" />
+            <Text style={styles.customDateButtonText}>Custom Date</Text>
+            <Ionicons name="chevron-down" size={16} color="#666" />
           </TouchableOpacity>
-        ))}
-      </ScrollView>
+          
+          <TouchableOpacity
+            style={styles.todayButton}
+            onPress={setToday}
+          >
+            <Ionicons name="today" size={16} color="#fff" />
+            <Text style={styles.todayButtonText}>Today</Text>
+          </TouchableOpacity>
+        </View>
+        
+        <ScrollView 
+          horizontal 
+          showsHorizontalScrollIndicator={false}
+          style={styles.dateSelector}
+          contentContainerStyle={styles.dateSelectorContent}
+        >
+          {getDateOptions().map((option) => (
+            <TouchableOpacity
+              key={option.value}
+              style={[
+                styles.dateButton,
+                selectedDate === option.value && styles.selectedDateButton
+              ]}
+              onPress={() => setSelectedDate(option.value)}
+            >
+              <Text style={[
+                styles.dateButtonText,
+                selectedDate === option.value && styles.selectedDateText
+              ]}>
+                {option.label}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      </View>
 
       {/* Filter Tabs */}
       <View style={styles.filterContainer}>
@@ -220,27 +315,68 @@ export default function ScheduledMealsScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* Content */}
+      {/* Meals List */}
       <ScrollView
-        style={styles.content}
-        contentContainerStyle={styles.contentContainer}
+        style={styles.mealsList}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+            colors={['#A78BFA']}
+            tintColor="#A78BFA"
+          />
         }
       >
-        {loading ? (
+        {loading && !refreshing ? (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color="#A78BFA" />
             <Text style={styles.loadingText}>Loading meals...</Text>
           </View>
         ) : scheduledMeals.length > 0 ? (
-          <View style={styles.mealsList}>
-            {scheduledMeals.map(renderMeal)}
-          </View>
+          scheduledMeals.map(renderMeal)
         ) : (
           renderEmptyState()
         )}
       </ScrollView>
+
+      {/* Date Picker Modal */}
+      {showDatePicker && (
+        <Modal
+          visible={showDatePicker}
+          transparent={true}
+          animationType="slide"
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.datePickerContainer}>
+              <View style={styles.datePickerHeader}>
+                <Text style={styles.datePickerTitle}>Select Date</Text>
+                <TouchableOpacity onPress={cancelDate}>
+                  <Ionicons name="close" size={24} color="#666" />
+                </TouchableOpacity>
+              </View>
+              
+              <DateTimePicker
+                value={tempDate}
+                mode="date"
+                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                onChange={handleDateChange}
+                maximumDate={new Date()}
+              />
+              
+              {Platform.OS === 'ios' && (
+                <View style={styles.datePickerActions}>
+                  <TouchableOpacity style={styles.datePickerButton} onPress={cancelDate}>
+                    <Text style={styles.datePickerButtonText}>Cancel</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={[styles.datePickerButton, styles.datePickerButtonConfirm]} onPress={confirmDate}>
+                    <Text style={[styles.datePickerButtonText, styles.datePickerButtonTextConfirm]}>Confirm</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+            </View>
+          </View>
+        </Modal>
+      )}
     </View>
   );
 }
@@ -271,12 +407,39 @@ const styles = StyleSheet.create({
   placeholder: {
     width: 32,
   },
-  dateSelector: {
+  dateSelectorContainer: {
+    paddingHorizontal: 20,
+    paddingBottom: 16,
     backgroundColor: '#f8f9fa',
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
+  dateSelectorHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  dateSelectorTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1a1a1a',
+  },
+  todayButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  todayButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#A78BFA',
+  },
+  dateSelector: {
+    backgroundColor: '#fff',
   },
   dateSelectorContent: {
-    paddingHorizontal: 20,
-    paddingVertical: 16,
+    paddingVertical: 8,
     gap: 8,
   },
   dateButton: {
@@ -297,6 +460,39 @@ const styles = StyleSheet.create({
     color: '#666',
   },
   selectedDateText: {
+    color: '#fff',
+  },
+  customDateButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 20,
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+  },
+  customDateButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#666',
+  },
+  todayButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 20,
+    backgroundColor: '#A78BFA',
+    borderWidth: 1,
+    borderColor: '#A78BFA',
+  },
+  todayButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
     color: '#fff',
   },
   filterContainer: {
@@ -462,5 +658,62 @@ const styles = StyleSheet.create({
     color: '#999',
     textAlign: 'center',
     lineHeight: 20,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  datePickerContainer: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 20,
+    width: '90%',
+    alignItems: 'center',
+  },
+  datePickerHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    width: '100%',
+    marginBottom: 16,
+  },
+  datePickerTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#1a1a1a',
+  },
+  datePickerActions: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    width: '100%',
+    marginTop: 20,
+  },
+  datePickerButton: {
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+  },
+  datePickerButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#666',
+  },
+  datePickerButtonConfirm: {
+    backgroundColor: '#A78BFA',
+    borderColor: '#A78BFA',
+  },
+  datePickerButtonTextConfirm: {
+    color: '#fff',
+  },
+  datePickerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+    gap: 12,
   },
 });

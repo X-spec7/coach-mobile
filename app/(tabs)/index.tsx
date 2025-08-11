@@ -15,6 +15,7 @@ import { WeightTrackingService, WeightEntry } from "../services/weightTrackingSe
 import { MealTrackingService, ScheduledMeal } from "../services/mealTrackingService";
 import { WorkoutService, ScheduledWorkout } from "../services/workoutService";
 import { SessionService } from "../services/sessionService";
+import { CoachClientService, CoachClientRelationship } from "../services/coachClientService";
 import WeightDisplay from "../components/WeightDisplay";
 import { router } from "expo-router";
 
@@ -50,11 +51,21 @@ export default function HomeScreen() {
   const [latestWeight, setLatestWeight] = useState<WeightEntry | null>(null);
   const [weightLoading, setWeightLoading] = useState(false);
   
-  // Real data states
+  // Real data states for clients
   const [todaysSessions, setTodaysSessions] = useState<any[]>([]);
   const [todaysWorkouts, setTodaysWorkouts] = useState<ScheduledWorkout[]>([]);
   const [todaysMeals, setTodaysMeals] = useState<ScheduledMeal[]>([]);
   const [loading, setLoading] = useState(false);
+  
+  // Coach-specific data states
+  const [clientRelationships, setClientRelationships] = useState<CoachClientRelationship[]>([]);
+  const [todaysCoachSessions, setTodaysCoachSessions] = useState<any[]>([]);
+  const [coachStats, setCoachStats] = useState({
+    totalClients: 0,
+    activeClients: 0,
+    pendingRequests: 0,
+    todaysSessions: 0,
+  });
   
   // Accordion state for meals
   const [expandedMealId, setExpandedMealId] = useState<string | null>(null);
@@ -94,10 +105,12 @@ export default function HomeScreen() {
   }, []);
 
   useEffect(() => {
-    // Only fetch data for clients
+    // Fetch data based on user type
     if (user?.userType === 'Client') {
       fetchLatestWeight();
       fetchTodaysData();
+    } else if (user?.userType === 'Coach') {
+      fetchCoachData();
     }
   }, [user]);
 
@@ -161,6 +174,57 @@ export default function HomeScreen() {
       }
     } catch (error) {
       console.error('Error fetching today\'s data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchCoachData = async () => {
+    setLoading(true);
+    const today = new Date().toISOString().split('T')[0];
+    
+    try {
+      // Fetch client relationships
+      try {
+        const relationshipsResponse = await CoachClientService.getMyRelationships({});
+        setClientRelationships(relationshipsResponse.relationships);
+        
+        const activeClients = relationshipsResponse.relationships.filter(r => r.status === 'active').length;
+        const pendingRequests = relationshipsResponse.relationships.filter(r => r.status === 'pending').length;
+        
+        setCoachStats(prev => ({
+          ...prev,
+          totalClients: relationshipsResponse.relationships.length,
+          activeClients,
+          pendingRequests,
+        }));
+      } catch (error) {
+        console.log('No client relationships found');
+        setClientRelationships([]);
+      }
+
+      // Fetch today's coach sessions
+      try {
+        const sessionsResponse = await SessionService.getMySessions({
+          limit: 10,
+          offset: 0,
+        });
+        const todaysCoachSessionsData = sessionsResponse.sessions.filter(session => {
+          const sessionDate = new Date(session.startDate).toISOString().split('T')[0];
+          return sessionDate === today;
+        });
+        setTodaysCoachSessions(todaysCoachSessionsData);
+        
+        setCoachStats(prev => ({
+          ...prev,
+          todaysSessions: todaysCoachSessionsData.length,
+        }));
+      } catch (error) {
+        console.log('No coach sessions found for today');
+        setTodaysCoachSessions([]);
+      }
+    } catch (error) {
+      console.error('Error fetching coach data:', error);
     } finally {
       setLoading(false);
     }
@@ -292,6 +356,33 @@ export default function HomeScreen() {
     );
   };
 
+  const renderCoachSessionItem = (session: any) => (
+    <TouchableOpacity 
+      key={session.id} 
+      style={styles.sessionItem}
+      onPress={() => router.push('/coach-sessions')}
+    >
+      <View style={styles.sessionHeader}>
+        <View style={styles.sessionInfo}>
+          <Text style={styles.sessionTitle}>{session.title}</Text>
+          <Text style={styles.sessionCoach}>{session.currentParticipantNumber}/{session.totalParticipantNumber} participants</Text>
+        </View>
+        <View style={styles.sessionTime}>
+          <Text style={styles.sessionTimeText}>
+            {new Date(session.startDate).toLocaleTimeString('en-US', {
+              hour: 'numeric',
+              minute: '2-digit',
+              hour12: true,
+            })}
+          </Text>
+          <View style={styles.sessionTypeBadge}>
+            <Text style={styles.sessionTypeText}>{session.goal}</Text>
+          </View>
+        </View>
+      </View>
+    </TouchableOpacity>
+  );
+
   return (
     <View style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollView}>
@@ -329,120 +420,220 @@ export default function HomeScreen() {
         {/* Greeting */}
         <Text style={styles.greeting}>Hi, {MOCK_USER.name}</Text>
 
-        {/* Weight Display for Clients */}
+        {/* Client Dashboard */}
         {user?.userType === 'Client' && (
-          <View style={styles.weightSection}>
-            <WeightDisplay />
-          </View>
-        )}
+          <>
+            {/* Weight Display for Clients */}
+            <View style={styles.weightSection}>
+              <WeightDisplay />
+            </View>
 
-        {/* Weight Goal and Current Weight - Only for Clients */}
-        {user?.userType === 'Client' && (
-          <View style={styles.weightGoalSection}>
-            <View style={styles.weightGoalCard}>
-              <View style={styles.weightGoalRow}>
-                <View style={styles.weightGoalCol}>
-                  <Text style={styles.weightGoalLabel}>Target Weight</Text>
-                  <Text style={styles.weightGoalValue}>
-                    {MOCK_WEIGHT_GOAL.targetWeight} {MOCK_WEIGHT_GOAL.unit}
-                  </Text>
-                </View>
-                <View style={styles.weightGoalCol}>
-                  <Text style={styles.weightGoalLabel}>Current Weight</Text>
-                  <Text style={styles.weightGoalValue}>
-                    {getCurrentWeight()}
-                  </Text>
+            {/* Weight Goal and Current Weight - Only for Clients */}
+            <View style={styles.weightGoalSection}>
+              <View style={styles.weightGoalCard}>
+                <View style={styles.weightGoalRow}>
+                  <View style={styles.weightGoalCol}>
+                    <Text style={styles.weightGoalLabel}>Target Weight</Text>
+                    <Text style={styles.weightGoalValue}>
+                      {MOCK_WEIGHT_GOAL.targetWeight} {MOCK_WEIGHT_GOAL.unit}
+                    </Text>
+                  </View>
+                  <View style={styles.weightGoalCol}>
+                    <Text style={styles.weightGoalLabel}>Current Weight</Text>
+                    <Text style={styles.weightGoalValue}>
+                      {getCurrentWeight()}
+                    </Text>
+                  </View>
                 </View>
               </View>
             </View>
-          </View>
+
+            {/* Today's Scheduled Sessions - Only for Clients */}
+            <View style={styles.section}>
+              <View style={styles.sectionHeader}>
+                <Ionicons name="videocam" size={20} color="#A26FFD" />
+                <Text style={styles.sectionTitle}>Today's Sessions</Text>
+                <TouchableOpacity onPress={() => router.push('/sessions')}>
+                  <Text style={styles.seeAllText}>See All</Text>
+                </TouchableOpacity>
+              </View>
+              <View style={styles.sectionCard}>
+                {loading ? (
+                  <View style={styles.loadingState}>
+                    <ActivityIndicator size="small" color="#A26FFD" />
+                    <Text style={styles.loadingText}>Loading sessions...</Text>
+                  </View>
+                ) : todaysSessions.length > 0 ? (
+                  todaysSessions.map(renderSessionItem)
+                ) : (
+                  <View style={styles.emptyState}>
+                    <Ionicons name="videocam-outline" size={32} color="#ccc" />
+                    <Text style={styles.emptyText}>No sessions today</Text>
+                    <Text style={styles.emptySubtext}>Check your schedule for upcoming sessions</Text>
+                  </View>
+                )}
+              </View>
+            </View>
+
+            {/* Today's Exercises - Only for Clients */}
+            <View style={styles.section}>
+              <View style={styles.sectionHeader}>
+                <Ionicons name="fitness" size={20} color="#A26FFD" />
+                <Text style={styles.sectionTitle}>Today's Exercises</Text>
+                <TouchableOpacity onPress={() => router.push('/scheduled-workouts')}>
+                  <Text style={styles.seeAllText}>See All</Text>
+                </TouchableOpacity>
+              </View>
+              <View style={styles.sectionCard}>
+                {loading ? (
+                  <View style={styles.loadingState}>
+                    <ActivityIndicator size="small" color="#A26FFD" />
+                    <Text style={styles.loadingText}>Loading workouts...</Text>
+                  </View>
+                ) : todaysWorkouts.length > 0 ? (
+                  todaysWorkouts.map(renderExerciseItem)
+                ) : (
+                  <View style={styles.emptyState}>
+                    <Ionicons name="fitness-outline" size={32} color="#ccc" />
+                    <Text style={styles.emptyText}>No exercises today</Text>
+                    <Text style={styles.emptySubtext}>Check your workout schedule</Text>
+                  </View>
+                )}
+              </View>
+            </View>
+
+            {/* Today's Meals - Only for Clients */}
+            <View style={styles.section}>
+              <View style={styles.sectionHeader}>
+                <Ionicons name="restaurant" size={20} color="#A26FFD" />
+                <Text style={styles.sectionTitle}>Today's Meals</Text>
+                <TouchableOpacity onPress={() => router.push('/scheduled-meals')}>
+                  <Text style={styles.seeAllText}>See All</Text>
+                </TouchableOpacity>
+              </View>
+              <View style={styles.sectionCard}>
+                {loading ? (
+                  <View style={styles.loadingState}>
+                    <ActivityIndicator size="small" color="#A26FFD" />
+                    <Text style={styles.loadingText}>Loading meals...</Text>
+                  </View>
+                ) : todaysMeals.length > 0 ? (
+                  todaysMeals.map(renderMealItem)
+                ) : (
+                  <View style={styles.emptyState}>
+                    <Ionicons name="restaurant-outline" size={32} color="#ccc" />
+                    <Text style={styles.emptyText}>No meals scheduled</Text>
+                    <Text style={styles.emptySubtext}>Check your meal plan</Text>
+                  </View>
+                )}
+              </View>
+            </View>
+          </>
         )}
 
-        {/* Today's Scheduled Sessions - Only for Clients */}
-        {user?.userType === 'Client' && (
-          <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <Ionicons name="videocam" size={20} color="#A26FFD" />
-              <Text style={styles.sectionTitle}>Today's Sessions</Text>
-              <TouchableOpacity onPress={() => router.push('/sessions')}>
-                <Text style={styles.seeAllText}>See All</Text>
-              </TouchableOpacity>
-            </View>
-            <View style={styles.sectionCard}>
-              {loading ? (
-                <View style={styles.loadingState}>
-                  <ActivityIndicator size="small" color="#A26FFD" />
-                  <Text style={styles.loadingText}>Loading sessions...</Text>
+        {/* Coach Dashboard */}
+        {user?.userType === 'Coach' && (
+          <>
+            {/* Coach Statistics */}
+            <View style={styles.coachStatsSection}>
+              <Text style={styles.sectionTitle}>Coach Overview</Text>
+              <View style={styles.coachStatsGrid}>
+                <View style={styles.coachStatCard}>
+                  <Ionicons name="people" size={24} color="#A26FFD" />
+                  <Text style={styles.coachStatValue}>{coachStats.totalClients}</Text>
+                  <Text style={styles.coachStatLabel}>Total Clients</Text>
                 </View>
-              ) : todaysSessions.length > 0 ? (
-                todaysSessions.map(renderSessionItem)
-              ) : (
-                <View style={styles.emptyState}>
-                  <Ionicons name="videocam-outline" size={32} color="#ccc" />
-                  <Text style={styles.emptyText}>No sessions today</Text>
-                  <Text style={styles.emptySubtext}>Check your schedule for upcoming sessions</Text>
+                <View style={styles.coachStatCard}>
+                  <Ionicons name="checkmark-circle" size={24} color="#4CAF50" />
+                  <Text style={styles.coachStatValue}>{coachStats.activeClients}</Text>
+                  <Text style={styles.coachStatLabel}>Active Clients</Text>
                 </View>
-              )}
+                <View style={styles.coachStatCard}>
+                  <Ionicons name="time" size={24} color="#FFA726" />
+                  <Text style={styles.coachStatValue}>{coachStats.pendingRequests}</Text>
+                  <Text style={styles.coachStatLabel}>Pending Requests</Text>
+                </View>
+                <View style={styles.coachStatCard}>
+                  <Ionicons name="videocam" size={24} color="#A26FFD" />
+                  <Text style={styles.coachStatValue}>{coachStats.todaysSessions}</Text>
+                  <Text style={styles.coachStatLabel}>Today's Sessions</Text>
+                </View>
+              </View>
             </View>
-          </View>
-        )}
 
-        {/* Today's Exercises - Only for Clients */}
-        {user?.userType === 'Client' && (
-          <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <Ionicons name="fitness" size={20} color="#A26FFD" />
-              <Text style={styles.sectionTitle}>Today's Exercises</Text>
-              <TouchableOpacity onPress={() => router.push('/scheduled-workouts')}>
-                <Text style={styles.seeAllText}>See All</Text>
-              </TouchableOpacity>
+            {/* Today's Sessions - For Coaches */}
+            <View style={styles.section}>
+              <View style={styles.sectionHeader}>
+                <Ionicons name="videocam" size={20} color="#A26FFD" />
+                <Text style={styles.sectionTitle}>Today's Sessions</Text>
+                <TouchableOpacity onPress={() => router.push('/coach-sessions')}>
+                  <Text style={styles.seeAllText}>See All</Text>
+                </TouchableOpacity>
+              </View>
+              <View style={styles.sectionCard}>
+                {loading ? (
+                  <View style={styles.loadingState}>
+                    <ActivityIndicator size="small" color="#A26FFD" />
+                    <Text style={styles.loadingText}>Loading sessions...</Text>
+                  </View>
+                ) : todaysCoachSessions.length > 0 ? (
+                  todaysCoachSessions.map(renderCoachSessionItem)
+                ) : (
+                  <View style={styles.emptyState}>
+                    <Ionicons name="videocam-outline" size={32} color="#ccc" />
+                    <Text style={styles.emptyText}>No sessions today</Text>
+                    <Text style={styles.emptySubtext}>Create a new session to get started</Text>
+                    <TouchableOpacity 
+                      style={styles.createSessionButton}
+                      onPress={() => router.push('/coach-sessions')}
+                    >
+                      <Text style={styles.createSessionButtonText}>Create Session</Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
+              </View>
             </View>
-            <View style={styles.sectionCard}>
-              {loading ? (
-                <View style={styles.loadingState}>
-                  <ActivityIndicator size="small" color="#A26FFD" />
-                  <Text style={styles.loadingText}>Loading workouts...</Text>
-                </View>
-              ) : todaysWorkouts.length > 0 ? (
-                todaysWorkouts.map(renderExerciseItem)
-              ) : (
-                <View style={styles.emptyState}>
-                  <Ionicons name="fitness-outline" size={32} color="#ccc" />
-                  <Text style={styles.emptyText}>No exercises today</Text>
-                  <Text style={styles.emptySubtext}>Check your workout schedule</Text>
-                </View>
-              )}
-            </View>
-          </View>
-        )}
 
-        {/* Today's Meals - Only for Clients */}
-        {user?.userType === 'Client' && (
-          <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <Ionicons name="restaurant" size={20} color="#A26FFD" />
-              <Text style={styles.sectionTitle}>Today's Meals</Text>
-              <TouchableOpacity onPress={() => router.push('/scheduled-meals')}>
-                <Text style={styles.seeAllText}>See All</Text>
-              </TouchableOpacity>
-            </View>
-            <View style={styles.sectionCard}>
-              {loading ? (
-                <View style={styles.loadingState}>
-                  <ActivityIndicator size="small" color="#A26FFD" />
-                  <Text style={styles.loadingText}>Loading meals...</Text>
+            {/* Quick Actions for Coaches */}
+            <View style={styles.section}>
+              <View style={styles.sectionHeader}>
+                <Ionicons name="flash" size={20} color="#A26FFD" />
+                <Text style={styles.sectionTitle}>Quick Actions</Text>
+              </View>
+              <View style={styles.sectionCard}>
+                <View style={styles.quickActionsGrid}>
+                  <TouchableOpacity 
+                    style={styles.quickActionButton}
+                    onPress={() => router.push('/coach-sessions')}
+                  >
+                    <Ionicons name="add-circle" size={24} color="#A26FFD" />
+                    <Text style={styles.quickActionText}>Create Session</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity 
+                    style={styles.quickActionButton}
+                    onPress={() => router.push('/connections')}
+                  >
+                    <Ionicons name="people" size={24} color="#A26FFD" />
+                    <Text style={styles.quickActionText}>Manage Clients</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity 
+                    style={styles.quickActionButton}
+                    onPress={() => router.push('/workouts')}
+                  >
+                    <Ionicons name="barbell" size={24} color="#A26FFD" />
+                    <Text style={styles.quickActionText}>Create Workout</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity 
+                    style={styles.quickActionButton}
+                    onPress={() => router.push('/meal-plan')}
+                  >
+                    <Ionicons name="restaurant" size={24} color="#A26FFD" />
+                    <Text style={styles.quickActionText}>Create Meal Plan</Text>
+                  </TouchableOpacity>
                 </View>
-              ) : todaysMeals.length > 0 ? (
-                todaysMeals.map(renderMealItem)
-              ) : (
-                <View style={styles.emptyState}>
-                  <Ionicons name="restaurant-outline" size={32} color="#ccc" />
-                  <Text style={styles.emptyText}>No meals scheduled</Text>
-                  <Text style={styles.emptySubtext}>Check your meal plan</Text>
-                </View>
-              )}
+              </View>
             </View>
-          </View>
+          </>
         )}
       </ScrollView>
     </View>
@@ -699,5 +890,73 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "#999",
     textAlign: "center",
+  },
+  coachStatsSection: {
+    marginHorizontal: 20,
+    marginBottom: 18,
+  },
+  coachStatsGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-around",
+    marginTop: 12,
+  },
+  coachStatCard: {
+    width: "45%", // Adjust as needed for 2 columns
+    backgroundColor: "#fff",
+    borderRadius: 12,
+    padding: 15,
+    alignItems: "center",
+    marginVertical: 8,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 1,
+  },
+  coachStatValue: {
+    fontSize: 24,
+    fontWeight: "bold",
+    color: "#1a1a1a",
+    marginTop: 8,
+    marginBottom: 4,
+  },
+  coachStatLabel: {
+    fontSize: 12,
+    color: "#666",
+  },
+  quickActionsGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-around",
+    marginTop: 12,
+  },
+  quickActionButton: {
+    width: "45%", // Adjust as needed for 2 columns
+    backgroundColor: "#F3F4F6",
+    borderRadius: 12,
+    padding: 15,
+    alignItems: "center",
+    marginVertical: 8,
+    flexDirection: "row",
+    justifyContent: "center",
+  },
+  quickActionText: {
+    fontSize: 14,
+    color: "#1a1a1a",
+    marginLeft: 8,
+    fontWeight: "600",
+  },
+  createSessionButton: {
+    backgroundColor: "#A26FFD",
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 12,
+    marginTop: 15,
+  },
+  createSessionButtonText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "600",
   },
 });
