@@ -1,28 +1,36 @@
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Alert, ActivityIndicator, RefreshControl } from 'react-native';
 import React, { useState, useEffect } from 'react';
 import { Ionicons } from '@expo/vector-icons';
-import { WorkoutService, WorkoutPlan } from '../services/workoutService';
+import { router } from 'expo-router';
+import { WorkoutService, WorkoutPlan, PublicWorkoutPlan } from '../services/workoutService';
 import { CreateWorkoutPlanModal } from '../modals/CreateWorkoutPlanModal';
 import { WorkoutPlanDetailsModal } from '../modals/WorkoutPlanDetailsModal';
 
+// Workout categories with backend integration
 const workoutCategories = [
   {
-    id: 1,
-    title: 'Strength',
-    workouts: 12,
+    id: 'strength',
+    title: 'Strength Training',
+    description: 'Build muscle and increase strength',
     image: 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=500',
   },
   {
-    id: 2,
+    id: 'cardio',
     title: 'Cardio',
-    workouts: 8,
+    description: 'Improve cardiovascular fitness',
     image: 'https://images.unsplash.com/photo-1538805060514-97d9cc17730c?w=500',
   },
   {
-    id: 3,
-    title: 'Yoga',
-    workouts: 6,
+    id: 'yoga',
+    title: 'Yoga & Flexibility',
+    description: 'Enhance flexibility and mindfulness',
     image: 'https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=500',
+  },
+  {
+    id: 'hiit',
+    title: 'HIIT',
+    description: 'High-intensity interval training',
+    image: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=500',
   },
 ];
 
@@ -30,7 +38,9 @@ export default function WorkoutsScreen() {
   console.log('WorkoutsScreen rendering...');
   
   const [workoutPlans, setWorkoutPlans] = useState<WorkoutPlan[]>([]);
+  const [publicWorkouts, setPublicWorkouts] = useState<PublicWorkoutPlan[]>([]);
   const [loading, setLoading] = useState(false);
+  const [publicLoading, setPublicLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
@@ -38,6 +48,7 @@ export default function WorkoutsScreen() {
 
   useEffect(() => {
     fetchWorkoutPlans();
+    fetchPublicWorkouts();
   }, []);
 
   const fetchWorkoutPlans = async (isRefresh = false) => {
@@ -68,8 +79,32 @@ export default function WorkoutsScreen() {
     }
   };
 
+  const fetchPublicWorkouts = async () => {
+    setPublicLoading(true);
+    try {
+      const response = await WorkoutService.getPublicWorkoutPlans({
+        limit: 10,
+        offset: 0,
+      });
+      setPublicWorkouts(response.workout_plans);
+    } catch (error) {
+      console.error('Error fetching public workouts:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to load public workouts';
+      
+      if (errorMessage.includes('Authentication required')) {
+        console.log('User not authenticated, skipping public workouts fetch');
+        setPublicWorkouts([]);
+      } else {
+        Alert.alert('Error', errorMessage);
+      }
+    } finally {
+      setPublicLoading(false);
+    }
+  };
+
   const handleRefresh = () => {
     fetchWorkoutPlans(true);
+    fetchPublicWorkouts();
   };
 
   const handlePlanPress = (planId: string) => {
@@ -144,13 +179,49 @@ export default function WorkoutsScreen() {
                 {plan.total_calories} cal
               </Text>
             </View>
+          </View>
+        </View>
+      </View>
+    </TouchableOpacity>
+  );
+
+  const renderPublicWorkout = (workout: PublicWorkoutPlan) => (
+    <TouchableOpacity
+      key={workout.id}
+      style={styles.publicWorkoutCard}
+      onPress={() => router.push(`/public-workouts?planId=${workout.id}`)}
+    >
+      <View style={styles.publicWorkoutContent}>
+        <View style={styles.publicWorkoutInfo}>
+          <Text style={styles.publicWorkoutTitle}>{workout.title}</Text>
+          {workout.description && (
+            <Text style={styles.publicWorkoutDescription} numberOfLines={2}>
+              {workout.description}
+            </Text>
+          )}
+          <View style={styles.publicWorkoutStats}>
             <View style={styles.statItem}>
-              <Ionicons name="time-outline" size={16} color="#666" />
+              <Ionicons name="calendar-outline" size={16} color="#666" />
               <Text style={styles.statText}>
-                {new Date(plan.updated_at).toLocaleDateString()}
+                {workout.daily_plans_count || 0} days
+              </Text>
+            </View>
+            <View style={styles.statItem}>
+              <Ionicons name="flame-outline" size={16} color="#666" />
+              <Text style={styles.statText}>
+                {workout.total_calories} cal
+              </Text>
+            </View>
+            <View style={styles.statItem}>
+              <Ionicons name="people-outline" size={16} color="#666" />
+              <Text style={styles.statText}>
+                {workout.applications_count || 0} users
               </Text>
             </View>
           </View>
+        </View>
+        <View style={styles.publicWorkoutAction}>
+          <Ionicons name="chevron-forward" size={20} color="#A78BFA" />
         </View>
       </View>
     </TouchableOpacity>
@@ -172,28 +243,25 @@ export default function WorkoutsScreen() {
     </View>
   );
 
-  const renderWorkoutPlansStats = () => {
-    const totalPlans = workoutPlans.length;
-    const publishedPlans = workoutPlans.filter(plan => plan.status === 'published').length;
-    const totalCalories = workoutPlans.reduce((sum, plan) => sum + plan.total_calories, 0);
-
-    return (
-      <View style={styles.plansStatsContainer}>
-        <View style={styles.planStatCard}>
-          <Text style={styles.planStatValue}>{totalPlans}</Text>
-          <Text style={styles.planStatLabel}>Total Plans</Text>
-        </View>
-        <View style={styles.planStatCard}>
-          <Text style={styles.planStatValue}>{publishedPlans}</Text>
-          <Text style={styles.planStatLabel}>Published</Text>
-        </View>
-        <View style={styles.planStatCard}>
-          <Text style={styles.planStatValue}>{totalCalories}</Text>
-          <Text style={styles.planStatLabel}>Total Calories</Text>
+  const renderCategoryCard = (category: typeof workoutCategories[0]) => (
+    <TouchableOpacity 
+      key={category.id} 
+      style={styles.categoryCard}
+      onPress={() => router.push(`/public-workouts?category=${category.id}`)}
+    >
+      <Image source={{ uri: category.image }} style={styles.categoryImage} />
+      <View style={styles.categoryOverlay}>
+        <View style={styles.categoryContent}>
+          <Text style={styles.categoryTitle}>{category.title}</Text>
+          <Text style={styles.categoryDescription}>{category.description}</Text>
+          <View style={styles.categoryAction}>
+            <Text style={styles.categoryActionText}>Explore</Text>
+            <Ionicons name="arrow-forward" size={16} color="#fff" />
+          </View>
         </View>
       </View>
-    );
-  };
+    </TouchableOpacity>
+  );
   
   return (
     <View style={styles.container}>
@@ -209,18 +277,7 @@ export default function WorkoutsScreen() {
       >
         <Text style={styles.title}>Workouts & Plans</Text>
         
-        <View style={styles.statsContainer}>
-          <View style={styles.statCard}>
-            <Text style={styles.statValue}>148</Text>
-            <Text style={styles.statLabel}>Minutes</Text>
-          </View>
-          <View style={styles.statCard}>
-            <Text style={styles.statValue}>1,850</Text>
-            <Text style={styles.statLabel}>Calories</Text>
-          </View>
-        </View>
-
-        {/* Workout Plans Section */}
+        {/* My Workout Plans Section */}
         <View style={styles.sectionContainer}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>My Workout Plans</Text>
@@ -233,32 +290,71 @@ export default function WorkoutsScreen() {
             </TouchableOpacity>
           </View>
 
-          {workoutPlans.length > 0 && renderWorkoutPlansStats()}
-
           {loading ? (
             <View style={styles.loadingContainer}>
               <ActivityIndicator size="large" color="#A78BFA" />
               <Text style={styles.loadingText}>Loading workout plans...</Text>
             </View>
           ) : workoutPlans.length > 0 ? (
-            <View style={styles.plansContainer}>
-              {workoutPlans.map(renderWorkoutPlan)}
-            </View>
+            <>
+              <View style={styles.plansContainer}>
+                {workoutPlans.slice(0, 3).map(renderWorkoutPlan)}
+              </View>
+              {workoutPlans.length > 3 && (
+                <TouchableOpacity 
+                  style={styles.viewMoreButton}
+                  onPress={() => router.push('/my-workouts')}
+                >
+                  <Text style={styles.viewMoreText}>View All {workoutPlans.length} Plans</Text>
+                  <Ionicons name="chevron-forward" size={16} color="#A78BFA" />
+                </TouchableOpacity>
+              )}
+            </>
           ) : (
             renderEmptyWorkoutPlans()
           )}
         </View>
 
-        <Text style={styles.sectionTitle}>Exercise Categories</Text>
-        {workoutCategories.map((category) => (
-          <TouchableOpacity key={category.id} style={styles.categoryCard}>
-            <Image source={{ uri: category.image }} style={styles.categoryImage} />
-            <View style={styles.categoryContent}>
-              <Text style={styles.categoryTitle}>{category.title}</Text>
-              <Text style={styles.categoryWorkouts}>{category.workouts} workouts</Text>
+        {/* Public Workouts Section */}
+        <View style={styles.sectionContainer}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Public Workouts</Text>
+            <TouchableOpacity 
+              style={styles.viewAllButton}
+              onPress={() => router.push('/public-workouts')}
+            >
+              <Text style={styles.viewAllText}>View All</Text>
+              <Ionicons name="chevron-forward" size={16} color="#A78BFA" />
+            </TouchableOpacity>
+          </View>
+
+          {publicLoading ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color="#A78BFA" />
+              <Text style={styles.loadingText}>Loading public workouts...</Text>
             </View>
-          </TouchableOpacity>
-        ))}
+          ) : publicWorkouts.length > 0 ? (
+            <View style={styles.publicWorkoutsContainer}>
+              {publicWorkouts.slice(0, 3).map(renderPublicWorkout)}
+            </View>
+          ) : (
+            <View style={styles.emptyState}>
+              <Ionicons name="globe-outline" size={48} color="#666" />
+              <Text style={styles.emptyStateTitle}>No Public Workouts</Text>
+              <Text style={styles.emptyStateText}>
+                Check back later for community workout plans
+              </Text>
+            </View>
+          )}
+        </View>
+
+        {/* Workout Categories */}
+        <View style={styles.sectionContainer}>
+          <Text style={styles.sectionTitle}>Workout Categories</Text>
+          <View style={styles.categoriesContainer}>
+            {workoutCategories.map(renderCategoryCard)}
+          </View>
+        </View>
       </ScrollView>
 
       {/* Modals */}
@@ -293,36 +389,6 @@ const styles = StyleSheet.create({
     margin: 20,
     marginTop: 40,
   },
-  statsContainer: {
-    flexDirection: 'row',
-    padding: 20,
-    gap: 16,
-  },
-  statCard: {
-    flex: 1,
-    backgroundColor: '#fff',
-    borderRadius: 16,
-    padding: 20,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#e0e0e0',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  statValue: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#1a1a1a',
-    marginTop: 12,
-  },
-  statLabel: {
-    fontSize: 14,
-    color: '#666',
-    marginTop: 4,
-  },
   sectionContainer: {
     marginHorizontal: 20,
     marginBottom: 20,
@@ -337,9 +403,6 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: 'bold',
     color: '#1a1a1a',
-    marginHorizontal: 20,
-    marginTop: 20,
-    marginBottom: 16,
   },
   addButton: {
     flexDirection: 'row',
@@ -352,6 +415,19 @@ const styles = StyleSheet.create({
   addButtonText: {
     color: '#A78BFA',
     marginLeft: 4,
+    fontWeight: '600',
+  },
+  viewAllButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#A78BFA20',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+  },
+  viewAllText: {
+    color: '#A78BFA',
+    marginRight: 4,
     fontWeight: '600',
   },
   loadingContainer: {
@@ -431,6 +507,59 @@ const styles = StyleSheet.create({
   deleteButton: {
     padding: 8,
   },
+  viewMoreButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    marginTop: 8,
+  },
+  viewMoreText: {
+    color: '#A78BFA',
+    fontWeight: '600',
+    marginRight: 4,
+  },
+  publicWorkoutCard: {
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  publicWorkoutContent: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  publicWorkoutInfo: {
+    flex: 1,
+  },
+  publicWorkoutTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#1a1a1a',
+    marginBottom: 4,
+  },
+  publicWorkoutDescription: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 12,
+  },
+  publicWorkoutStats: {
+    flexDirection: 'row',
+    gap: 16,
+  },
+  publicWorkoutAction: {
+    padding: 8,
+  },
+  publicWorkoutsContainer: {
+    gap: 12,
+  },
   emptyState: {
     alignItems: 'center',
     padding: 40,
@@ -458,28 +587,10 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: '600',
   },
-  plansStatsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    marginBottom: 16,
-    paddingHorizontal: 20,
-  },
-  planStatCard: {
-    alignItems: 'center',
-  },
-  planStatValue: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#1a1a1a',
-    marginBottom: 4,
-  },
-  planStatLabel: {
-    fontSize: 14,
-    color: '#666',
+  categoriesContainer: {
+    gap: 12,
   },
   categoryCard: {
-    margin: 20,
-    marginVertical: 10,
     backgroundColor: '#fff',
     borderRadius: 16,
     overflow: 'hidden',
@@ -490,22 +601,49 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
+    marginBottom: 12,
   },
   categoryImage: {
     width: '100%',
     height: 160,
   },
-  categoryContent: {
+  categoryOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    borderRadius: 16,
     padding: 16,
   },
+  categoryContent: {
+    flex: 1,
+    justifyContent: 'flex-end',
+  },
   categoryTitle: {
-    fontSize: 20,
+    fontSize: 24,
     fontWeight: 'bold',
-    color: '#1a1a1a',
+    color: '#fff',
     marginBottom: 4,
   },
-  categoryWorkouts: {
+  categoryDescription: {
     fontSize: 14,
-    color: '#666',
+    color: '#fff',
+    marginBottom: 12,
+  },
+  categoryAction: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#A78BFA',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    alignSelf: 'flex-start',
+  },
+  categoryActionText: {
+    color: '#fff',
+    fontWeight: '600',
+    marginRight: 4,
   },
 });

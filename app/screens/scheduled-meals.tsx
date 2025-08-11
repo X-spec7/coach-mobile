@@ -425,16 +425,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#1a1a1a',
   },
-  todayButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  todayButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#A78BFA',
-  },
+
   dateSelector: {
     backgroundColor: '#fff',
   },
