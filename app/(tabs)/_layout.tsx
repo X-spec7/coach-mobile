@@ -62,15 +62,7 @@ export default function TabLayout() {
           ),
         }}
       />
-      <Tabs.Screen
-        name="misc"
-        options={{
-          title: "Misc",
-          tabBarIcon: ({ color }) => (
-            <IconSymbol size={28} name="ellipsis.circle" color={color} />
-          ),
-        }}
-      />
+
       <Tabs.Screen
         name="profile"
         options={{
