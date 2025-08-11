@@ -1,45 +1,24 @@
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Alert, ActivityIndicator, RefreshControl } from 'react-native';
 import React, { useState, useEffect } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+  Alert,
+  ActivityIndicator,
+  RefreshControl,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import { MealService, MealPlan, MealPlanGoal } from '../services/mealService';
-import { CreateMealPlanModal } from '../modals/CreateMealPlanModal';
-import { MealPlanDetailsModal } from '../modals/MealPlanDetailsModal';
-import { ApplyMealPlanModal } from '../modals/ApplyMealPlanModal';
-import AssignMealPlanModal from '../modals/AssignMealPlanModal';
-import { useAuth } from '../contexts/AuthContext';
+import { MealService, MealPlan } from './services/mealService';
+import { CreateMealPlanModal } from './modals/CreateMealPlanModal';
+import { MealPlanDetailsModal } from './modals/MealPlanDetailsModal';
+import { ApplyMealPlanModal } from './modals/ApplyMealPlanModal';
+import AssignMealPlanModal from './modals/AssignMealPlanModal';
+import { useAuth } from './contexts/AuthContext';
 
-// Meal plan categories based on goals
-const mealPlanCategories = [
-  {
-    id: 'weight_loss',
-    title: 'Weight Loss',
-    description: 'Calorie deficit plans for fat reduction',
-    image: 'https://images.unsplash.com/photo-1517836357463-d25dfeac3438?w=500',
-  },
-  {
-    id: 'weight_gain',
-    title: 'Weight Gain',
-    description: 'Calorie surplus plans for healthy weight gain',
-    image: 'https://images.unsplash.com/photo-1490645935967-10de6ba17061?w=500',
-  },
-  {
-    id: 'muscle_gain',
-    title: 'Muscle Gain',
-    description: 'High protein plans for muscle building',
-    image: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=500',
-  },
-  {
-    id: 'maintenance',
-    title: 'Maintenance',
-    description: 'Balanced plans to maintain current weight',
-    image: 'https://images.unsplash.com/photo-1490645935967-10de6ba17061?w=500',
-  },
-];
-
-export default function MealPlanScreen() {
-  console.log('MealPlanScreen rendering...');
-  
+export default function MyMealPlansScreen() {
   const { user } = useAuth();
   const [mealPlans, setMealPlans] = useState<MealPlan[]>([]);
   const [loading, setLoading] = useState(false);
@@ -57,7 +36,7 @@ export default function MealPlanScreen() {
   const fetchMealPlans = async (isRefresh = false) => {
     if (isRefresh) {
       setRefreshing(true);
-      } else {
+    } else {
       setLoading(true);
     }
     
@@ -69,10 +48,9 @@ export default function MealPlanScreen() {
       
       const errorMessage = error instanceof Error ? error.message : 'Failed to load meal plans';
       
-      // Don't show alert for authentication required errors - user might not be logged in yet
       if (errorMessage.includes('Authentication required')) {
         console.log('User not authenticated, skipping meal plans fetch');
-        setMealPlans([]); // Clear any existing plans
+        setMealPlans([]);
       } else {
         Alert.alert('Error', errorMessage);
       }
@@ -141,7 +119,7 @@ export default function MealPlanScreen() {
               { backgroundColor: plan.status === 'published' ? '#4CAF50' : '#FFA726' }
             ]}>
               <Text style={styles.statusText}>{plan.status_display}</Text>
-        </View>
+            </View>
             <TouchableOpacity
               style={styles.deleteButton}
               onPress={(e) => {
@@ -150,8 +128,8 @@ export default function MealPlanScreen() {
               }}
             >
               <Ionicons name="trash-outline" size={20} color="#FF6B6B" />
-          </TouchableOpacity>
-        </View>
+            </TouchableOpacity>
+          </View>
           {plan.description && (
             <Text style={styles.planDescription} numberOfLines={2}>
               {plan.description}
@@ -188,50 +166,78 @@ export default function MealPlanScreen() {
                 F: {plan.total_fat}g
               </Text>
             </View>
+            <View style={styles.statItem}>
+              <Ionicons name="time-outline" size={16} color="#666" />
+              <Text style={styles.statText}>
+                {new Date(plan.updated_at).toLocaleDateString()}
+              </Text>
+            </View>
           </View>
         </View>
       </View>
     </TouchableOpacity>
   );
 
-  const renderCategoryCard = (category: typeof mealPlanCategories[0]) => (
-    <TouchableOpacity 
-      key={category.id} 
-      style={styles.categoryCard}
-      onPress={() => router.push(`/meal-plan-categories?category=${category.id}`)}
-    >
-      <Image source={{ uri: category.image }} style={styles.categoryImage} />
-      <View style={styles.categoryOverlay}>
-        <View style={styles.categoryContent}>
-          <Text style={styles.categoryTitle}>{category.title}</Text>
-          <Text style={styles.categoryDescription}>{category.description}</Text>
-          <View style={styles.categoryAction}>
-            <Text style={styles.categoryActionText}>Explore</Text>
-            <Ionicons name="arrow-forward" size={16} color="#fff" />
-          </View>
+  const renderMealPlansStats = () => {
+    const totalPlans = mealPlans.length;
+    const publishedPlans = mealPlans.filter(plan => plan.status === 'published').length;
+    const totalCalories = mealPlans.reduce((sum, plan) => sum + plan.total_calories, 0);
+    const avgProtein = mealPlans.length > 0 ? Math.round(mealPlans.reduce((sum, plan) => sum + plan.total_protein, 0) / mealPlans.length) : 0;
+
+    return (
+      <View style={styles.plansStatsContainer}>
+        <View style={styles.planStatCard}>
+          <Text style={styles.planStatValue}>{totalPlans}</Text>
+          <Text style={styles.planStatLabel}>Total Plans</Text>
+        </View>
+        <View style={styles.planStatCard}>
+          <Text style={styles.planStatValue}>{publishedPlans}</Text>
+          <Text style={styles.planStatLabel}>Published</Text>
+        </View>
+        <View style={styles.planStatCard}>
+          <Text style={styles.planStatValue}>{totalCalories}</Text>
+          <Text style={styles.planStatLabel}>Total Calories</Text>
+        </View>
+        <View style={styles.planStatCard}>
+          <Text style={styles.planStatValue}>{avgProtein}g</Text>
+          <Text style={styles.planStatLabel}>Avg Protein</Text>
         </View>
       </View>
-    </TouchableOpacity>
-  );
+    );
+  };
 
-  const renderEmptyMealPlans = () => (
+  const renderEmptyState = () => (
     <View style={styles.emptyState}>
       <Ionicons name="restaurant-outline" size={48} color="#666" />
       <Text style={styles.emptyStateTitle}>No Meal Plans Yet</Text>
       <Text style={styles.emptyStateText}>
         Create your first meal plan to get started
       </Text>
-          <TouchableOpacity
+      <TouchableOpacity
         style={styles.emptyStateButton}
         onPress={() => setShowCreateModal(true)}
       >
         <Text style={styles.emptyStateButtonText}>Create Your First Plan</Text>
-          </TouchableOpacity>
-        </View>
+      </TouchableOpacity>
+    </View>
   );
 
   return (
-      <View style={styles.container}>
+    <View style={styles.container}>
+      {/* Header */}
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+          <Ionicons name="arrow-back" size={24} color="#1a1a1a" />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>My Meal Plans</Text>
+        <TouchableOpacity 
+          style={styles.createButton}
+          onPress={() => setShowCreateModal(true)}
+        >
+          <Ionicons name="add" size={24} color="#A78BFA" />
+        </TouchableOpacity>
+      </View>
+
       <ScrollView
         style={styles.scrollView}
         refreshControl={
@@ -242,62 +248,21 @@ export default function MealPlanScreen() {
           />
         }
       >
-        <Text style={styles.title}>Meal Plans</Text>
-        
-        {/* My Meal Plans Section */}
-        <View style={styles.sectionContainer}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>My Meal Plans</Text>
-            <TouchableOpacity
-              style={styles.addButton}
-              onPress={() => setShowCreateModal(true)}
-            >
-              <Ionicons name="add" size={20} color="#A78BFA" />
-              <Text style={styles.addButtonText}>Create Plan</Text>
-            </TouchableOpacity>
+        {loading ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color="#A78BFA" />
+            <Text style={styles.loadingText}>Loading meal plans...</Text>
           </View>
-
-          {loading ? (
-            <View style={styles.loadingContainer}>
-              <ActivityIndicator size="large" color="#A78BFA" />
-              <Text style={styles.loadingText}>Loading meal plans...</Text>
+        ) : mealPlans.length > 0 ? (
+          <View style={styles.content}>
+            {renderMealPlansStats()}
+            <View style={styles.plansContainer}>
+              {mealPlans.map(renderMealPlan)}
             </View>
-          ) : mealPlans.length > 0 ? (
-            <>
-              <View style={styles.plansContainer}>
-                {mealPlans.slice(0, 3).map(renderMealPlan)}
-              </View>
-              {mealPlans.length > 3 && (
-                <TouchableOpacity 
-                  style={styles.viewMoreButton}
-                  onPress={() => router.push('/my-meal-plans')}
-                >
-                  <Text style={styles.viewMoreText}>View All {mealPlans.length} Plans</Text>
-                  <Ionicons name="chevron-forward" size={16} color="#A78BFA" />
-                </TouchableOpacity>
-              )}
-            </>
-          ) : (
-            renderEmptyMealPlans()
-              )}
-            </View>
-
-        {/* Meal Plan Categories */}
-        <View style={styles.sectionContainer}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Meal Plan Categories</Text>
-            <TouchableOpacity 
-              style={styles.viewAllButton}
-              onPress={() => router.push('/meal-plan-categories')}
-            >
-              <Text style={styles.viewAllText}>View All Categories</Text>
-              <Ionicons name="chevron-forward" size={16} color="#A78BFA" />
-            </TouchableOpacity>
           </View>
-          <View style={styles.categoriesContainer}>
-            {mealPlanCategories.map(renderCategoryCard)}
-          </View>
-        </View>
+        ) : (
+          renderEmptyState()
+        )}
       </ScrollView>
 
       {/* Modals */}
@@ -357,56 +322,35 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#f8f9fa',
   },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingTop: 60,
+    paddingBottom: 20,
+    backgroundColor: '#fff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
+  backButton: {
+    padding: 4,
+  },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#1a1a1a',
+    flex: 1,
+    textAlign: 'center',
+  },
+  createButton: {
+    padding: 4,
+  },
   scrollView: {
     flex: 1,
   },
-  title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#1a1a1a',
-    margin: 20,
-    marginTop: 40,
-  },
-  sectionContainer: {
-    marginHorizontal: 20,
-    marginBottom: 20,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#1a1a1a',
-  },
-  addButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#A78BFA20',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-  },
-  addButtonText: {
-    color: '#A78BFA',
-    marginLeft: 4,
-    fontWeight: '600',
-  },
-  viewAllButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#A78BFA20',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-  },
-  viewAllText: {
-    color: '#A78BFA',
-    marginRight: 4,
-    fontWeight: '600',
+  content: {
+    padding: 20,
   },
   loadingContainer: {
     padding: 40,
@@ -414,6 +358,25 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     marginTop: 10,
+    color: '#666',
+  },
+  plansStatsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    marginBottom: 20,
+    paddingHorizontal: 20,
+  },
+  planStatCard: {
+    alignItems: 'center',
+  },
+  planStatValue: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#1a1a1a',
+    marginBottom: 4,
+  },
+  planStatLabel: {
+    fontSize: 12,
     color: '#666',
   },
   plansContainer: {
@@ -486,18 +449,6 @@ const styles = StyleSheet.create({
   deleteButton: {
     padding: 8,
   },
-  viewMoreButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 12,
-    marginTop: 8,
-  },
-  viewMoreText: {
-    color: '#A78BFA',
-    fontWeight: '600',
-    marginRight: 4,
-  },
   emptyState: {
     alignItems: 'center',
     padding: 40,
@@ -525,63 +476,4 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: '600',
   },
-  categoriesContainer: {
-    gap: 12,
-  },
-  categoryCard: {
-    backgroundColor: '#fff',
-    borderRadius: 16,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: '#e0e0e0',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-    marginBottom: 12,
-  },
-  categoryImage: {
-    width: '100%',
-    height: 160,
-  },
-  categoryOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    borderRadius: 16,
-    padding: 16,
-  },
-  categoryContent: {
-    flex: 1,
-    justifyContent: 'flex-end',
-  },
-  categoryTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#fff',
-    marginBottom: 4,
-  },
-  categoryDescription: {
-    fontSize: 12,
-    color: '#fff',
-    marginBottom: 12,
-  },
-  categoryAction: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#A78BFA',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-    alignSelf: 'flex-start',
-  },
-  categoryActionText: {
-    color: '#fff',
-    fontWeight: '600',
-    marginRight: 4,
-  },
-});
+}); 

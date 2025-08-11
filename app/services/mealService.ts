@@ -633,6 +633,7 @@ export const MealService = {
   // Get public meal plans
   getPublicMealPlans: async (params?: {
     search?: string;
+    goal?: MealPlanGoal;
     offset?: number;
     limit?: number;
   }): Promise<PublicMealPlansResponse> => {
@@ -644,6 +645,7 @@ export const MealService = {
 
     const queryParams = new URLSearchParams();
     if (params?.search) queryParams.append('search', params.search);
+    if (params?.goal) queryParams.append('goal', params.goal);
     if (params?.offset !== undefined) queryParams.append('offset', params.offset.toString());
     if (params?.limit !== undefined) queryParams.append('limit', params.limit.toString());
 
