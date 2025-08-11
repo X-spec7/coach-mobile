@@ -715,6 +715,7 @@ export const WorkoutService = {
   // Get public workout plans
   getPublicWorkoutPlans: async (params?: {
     search?: string;
+    category?: string;
     offset?: number;
     limit?: number;
   }): Promise<PublicWorkoutPlansResponse> => {
@@ -726,6 +727,7 @@ export const WorkoutService = {
 
     const queryParams = new URLSearchParams();
     if (params?.search) queryParams.append('search', params.search);
+    if (params?.category) queryParams.append('category', params.category);
     if (params?.offset !== undefined) queryParams.append('offset', params.offset.toString());
     if (params?.limit !== undefined) queryParams.append('limit', params.limit.toString());
 

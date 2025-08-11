@@ -2,14 +2,14 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Alert, Act
 import React, { useState, useEffect } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import { WorkoutService, WorkoutPlan, PublicWorkoutPlan } from '../services/workoutService';
+import { WorkoutService, WorkoutPlan } from '../services/workoutService';
 import { CreateWorkoutPlanModal } from '../modals/CreateWorkoutPlanModal';
 import { WorkoutPlanDetailsModal } from '../modals/WorkoutPlanDetailsModal';
 
 // Workout categories with backend integration
 const workoutCategories = [
   {
-    id: 'strength',
+    id: 'strength_training',
     title: 'Strength Training',
     description: 'Build muscle and increase strength',
     image: 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=500',
@@ -21,9 +21,9 @@ const workoutCategories = [
     image: 'https://images.unsplash.com/photo-1538805060514-97d9cc17730c?w=500',
   },
   {
-    id: 'yoga',
-    title: 'Yoga & Flexibility',
-    description: 'Enhance flexibility and mindfulness',
+    id: 'flexibility',
+    title: 'Flexibility',
+    description: 'Enhance flexibility and mobility',
     image: 'https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=500',
   },
   {
@@ -38,9 +38,7 @@ export default function WorkoutsScreen() {
   console.log('WorkoutsScreen rendering...');
   
   const [workoutPlans, setWorkoutPlans] = useState<WorkoutPlan[]>([]);
-  const [publicWorkouts, setPublicWorkouts] = useState<PublicWorkoutPlan[]>([]);
   const [loading, setLoading] = useState(false);
-  const [publicLoading, setPublicLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
@@ -48,7 +46,6 @@ export default function WorkoutsScreen() {
 
   useEffect(() => {
     fetchWorkoutPlans();
-    fetchPublicWorkouts();
   }, []);
 
   const fetchWorkoutPlans = async (isRefresh = false) => {
@@ -79,32 +76,8 @@ export default function WorkoutsScreen() {
     }
   };
 
-  const fetchPublicWorkouts = async () => {
-    setPublicLoading(true);
-    try {
-      const response = await WorkoutService.getPublicWorkoutPlans({
-        limit: 10,
-        offset: 0,
-      });
-      setPublicWorkouts(response.workout_plans);
-    } catch (error) {
-      console.error('Error fetching public workouts:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Failed to load public workouts';
-      
-      if (errorMessage.includes('Authentication required')) {
-        console.log('User not authenticated, skipping public workouts fetch');
-        setPublicWorkouts([]);
-      } else {
-        Alert.alert('Error', errorMessage);
-      }
-    } finally {
-      setPublicLoading(false);
-    }
-  };
-
   const handleRefresh = () => {
     fetchWorkoutPlans(true);
-    fetchPublicWorkouts();
   };
 
   const handlePlanPress = (planId: string) => {
@@ -185,43 +158,21 @@ export default function WorkoutsScreen() {
     </TouchableOpacity>
   );
 
-  const renderPublicWorkout = (workout: PublicWorkoutPlan) => (
-    <TouchableOpacity
-      key={workout.id}
-      style={styles.publicWorkoutCard}
-      onPress={() => router.push(`/public-workouts?planId=${workout.id}`)}
+  const renderCategoryCard = (category: typeof workoutCategories[0]) => (
+    <TouchableOpacity 
+      key={category.id} 
+      style={styles.categoryCard}
+      onPress={() => router.push(`/workout-categories?category=${category.id}`)}
     >
-      <View style={styles.publicWorkoutContent}>
-        <View style={styles.publicWorkoutInfo}>
-          <Text style={styles.publicWorkoutTitle}>{workout.title}</Text>
-          {workout.description && (
-            <Text style={styles.publicWorkoutDescription} numberOfLines={2}>
-              {workout.description}
-            </Text>
-          )}
-          <View style={styles.publicWorkoutStats}>
-            <View style={styles.statItem}>
-              <Ionicons name="calendar-outline" size={16} color="#666" />
-              <Text style={styles.statText}>
-                {workout.daily_plans_count || 0} days
-              </Text>
-            </View>
-            <View style={styles.statItem}>
-              <Ionicons name="flame-outline" size={16} color="#666" />
-              <Text style={styles.statText}>
-                {workout.total_calories} cal
-              </Text>
-            </View>
-            <View style={styles.statItem}>
-              <Ionicons name="people-outline" size={16} color="#666" />
-              <Text style={styles.statText}>
-                {workout.applications_count || 0} users
-              </Text>
-            </View>
+      <Image source={{ uri: category.image }} style={styles.categoryImage} />
+      <View style={styles.categoryOverlay}>
+        <View style={styles.categoryContent}>
+          <Text style={styles.categoryTitle}>{category.title}</Text>
+          <Text style={styles.categoryDescription}>{category.description}</Text>
+          <View style={styles.categoryAction}>
+            <Text style={styles.categoryActionText}>Explore</Text>
+            <Ionicons name="arrow-forward" size={16} color="#fff" />
           </View>
-        </View>
-        <View style={styles.publicWorkoutAction}>
-          <Ionicons name="chevron-forward" size={20} color="#A78BFA" />
         </View>
       </View>
     </TouchableOpacity>
@@ -241,26 +192,6 @@ export default function WorkoutsScreen() {
         <Text style={styles.emptyStateButtonText}>Create Your First Plan</Text>
       </TouchableOpacity>
     </View>
-  );
-
-  const renderCategoryCard = (category: typeof workoutCategories[0]) => (
-    <TouchableOpacity 
-      key={category.id} 
-      style={styles.categoryCard}
-      onPress={() => router.push(`/public-workouts?category=${category.id}`)}
-    >
-      <Image source={{ uri: category.image }} style={styles.categoryImage} />
-      <View style={styles.categoryOverlay}>
-        <View style={styles.categoryContent}>
-          <Text style={styles.categoryTitle}>{category.title}</Text>
-          <Text style={styles.categoryDescription}>{category.description}</Text>
-          <View style={styles.categoryAction}>
-            <Text style={styles.categoryActionText}>Explore</Text>
-            <Ionicons name="arrow-forward" size={16} color="#fff" />
-          </View>
-        </View>
-      </View>
-    </TouchableOpacity>
   );
   
   return (
@@ -315,42 +246,18 @@ export default function WorkoutsScreen() {
           )}
         </View>
 
-        {/* Public Workouts Section */}
+        {/* Workout Categories */}
         <View style={styles.sectionContainer}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Public Workouts</Text>
+            <Text style={styles.sectionTitle}>Workout Categories</Text>
             <TouchableOpacity 
               style={styles.viewAllButton}
-              onPress={() => router.push('/public-workouts')}
+              onPress={() => router.push('/workout-categories')}
             >
-              <Text style={styles.viewAllText}>View All</Text>
+              <Text style={styles.viewAllText}>View All Categories</Text>
               <Ionicons name="chevron-forward" size={16} color="#A78BFA" />
             </TouchableOpacity>
           </View>
-
-          {publicLoading ? (
-            <View style={styles.loadingContainer}>
-              <ActivityIndicator size="large" color="#A78BFA" />
-              <Text style={styles.loadingText}>Loading public workouts...</Text>
-            </View>
-          ) : publicWorkouts.length > 0 ? (
-            <View style={styles.publicWorkoutsContainer}>
-              {publicWorkouts.slice(0, 3).map(renderPublicWorkout)}
-            </View>
-          ) : (
-            <View style={styles.emptyState}>
-              <Ionicons name="globe-outline" size={48} color="#666" />
-              <Text style={styles.emptyStateTitle}>No Public Workouts</Text>
-              <Text style={styles.emptyStateText}>
-                Check back later for community workout plans
-              </Text>
-            </View>
-          )}
-        </View>
-
-        {/* Workout Categories */}
-        <View style={styles.sectionContainer}>
-          <Text style={styles.sectionTitle}>Workout Categories</Text>
           <View style={styles.categoriesContainer}>
             {workoutCategories.map(renderCategoryCard)}
           </View>
@@ -518,47 +425,6 @@ const styles = StyleSheet.create({
     color: '#A78BFA',
     fontWeight: '600',
     marginRight: 4,
-  },
-  publicWorkoutCard: {
-    backgroundColor: '#fff',
-    borderRadius: 16,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: '#e0e0e0',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  publicWorkoutContent: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  publicWorkoutInfo: {
-    flex: 1,
-  },
-  publicWorkoutTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#1a1a1a',
-    marginBottom: 4,
-  },
-  publicWorkoutDescription: {
-    fontSize: 14,
-    color: '#666',
-    marginBottom: 12,
-  },
-  publicWorkoutStats: {
-    flexDirection: 'row',
-    gap: 16,
-  },
-  publicWorkoutAction: {
-    padding: 8,
-  },
-  publicWorkoutsContainer: {
-    gap: 12,
   },
   emptyState: {
     alignItems: 'center',
