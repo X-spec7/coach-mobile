@@ -85,27 +85,55 @@ export default function HelpSupportScreen() {
     setExpandedFAQ(expandedFAQ === id ? null : id);
   };
 
-  const handleSendEmail = () => {
+  const handleSendEmail = async () => {
     if (!subject.trim() || !message.trim()) {
       Alert.alert('Error', 'Please fill in both subject and message fields.');
       return;
     }
 
-    // Here you would typically send the email through your backend
-    // For now, we'll just show a success message
-    Alert.alert(
-      'Email Sent',
-      'Your support request has been sent successfully. We\'ll get back to you within 24 hours.',
-      [
-        {
-          text: 'OK',
-          onPress: () => {
-            setSubject('');
-            setMessage('');
+    try {
+      // TODO: Replace with actual API call when backend is ready
+      // const response = await fetch('/api/support/send-email/', {
+      //   method: 'POST',
+      //   headers: {
+      //     'Content-Type': 'application/json',
+      //     ...getAuthHeaders(),
+      //   },
+      //   body: JSON.stringify({
+      //     subject: subject.trim(),
+      //     message: message.trim(),
+      //     category: 'general',
+      //     priority: 'medium',
+      //   }),
+      // });
+      
+      // if (!response.ok) {
+      //   throw new Error('Failed to send email');
+      // }
+
+      // For now, simulate API call
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      Alert.alert(
+        'Email Sent',
+        'Your support request has been sent successfully. We\'ll get back to you within 24 hours.',
+        [
+          {
+            text: 'OK',
+            onPress: () => {
+              setSubject('');
+              setMessage('');
+            }
           }
-        }
-      ]
-    );
+        ]
+      );
+    } catch (error) {
+      Alert.alert(
+        'Error',
+        'Failed to send email. Please try again later.',
+        [{ text: 'OK' }]
+      );
+    }
   };
 
   return (

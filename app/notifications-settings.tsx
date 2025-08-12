@@ -76,12 +76,14 @@ export default function NotificationsSettingsScreen() {
         const updateData: CoachProfileUpdateRequest = {
           notificationsEnabled: settings.generalNotifications,
         };
-        await UserProfileService.updateCoachProfile(updateData);
+        const response = await UserProfileService.updateCoachProfile(updateData);
+        setProfile(response.user);
       } else {
         const updateData: ClientProfileUpdateRequest = {
           notificationsEnabled: settings.generalNotifications,
         };
-        await UserProfileService.updateClientProfile(updateData);
+        const response = await UserProfileService.updateClientProfile(updateData);
+        setProfile(response.user);
       }
 
       Alert.alert('Success', 'Notification settings updated successfully!');

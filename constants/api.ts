@@ -46,6 +46,13 @@ export const API_ENDPOINTS = {
     MY_RELATIONSHIPS: `${API_BASE_URL}/users/my-relationships/`,
     COACH_CLIENT_RELATIONSHIP_DETAILS: (relationshipId: string) => `${API_BASE_URL}/users/coach-client-relationship/${relationshipId}/`,
   },
+  PROFILE: {
+    GET_PROFILE: `${API_BASE_URL}/users/profile/`,
+    UPDATE_CLIENT: `${API_BASE_URL}/users/client/update/`,
+    UPDATE_COACH: `${API_BASE_URL}/users/coach/update/`,
+    GET_CLIENT_PROFILE: `${API_BASE_URL}/users/client/profile/`,
+    UPDATE_CLIENT_PROFILE: `${API_BASE_URL}/users/client/profile/`,
+  },
   CLIENT_USER: {
     GET_USER_INFO: `${API_BASE_URL}/users/client/profile/`,
     UPDATE_USER_INFO: `${API_BASE_URL}/users/client/profile/`,

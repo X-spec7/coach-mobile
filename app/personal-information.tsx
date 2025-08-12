@@ -99,13 +99,15 @@ export default function PersonalInformationScreen() {
           phoneNumber: formData.phoneNumber,
           address: formData.address,
           gender: formData.gender,
+          notificationsEnabled: formData.notificationsEnabled,
           specialization: formData.specialization,
           yearsOfExperience: formData.yearsOfExperience,
           certifications: formData.certifications,
         };
-
+        
         const response = await UserProfileService.updateCoachProfile(coachData);
         setProfile(response.user);
+        Alert.alert('Success', 'Profile updated successfully!');
       } else {
         const clientData: ClientProfileUpdateRequest = {
           firstName: formData.firstName,
@@ -117,13 +119,13 @@ export default function PersonalInformationScreen() {
           interests: formData.interests,
           helpCategories: formData.helpCategories,
         };
-
+        
         const response = await UserProfileService.updateClientProfile(clientData);
         setProfile(response.user);
+        Alert.alert('Success', 'Profile updated successfully!');
       }
-
+      
       setIsEditing(false);
-      Alert.alert('Success', 'Profile updated successfully!');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to update profile');
       Alert.alert('Error', err instanceof Error ? err.message : 'Failed to update profile');
