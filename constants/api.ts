@@ -67,7 +67,6 @@ export const API_ENDPOINTS = {
   },
   SESSIONS: {
     CREATE: `${API_BASE_URL}/session/create/`,
-    CREATE_INSTANT: `${API_BASE_URL}/session/create/instant/`,
     GET_ALL: `${API_BASE_URL}/session/get/`,
     GET_COUNT: `${API_BASE_URL}/session/get/count/`,
     GET_MINE: `${API_BASE_URL}/session/get/mine/`,

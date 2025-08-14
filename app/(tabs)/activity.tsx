@@ -87,17 +87,6 @@ export default function ActivityScreen() {
                 <Text style={styles.menuTitle}>My Sessions</Text>
                 <Text style={styles.menuSubtitle}>Manage live fitness sessions</Text>
               </TouchableOpacity>
-
-              <TouchableOpacity 
-                style={styles.menuItem}
-                onPress={() => router.push('/public-workouts')}
-              >
-                <View style={styles.menuIcon}>
-                  <Ionicons name="globe" size={24} color="#A78BFA" />
-                </View>
-                <Text style={styles.menuTitle}>Public Library</Text>
-                <Text style={styles.menuSubtitle}>Browse community workouts</Text>
-              </TouchableOpacity>
             </>
           ) : (
             // Client Menu Items

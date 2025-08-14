@@ -120,38 +120,6 @@ export default function CoachSessionsScreen() {
     }
   };
 
-  const handleCreateInstantMeeting = async () => {
-    try {
-      const response = await SessionService.createInstantMeeting();
-      Alert.alert(
-        'Instant Meeting Created',
-        'Your instant Zoom meeting has been created!',
-        [
-          {
-            text: 'Copy Join URL',
-            onPress: () => {
-              // In a real app, you would copy to clipboard
-              console.log('Join URL:', response.joinUrl);
-              Alert.alert('Join URL', response.joinUrl);
-            },
-          },
-          {
-            text: 'Start Meeting',
-            onPress: () => {
-              // In a real app, you would open the start URL
-              console.log('Start URL:', response.startUrl);
-              Alert.alert('Start URL', response.startUrl);
-            },
-          },
-        ]
-      );
-    } catch (error) {
-      console.error('Error creating instant meeting:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Failed to create instant meeting';
-      Alert.alert('Error', errorMessage);
-    }
-  };
-
   const handleSessionPress = (session: Session) => {
     // Show session details
     Alert.alert(
@@ -245,7 +213,7 @@ export default function CoachSessionsScreen() {
 
         <TouchableOpacity
           style={styles.instantButton}
-          onPress={handleCreateInstantMeeting}
+          onPress={() => Alert.alert('Instant Meeting', 'This feature is not yet implemented.')}
         >
           <Ionicons name="flash" size={20} color="#fff" />
           <Text style={styles.instantButtonText}>Instant Meeting</Text>

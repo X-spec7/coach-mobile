@@ -44,7 +44,6 @@ export default function SessionsScreen() {
   const [hasMore, setHasMore] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [bookingSessionId, setBookingSessionId] = useState<string | null>(null);
-  const [bookedSessionIds, setBookedSessionIds] = useState<Set<string>>(new Set());
   
   // Join confirmation modal state
   const [showJoinModal, setShowJoinModal] = useState(false);
@@ -52,16 +51,15 @@ export default function SessionsScreen() {
 
   const limit = 10;
 
+  // Initial load
   useEffect(() => {
-    // Only fetch booked sessions on initial load
-    // fetchSessions will be called by the other useEffect when sessionView changes
-    fetchBookedSessions();
+    fetchSessions(true);
   }, []);
 
-  // Refresh booked sessions when screen comes into focus
+  // Refresh when screen comes into focus
   useFocusEffect(
     React.useCallback(() => {
-      fetchBookedSessions();
+      fetchSessions(true);
     }, [])
   );
 
@@ -90,7 +88,22 @@ export default function SessionsScreen() {
         query: searchQuery.trim() || undefined,
       });
 
-      const newSessions = response.sessions;
+      let newSessions = response.sessions;
+      
+      // Debug logging
+      console.log(`[Sessions] View: ${sessionView}, API returned ${newSessions.length} sessions`);
+      if (sessionView === 'notBooked') {
+        console.log(`[Sessions] Before filtering: ${newSessions.length} sessions`);
+        const bookedCount = newSessions.filter(s => s.isBooked).length;
+        console.log(`[Sessions] Booked sessions in response: ${bookedCount}`);
+      }
+      
+      // Additional frontend filtering for "Available" view to ensure only non-booked sessions
+      if (sessionView === 'notBooked') {
+        newSessions = newSessions.filter(session => !session.isBooked);
+        console.log(`[Sessions] After filtering: ${newSessions.length} sessions`);
+      }
+      
       setHasMore(newSessions.length === limit);
       
       if (reset) {
@@ -116,10 +129,7 @@ export default function SessionsScreen() {
     setRefreshing(true);
     setOffset(0);
     setHasMore(true);
-    await Promise.all([
-      fetchSessions(true),
-      fetchBookedSessions()
-    ]);
+    await fetchSessions(true);
     setRefreshing(false);
   };
 
@@ -129,21 +139,7 @@ export default function SessionsScreen() {
     }
   };
 
-  const fetchBookedSessions = async () => {
-    try {
-      const response = await SessionService.getAllSessions({
-        limit: 100, // Get a reasonable number of booked sessions
-        offset: 0,
-        booked: true,
-      });
-      
-      const bookedIds = new Set(response.sessions.map(session => session.id));
-      setBookedSessionIds(bookedIds);
-    } catch (error) {
-      console.error('Error fetching booked sessions:', error);
-      // Don't show error to user, just log it
-    }
-  };
+
 
   const handleBookSession = async (sessionId: string) => {
     setBookingSessionId(sessionId);
@@ -152,8 +148,6 @@ export default function SessionsScreen() {
       Alert.alert('Success', 'Session booked successfully!');
       // Refresh the sessions to update booking status
       fetchSessions(true);
-      // Update booked sessions list
-      setBookedSessionIds(prev => new Set([...prev, sessionId]));
     } catch (error) {
       console.error('Error booking session:', error);
       const errorMessage = error instanceof Error ? error.message : 'Failed to book session';
@@ -195,7 +189,7 @@ export default function SessionsScreen() {
   };
 
   const handleSessionPress = (session: Session) => {
-    // Use the same logic as renderSession to determine if session is booked
+    // Use the isBooked field from the session data
     let isBooked = false;
     
     if (sessionView === 'booked') {
@@ -203,8 +197,8 @@ export default function SessionsScreen() {
     } else if (sessionView === 'notBooked') {
       isBooked = false; // All sessions in available view are not booked
     } else {
-      // In "All" view, check against our booked sessions list
-      isBooked = bookedSessionIds.has(session.id);
+      // In "All" view, use the isBooked field from the session
+      isBooked = session.isBooked;
     }
     
     if (isBooked) {
@@ -238,9 +232,7 @@ export default function SessionsScreen() {
   };
 
   const renderSession = ({ item }: { item: Session }) => {
-    // In "All" view, we need to check if this session is booked
-    // In "Booked" view, all sessions are booked
-    // In "Available" view, all sessions are not booked
+    // Use the isBooked field from the session data
     let isBooked = false;
     
     if (sessionView === 'booked') {
@@ -248,8 +240,8 @@ export default function SessionsScreen() {
     } else if (sessionView === 'notBooked') {
       isBooked = false; // All sessions in available view are not booked
     } else {
-      // In "All" view, check against our booked sessions list
-      isBooked = bookedSessionIds.has(item.id);
+      // In "All" view, use the isBooked field from the session
+      isBooked = item.isBooked;
     }
     
     return (

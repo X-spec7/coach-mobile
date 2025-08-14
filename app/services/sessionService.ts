@@ -19,6 +19,7 @@ export interface Session {
   price: number;
   equipments: string[];
   meetingId: string;
+  isBooked: boolean;
 }
 
 export interface CreateSessionRequest {
@@ -31,7 +32,7 @@ export interface CreateSessionRequest {
   totalParticipantNumber: number;
   price: number;
   equipments?: string[];
-  bannerImage?: string;
+  bannerImage?: string; // Optional base64 encoded banner image
 }
 
 export interface BookSessionRequest {
@@ -42,11 +43,7 @@ export interface JoinSessionRequest {
   sessionId: string;
 }
 
-export interface InstantMeetingResponse {
-  message: string;
-  joinUrl: string;
-  startUrl: string;
-}
+
 
 export interface JoinSessionResponse {
   zoom_url: string;
@@ -161,24 +158,7 @@ export const SessionService = {
     }
   },
 
-  // Coach: Create instant meeting
-  createInstantMeeting: async (): Promise<InstantMeetingResponse> => {
-    const url = `${API_ENDPOINTS.SESSIONS.CREATE_INSTANT}`;
-    
-    try {
-      const response = await authenticatedFetch(url, {
-        method: 'POST',
-        headers: await getAuthHeaders(),
-      });
-      
-      return response;
-    } catch (error) {
-      if (error instanceof TypeError && error.message === 'Network request failed') {
-        throw new Error('Unable to connect to server. Please check your internet connection.');
-      }
-      throw error;
-    }
-  },
+
 
   // Client: Get all sessions
   getAllSessions: async (params: SessionsSearchParams): Promise<SessionsResponse> => {
@@ -197,6 +177,10 @@ export const SessionService = {
     }
 
     const url = `${API_ENDPOINTS.SESSIONS.GET_ALL}?${queryParams.toString()}`;
+    
+    // Debug logging
+    console.log(`[SessionService] getAllSessions URL: ${url}`);
+    console.log(`[SessionService] booked parameter: ${params.booked}`);
     
     try {
       const response = await authenticatedFetch(url, {

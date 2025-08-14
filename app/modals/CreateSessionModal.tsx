@@ -9,7 +9,9 @@ import {
   TextInput,
   Alert,
   ActivityIndicator,
+  Image,
 } from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
 import { SessionService, CreateSessionRequest } from '../services/sessionService';
 
@@ -69,6 +71,7 @@ export const CreateSessionModal: React.FC<CreateSessionModalProps> = ({
   const [selectedEquipment, setSelectedEquipment] = useState<string[]>([]);
   const [showGoalPicker, setShowGoalPicker] = useState(false);
   const [showLevelPicker, setShowLevelPicker] = useState(false);
+  const [bannerImage, setBannerImage] = useState<string | null>(null);
 
   useEffect(() => {
     if (visible) {
@@ -96,6 +99,31 @@ export const CreateSessionModal: React.FC<CreateSessionModalProps> = ({
     setSelectedEquipment([]);
     setShowGoalPicker(false);
     setShowLevelPicker(false);
+    setBannerImage(null);
+  };
+
+  const pickImage = async () => {
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [16, 9],
+        quality: 0.8,
+        base64: true,
+      });
+
+      if (!result.canceled && result.assets[0]) {
+        const base64Image = `data:image/jpeg;base64,${result.assets[0].base64}`;
+        setBannerImage(base64Image);
+      }
+    } catch (error) {
+      console.error('Error picking image:', error);
+      Alert.alert('Error', 'Failed to pick image');
+    }
+  };
+
+  const removeImage = () => {
+    setBannerImage(null);
   };
 
   const toggleEquipment = (equipment: string) => {
@@ -171,13 +199,14 @@ export const CreateSessionModal: React.FC<CreateSessionModalProps> = ({
         totalParticipantNumber: parseInt(totalParticipants),
         price: parseFloat(price),
         equipments: selectedEquipment.length > 0 ? selectedEquipment : undefined,
+        bannerImage: bannerImage || undefined,
       };
 
       const response = await SessionService.createSession(sessionData);
       
       Alert.alert(
         'Success',
-        'Session created successfully! A Zoom meeting has been automatically created.',
+        'Session created successfully!',
         [
           {
             text: 'OK',
@@ -403,6 +432,29 @@ export const CreateSessionModal: React.FC<CreateSessionModalProps> = ({
                 ))}
               </View>
             </View>
+
+            {/* Banner Image */}
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Banner Image (Optional)</Text>
+              <Text style={styles.sectionSubtitle}>
+                Add a banner image to make your session more attractive
+              </Text>
+              
+              {bannerImage ? (
+                <View style={styles.imageContainer}>
+                  <Image source={{ uri: bannerImage }} style={styles.bannerImage} />
+                  <TouchableOpacity style={styles.removeImageButton} onPress={removeImage}>
+                    <Ionicons name="close-circle" size={24} color="#fff" />
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                <TouchableOpacity style={styles.imagePickerButton} onPress={pickImage}>
+                  <Ionicons name="camera" size={32} color="#A78BFA" />
+                  <Text style={styles.imagePickerText}>Add Banner Image</Text>
+                  <Text style={styles.imagePickerSubtext}>Tap to select from gallery</Text>
+                </TouchableOpacity>
+              )}
+            </View>
           </ScrollView>
 
           {/* Create Button */}
@@ -625,6 +677,48 @@ const styles = StyleSheet.create({
   pickerOptionTextSelected: {
     color: '#A78BFA',
     fontWeight: '600',
+  },
+  imageContainer: {
+    position: 'relative',
+    width: '100%',
+    height: 200,
+    borderRadius: 10,
+    overflow: 'hidden',
+    backgroundColor: '#f0f0f0',
+    marginBottom: 16,
+  },
+  bannerImage: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 10,
+  },
+  removeImageButton: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    borderRadius: 12,
+    padding: 4,
+  },
+  imagePickerButton: {
+    alignItems: 'center',
+    paddingVertical: 20,
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+    borderRadius: 8,
+    backgroundColor: '#fff',
+    marginBottom: 16,
+  },
+  imagePickerText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#A78BFA',
+    marginTop: 10,
+  },
+  imagePickerSubtext: {
+    fontSize: 12,
+    color: '#999',
+    marginTop: 4,
   },
 });
 
