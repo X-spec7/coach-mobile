@@ -121,7 +121,7 @@ class UserProfileService {
     try {
       const response = await fetch(API_ENDPOINTS.PROFILE.GET_PROFILE, {
         method: 'GET',
-        headers: getAuthHeaders(),
+        headers: await getAuthHeaders(),
       });
 
       if (!response.ok) {
@@ -142,7 +142,7 @@ class UserProfileService {
     try {
       const response = await fetch(API_ENDPOINTS.PROFILE.UPDATE_CLIENT, {
         method: 'POST',
-        headers: getAuthHeaders(),
+        headers: await getAuthHeaders(),
         body: JSON.stringify(data),
       });
 
@@ -164,7 +164,7 @@ class UserProfileService {
     try {
       const response = await fetch(API_ENDPOINTS.PROFILE.UPDATE_COACH, {
         method: 'POST',
-        headers: getAuthHeaders(),
+        headers: await getAuthHeaders(),
         body: JSON.stringify(data),
       });
 
@@ -186,7 +186,7 @@ class UserProfileService {
     try {
       const response = await fetch(API_ENDPOINTS.PROFILE.GET_CLIENT_PROFILE, {
         method: 'GET',
-        headers: getAuthHeaders(),
+        headers: await getAuthHeaders(),
       });
 
       if (!response.ok) {
@@ -207,7 +207,7 @@ class UserProfileService {
     try {
       const response = await fetch(API_ENDPOINTS.PROFILE.UPDATE_CLIENT_PROFILE, {
         method: 'PUT',
-        headers: getAuthHeaders(),
+        headers: await getAuthHeaders(),
         body: JSON.stringify(data),
       });
 
@@ -247,5 +247,3 @@ class UserProfileService {
 }
 
 export { UserProfileService }; 
-}; 
-}; 

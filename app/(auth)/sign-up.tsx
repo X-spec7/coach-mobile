@@ -27,7 +27,8 @@ export const SignUpScreen: React.FC = () => {
   const [userType, setUserType] = useState("Client"); // "Client", "Provider", "Admin"
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [phone, setPhone] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [phoneNumber, setPhoneNumber] = useState("");
   const [address, setAddress] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -45,14 +46,18 @@ export const SignUpScreen: React.FC = () => {
         throw new Error("Last Name is required");
       }
 
+      if (password !== confirmPassword) {
+        throw new Error("Passwords do not match");
+      }
+
       const formData = {
         firstName,
         lastName,
         userType,
-        confirmPassword: password,
         email,
         password,
-        phone,
+        confirmPassword,
+        phoneNumber,
         address,
       };
 
@@ -223,13 +228,25 @@ export const SignUpScreen: React.FC = () => {
             />
           </View>
           <View style={styles.inputRow}>
+            <Feather name="lock" size={20} color="#A3A3A3" />
+            <TextInput
+              style={styles.input}
+              placeholder="Confirm Password"
+              placeholderTextColor="#A3A3A3"
+              value={confirmPassword}
+              onChangeText={setConfirmPassword}
+              secureTextEntry
+              returnKeyType="next"
+            />
+          </View>
+          <View style={styles.inputRow}>
             <Feather name="phone" size={20} color="#A3A3A3" />
             <TextInput
               style={styles.input}
-              placeholder="Phone"
+              placeholder="Phone Number"
               placeholderTextColor="#A3A3A3"
-              value={phone}
-              onChangeText={setPhone}
+              value={phoneNumber}
+              onChangeText={setPhoneNumber}
               keyboardType="phone-pad"
               returnKeyType="next"
             />

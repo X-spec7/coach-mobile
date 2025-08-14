@@ -99,7 +99,7 @@ export default function MealDetailScreen() {
     setSelectedFoodItem(foodItem);
     // Pre-fill with planned amount as default
     setConsumedAmount(foodItem.amount.toString());
-    setConsumedUnit(foodItem.unit || 'gram');
+    setConsumedUnit((foodItem.unit || 'gram') as ConsumptionUnit);
     setNotes('');
     setShowLogModal(true);
   };
@@ -229,7 +229,7 @@ export default function MealDetailScreen() {
         const logData: LogFoodRequest = {
           meal_plan_food_item_id: plannedFoodItem.id,
           consumed_amount: plannedFoodItem.amount,
-          consumed_unit: plannedFoodItem.unit || 'gram',
+          consumed_unit: (plannedFoodItem.unit || 'gram') as ConsumptionUnit,
           notes: undefined,
         };
 
@@ -314,9 +314,9 @@ export default function MealDetailScreen() {
           </TouchableOpacity>
         </View>
       </View>
-      <View style={styles.progressBar}>
+      <View style={styles.foodProgressBar}>
         <View style={[
-          styles.progressFill,
+          styles.foodProgressFill,
           { 
             width: `${consumedFood.completion_percentage}%`,
             backgroundColor: consumedFood.is_fully_consumed ? '#4CAF50' : '#FFA726'
@@ -877,13 +877,13 @@ const styles = StyleSheet.create({
     borderRadius: 6,
     backgroundColor: 'rgba(167, 139, 250, 0.1)',
   },
-  progressBar: {
+  foodProgressBar: {
     height: 4,
     backgroundColor: '#E0E0E0',
     borderRadius: 2,
     overflow: 'hidden',
   },
-  progressFill: {
+  foodProgressFill: {
     height: '100%',
     borderRadius: 2,
   },

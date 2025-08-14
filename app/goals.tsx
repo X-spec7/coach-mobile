@@ -248,7 +248,7 @@ export default function GoalsScreen() {
           <Text style={styles.sectionTitle}>Current Goals</Text>
           {goals.length === 0 ? (
             <View style={styles.emptyState}>
-              <Ionicons name="target" size={48} color="#ccc" />
+              <Ionicons name="flag" size={48} color="#ccc" />
               <Text style={styles.emptyStateText}>No goals set yet</Text>
               <Text style={styles.emptyStateSubtext}>Add some goals to track your progress</Text>
             </View>
