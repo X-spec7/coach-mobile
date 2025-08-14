@@ -94,7 +94,7 @@ export const handleApiError = (error: any, context: string = 'operation'): Error
 
     // Specific connection request errors
     if (context === 'connection_request') {
-      if (message.includes('already exists') || message.includes('duplicate')) {
+      if (message.includes('already exists') || message.includes('duplicate') || message.includes('409')) {
         return {
           title: 'Connection Already Exists',
           message: 'A connection request has already been sent to this user.',
@@ -103,7 +103,7 @@ export const handleApiError = (error: any, context: string = 'operation'): Error
         };
       }
 
-      if (message.includes('cannot connect to yourself')) {
+      if (message.includes('cannot connect to yourself') || message.includes('self connection')) {
         return {
           title: 'Invalid Request',
           message: 'You cannot send a connection request to yourself.',
@@ -112,7 +112,7 @@ export const handleApiError = (error: any, context: string = 'operation'): Error
         };
       }
 
-      if (message.includes('user not found')) {
+      if (message.includes('user not found') || message.includes('404')) {
         return {
           title: 'User Not Found',
           message: 'The user you\'re trying to connect with could not be found.',
@@ -121,11 +121,41 @@ export const handleApiError = (error: any, context: string = 'operation'): Error
         };
       }
 
-      if (message.includes('invalid user type') || message.includes('wrong role')) {
+      if (message.includes('invalid user type') || message.includes('wrong role') || message.includes('user type mismatch')) {
         return {
           title: 'Invalid User Type',
           message: 'You can only connect with users of the opposite type (coaches can connect with clients and vice versa).',
           type: 'warning',
+          showRetry: false,
+        };
+      }
+
+      if (message.includes('missing required fields') || message.includes('validation error')) {
+        return {
+          title: 'Invalid Request Data',
+          message: 'Please check that all required information is provided correctly.',
+          type: 'warning',
+          showRetry: true,
+        };
+      }
+    }
+
+    // Specific fetch relationships errors
+    if (context === 'fetch_relationships') {
+      if (message.includes('authentication required') || message.includes('401')) {
+        return {
+          title: 'Authentication Required',
+          message: 'Please sign in to view your connections.',
+          type: 'warning',
+          showRetry: false,
+        };
+      }
+
+      if (message.includes('not found') || message.includes('404')) {
+        return {
+          title: 'Feature Not Available',
+          message: 'The coach-client connection feature is not yet available on this server.',
+          type: 'info',
           showRetry: false,
         };
       }

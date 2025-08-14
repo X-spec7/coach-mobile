@@ -59,6 +59,17 @@ export default function ConnectionsScreen() {
     setRefreshing(false);
   };
 
+  const handleErrorModalClose = () => {
+    setShowErrorModal(false);
+    setErrorInfo(null);
+  };
+
+  const handleErrorRetry = () => {
+    setShowErrorModal(false);
+    setErrorInfo(null);
+    fetchRelationships();
+  };
+
   const handleUpdateRelationship = async (
     relationshipId: string, // Changed from number to string for UUID support
     status: 'active' | 'inactive' | 'terminated',
@@ -298,6 +309,19 @@ export default function ConnectionsScreen() {
               </TouchableOpacity>
             </View>
           }
+        />
+      )}
+
+      {/* Error Modal */}
+      {errorInfo && (
+        <ErrorModal
+          visible={showErrorModal}
+          onClose={handleErrorModalClose}
+          onRetry={handleErrorRetry}
+          title={errorInfo.title}
+          message={errorInfo.message}
+          type={errorInfo.type}
+          showRetry={errorInfo.showRetry}
         />
       )}
     </View>
