@@ -46,6 +46,15 @@ export default function UnreadMessages({ maxItems = 5 }: UnreadMessagesProps) {
   const displayedContacts = maxItems ? unreadContacts.slice(0, maxItems) : unreadContacts;
 
   const handleContactPress = (contact: Contact) => {
+    // Mark messages as read when user taps on the contact
+    if (contact.unreadCount > 0) {
+      updateContactUnreadCount(contact.id, 0);
+      // Also mark messages as read on the backend
+      ChatService.markMessagesAsRead(contact.id).catch(error => {
+        console.error('Error marking messages as read:', error);
+      });
+    }
+    
     router.push({
       pathname: '/chat',
       params: {

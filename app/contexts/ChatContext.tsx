@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react';
 import { websocketService, WSIncomingMessage, Contact, ChatService } from '../services/chatService';
 import { useAuth } from './AuthContext';
 
@@ -25,7 +25,7 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   // Calculate total unread messages
   const unreadMessagesCount = contacts.reduce((total, contact) => total + contact.unreadCount, 0);
 
-  const connectChat = async (): Promise<void> => {
+  const connectChat = useCallback(async (): Promise<void> => {
     console.log('[ChatContext] connectChat called:', {
       userId: user?.id,
       isAlreadyConnected: websocketService.isConnected,
@@ -45,19 +45,19 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       // Don't show repeated connection error alerts to avoid spam
       // Just log the error for debugging
     }
-  };
+  }, [user?.id]);
 
-  const disconnectChat = (): void => {
+  const disconnectChat = useCallback((): void => {
     websocketService.disconnect();
     setIsConnected(false);
     console.log('[ChatContext] Chat disconnected');
-  };
+  }, []);
 
-  const updateContacts = (newContacts: Contact[]): void => {
+  const updateContacts = useCallback((newContacts: Contact[]): void => {
     setContacts(newContacts);
-  };
+  }, []);
 
-  const updateContactLastMessage = (contactId: string, message: any): void => {
+  const updateContactLastMessage = useCallback((contactId: string, message: any): void => {
     setContacts(prevContacts => 
       prevContacts.map(contact => 
         contact.id === contactId 
@@ -65,9 +65,9 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           : contact
       )
     );
-  };
+  }, []);
 
-  const updateContactUnreadCount = (contactId: string, count: number): void => {
+  const updateContactUnreadCount = useCallback((contactId: string, count: number): void => {
     setContacts(prevContacts => 
       prevContacts.map(contact => 
         contact.id === contactId 
@@ -75,10 +75,10 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           : contact
       )
     );
-  };
+  }, []);
 
   // Load contacts from API
-  const loadContacts = async (): Promise<void> => {
+  const loadContacts = useCallback(async (): Promise<void> => {
     if (!user?.id) return;
     
     try {
@@ -90,7 +90,7 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       console.error('[ChatContext] Failed to load contacts:', error);
       // Don't show user-facing errors for contact loading
     }
-  };
+  }, [user?.id]);
 
   // Update connection status based on WebSocket state
   useEffect(() => {
@@ -132,7 +132,7 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     if (isAuthenticated && user?.id) {
       loadContacts();
     }
-  }, [isAuthenticated, user?.id]);
+  }, [isAuthenticated, user?.id, loadContacts]);
 
   const value: ChatContextType = {
     websocketService,

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import {
   View,
   Text,
@@ -7,14 +7,23 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import { useAuth } from '../contexts/AuthContext';
+import { useChat } from '../contexts/ChatContext';
 import UnreadMessages from '../components/UnreadMessages';
 import WeightDisplay from '../components/WeightDisplay';
 
 export default function ActivityScreen() {
   const { user } = useAuth();
+  const { loadContacts } = useChat();
   console.log('ActivityScreen rendering...');
+
+  // Refresh contacts when screen comes into focus
+  useFocusEffect(
+    React.useCallback(() => {
+      loadContacts();
+    }, [loadContacts])
+  );
 
   return (
     <ScrollView style={styles.container}>

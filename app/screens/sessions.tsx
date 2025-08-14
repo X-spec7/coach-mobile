@@ -9,9 +9,11 @@ import {
   Alert,
   RefreshControl,
   TextInput,
+  Linking,
+  Modal,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import { SessionService, Session } from '../services/sessionService';
 import { useAuth } from '../contexts/AuthContext';
 import SessionCard from '../components/SessionCard';
@@ -37,23 +39,36 @@ export default function SessionsScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedGoal, setSelectedGoal] = useState('All');
-  const [showBookedOnly, setShowBookedOnly] = useState(false);
+  const [sessionView, setSessionView] = useState<'all' | 'booked' | 'notBooked'>('all');
   const [offset, setOffset] = useState(0);
   const [hasMore, setHasMore] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [bookingSessionId, setBookingSessionId] = useState<string | null>(null);
+  const [bookedSessionIds, setBookedSessionIds] = useState<Set<string>>(new Set());
+  
+  // Join confirmation modal state
+  const [showJoinModal, setShowJoinModal] = useState(false);
+  const [selectedSession, setSelectedSession] = useState<Session | null>(null);
 
   const limit = 10;
 
   useEffect(() => {
-    fetchSessions(true);
+    // Only fetch booked sessions on initial load
+    // fetchSessions will be called by the other useEffect when sessionView changes
+    fetchBookedSessions();
   }, []);
 
+  // Refresh booked sessions when screen comes into focus
+  useFocusEffect(
+    React.useCallback(() => {
+      fetchBookedSessions();
+    }, [])
+  );
+
   useEffect(() => {
-    if (searchQuery.trim() || selectedGoal !== 'All' || showBookedOnly) {
-      fetchSessions(true);
-    }
-  }, [searchQuery, selectedGoal, showBookedOnly]);
+    // Always fetch sessions when any filter condition changes
+    fetchSessions(true);
+  }, [searchQuery, selectedGoal, sessionView]);
 
   const fetchSessions = async (reset: boolean = false) => {
     if (loading) return;
@@ -64,11 +79,14 @@ export default function SessionsScreen() {
     try {
       const newOffset = reset ? 0 : offset;
       
+      // For "All" view, we fetch all sessions without the booked filter
+      // For "Booked" view, we fetch only booked sessions
+      // For "Available" view, we fetch only non-booked sessions
       const response = await SessionService.getAllSessions({
         limit,
         offset: newOffset,
         goal: selectedGoal !== 'All' ? selectedGoal : undefined,
-        booked: showBookedOnly ? true : undefined,
+        booked: sessionView === 'booked' ? true : sessionView === 'notBooked' ? false : undefined,
         query: searchQuery.trim() || undefined,
       });
 
@@ -98,13 +116,32 @@ export default function SessionsScreen() {
     setRefreshing(true);
     setOffset(0);
     setHasMore(true);
-    await fetchSessions(true);
+    await Promise.all([
+      fetchSessions(true),
+      fetchBookedSessions()
+    ]);
     setRefreshing(false);
   };
 
   const loadMore = () => {
     if (!loading && hasMore) {
       fetchSessions(false);
+    }
+  };
+
+  const fetchBookedSessions = async () => {
+    try {
+      const response = await SessionService.getAllSessions({
+        limit: 100, // Get a reasonable number of booked sessions
+        offset: 0,
+        booked: true,
+      });
+      
+      const bookedIds = new Set(response.sessions.map(session => session.id));
+      setBookedSessionIds(bookedIds);
+    } catch (error) {
+      console.error('Error fetching booked sessions:', error);
+      // Don't show error to user, just log it
     }
   };
 
@@ -115,6 +152,8 @@ export default function SessionsScreen() {
       Alert.alert('Success', 'Session booked successfully!');
       // Refresh the sessions to update booking status
       fetchSessions(true);
+      // Update booked sessions list
+      setBookedSessionIds(prev => new Set([...prev, sessionId]));
     } catch (error) {
       console.error('Error booking session:', error);
       const errorMessage = error instanceof Error ? error.message : 'Failed to book session';
@@ -127,21 +166,27 @@ export default function SessionsScreen() {
   const handleJoinSession = async (sessionId: string) => {
     try {
       const response = await SessionService.joinSession(sessionId);
-      Alert.alert(
-        'Join Session',
-        'Opening Zoom meeting...',
-        [
-          {
-            text: 'OK',
-            onPress: () => {
-              // In a real app, you would open the Zoom URL
+      
+      // Check if the URL can be opened
+      const canOpen = await Linking.canOpenURL(response.zoom_url);
+      
+      if (canOpen) {
+        // Open the Zoom URL in the browser
+        await Linking.openURL(response.zoom_url);
+      } else {
+        // Fallback: show the URL to the user
+        Alert.alert(
+          'Join Session',
+          'Unable to open Zoom automatically. Please copy and paste this URL into your browser:',
+          [
+            { text: 'Copy URL', onPress: () => {
+              // You could add clipboard functionality here if needed
               console.log('Zoom URL:', response.zoom_url);
-              // For now, just show the URL
-              Alert.alert('Zoom URL', response.zoom_url);
-            },
-          },
-        ]
-      );
+            }},
+            { text: 'Cancel', style: 'cancel' },
+          ]
+        );
+      }
     } catch (error) {
       console.error('Error joining session:', error);
       const errorMessage = error instanceof Error ? error.message : 'Failed to join session';
@@ -150,28 +195,76 @@ export default function SessionsScreen() {
   };
 
   const handleSessionPress = (session: Session) => {
-    // Navigate to session details or show session info
-    Alert.alert(
-      session.title,
-      `${session.description}\n\nCoach: ${session.coachFullname}\nPrice: $${session.price}\nDuration: ${session.duration} minutes`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Book Session', onPress: () => handleBookSession(session.id) },
-      ]
-    );
+    // Use the same logic as renderSession to determine if session is booked
+    let isBooked = false;
+    
+    if (sessionView === 'booked') {
+      isBooked = true; // All sessions in booked view are booked
+    } else if (sessionView === 'notBooked') {
+      isBooked = false; // All sessions in available view are not booked
+    } else {
+      // In "All" view, check against our booked sessions list
+      isBooked = bookedSessionIds.has(session.id);
+    }
+    
+    if (isBooked) {
+      // Show join confirmation modal for booked sessions
+      setSelectedSession(session);
+      setShowJoinModal(true);
+    } else {
+      // Show book session modal for unbooked sessions
+      Alert.alert(
+        session.title,
+        `${session.description}\n\nCoach: ${session.coachFullname}\nPrice: $${session.price}\nDuration: ${session.duration} minutes`,
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Book Session', onPress: () => handleBookSession(session.id) },
+        ]
+      );
+    }
   };
 
-  const renderSession = ({ item }: { item: Session }) => (
-    <SessionCard
-      session={item}
-      onPress={handleSessionPress}
-      showBookButton={true}
-      showJoinButton={showBookedOnly}
-      onBookPress={handleBookSession}
-      onJoinPress={handleJoinSession}
-      isLoading={bookingSessionId === item.id}
-    />
-  );
+  const confirmJoinSession = () => {
+    if (selectedSession) {
+      setShowJoinModal(false);
+      handleJoinSession(selectedSession.id);
+      setSelectedSession(null);
+    }
+  };
+
+  const cancelJoinSession = () => {
+    setShowJoinModal(false);
+    setSelectedSession(null);
+  };
+
+  const renderSession = ({ item }: { item: Session }) => {
+    // In "All" view, we need to check if this session is booked
+    // In "Booked" view, all sessions are booked
+    // In "Available" view, all sessions are not booked
+    let isBooked = false;
+    
+    if (sessionView === 'booked') {
+      isBooked = true; // All sessions in booked view are booked
+    } else if (sessionView === 'notBooked') {
+      isBooked = false; // All sessions in available view are not booked
+    } else {
+      // In "All" view, check against our booked sessions list
+      isBooked = bookedSessionIds.has(item.id);
+    }
+    
+    return (
+      <SessionCard
+        session={item}
+        onPress={handleSessionPress}
+        showBookButton={!isBooked}
+        showJoinButton={isBooked}
+        onBookPress={handleBookSession}
+        onJoinPress={handleJoinSession}
+        isBooked={isBooked}
+        isLoading={bookingSessionId === item.id}
+      />
+    );
+  };
 
   const renderGoalFilter = ({ item }: { item: string }) => (
     <TouchableOpacity
@@ -213,20 +306,46 @@ export default function SessionsScreen() {
       );
     }
 
+    let emptyText = 'No sessions available';
+    let emptySubtext = 'Check back later for new fitness sessions';
+
+    if (sessionView === 'booked') {
+      emptyText = 'No booked sessions';
+      emptySubtext = 'Book some sessions to see them here';
+    } else if (sessionView === 'notBooked') {
+      emptyText = 'No available sessions';
+      emptySubtext = 'All sessions are currently booked';
+    }
+
     return (
       <View style={styles.emptyState}>
         <Ionicons name="videocam-outline" size={64} color="#666" />
-        <Text style={styles.emptyStateText}>
-          {showBookedOnly ? 'No booked sessions' : 'No sessions available'}
-        </Text>
-        <Text style={styles.emptyStateSubtext}>
-          {showBookedOnly 
-            ? 'Book some sessions to see them here'
-            : 'Check back later for new fitness sessions'
-          }
-        </Text>
+        <Text style={styles.emptyStateText}>{emptyText}</Text>
+        <Text style={styles.emptyStateSubtext}>{emptySubtext}</Text>
       </View>
     );
+  };
+
+  const getHeaderTitle = () => {
+    switch (sessionView) {
+      case 'booked':
+        return 'My Sessions';
+      case 'notBooked':
+        return 'Available Sessions';
+      default:
+        return 'Live Sessions';
+    }
+  };
+
+  const getHeaderSubtitle = () => {
+    switch (sessionView) {
+      case 'booked':
+        return 'Your booked fitness sessions';
+      case 'notBooked':
+        return 'Available sessions to book';
+      default:
+        return 'Join live fitness sessions with coaches';
+    }
   };
 
   return (
@@ -237,15 +356,8 @@ export default function SessionsScreen() {
           <Ionicons name="arrow-back" size={24} color="#333" />
         </TouchableOpacity>
         <View style={styles.headerContent}>
-          <Text style={styles.headerTitle}>
-            {showBookedOnly ? 'My Sessions' : 'Live Sessions'}
-          </Text>
-          <Text style={styles.headerSubtitle}>
-            {showBookedOnly 
-              ? 'Your booked fitness sessions'
-              : 'Join live fitness sessions with coaches'
-            }
-          </Text>
+          <Text style={styles.headerTitle}>{getHeaderTitle()}</Text>
+          <Text style={styles.headerSubtitle}>{getHeaderSubtitle()}</Text>
         </View>
       </View>
 
@@ -270,27 +382,71 @@ export default function SessionsScreen() {
           <TouchableOpacity
             style={[
               styles.toggleButton,
-              showBookedOnly && styles.toggleButtonActive,
+              sessionView === 'all' && styles.toggleButtonActive,
             ]}
-            onPress={() => setShowBookedOnly(!showBookedOnly)}
+            onPress={() => setSessionView('all')}
           >
             <Ionicons 
-              name={showBookedOnly ? "checkmark-circle" : "calendar-outline"} 
+              name="list-outline" 
               size={16} 
-              color={showBookedOnly ? "#fff" : "#666"} 
+              color={sessionView === 'all' ? "#fff" : "#666"} 
             />
             <Text
               style={[
                 styles.toggleButtonText,
-                showBookedOnly && styles.toggleButtonTextActive,
+                sessionView === 'all' && styles.toggleButtonTextActive,
               ]}
             >
-              {showBookedOnly ? 'Booked' : 'All Sessions'}
+              All
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[
+              styles.toggleButton,
+              sessionView === 'booked' && styles.toggleButtonActive,
+            ]}
+            onPress={() => setSessionView('booked')}
+          >
+            <Ionicons 
+              name="checkmark-circle" 
+              size={16} 
+              color={sessionView === 'booked' ? "#fff" : "#666"} 
+            />
+            <Text
+              style={[
+                styles.toggleButtonText,
+                sessionView === 'booked' && styles.toggleButtonTextActive,
+              ]}
+            >
+              Booked
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[
+              styles.toggleButton,
+              sessionView === 'notBooked' && styles.toggleButtonActive,
+            ]}
+            onPress={() => setSessionView('notBooked')}
+          >
+            <Ionicons 
+              name="calendar-outline" 
+              size={16} 
+              color={sessionView === 'notBooked' ? "#fff" : "#666"} 
+            />
+            <Text
+              style={[
+                styles.toggleButtonText,
+                sessionView === 'notBooked' && styles.toggleButtonTextActive,
+              ]}
+            >
+              Available
             </Text>
           </TouchableOpacity>
         </View>
 
-        {!showBookedOnly && (
+        {sessionView === 'all' && (
           <FlatList
             data={GOAL_FILTERS}
             renderItem={renderGoalFilter}
@@ -335,6 +491,68 @@ export default function SessionsScreen() {
           </TouchableOpacity>
         </View>
       )}
+
+      {/* Join Confirmation Modal */}
+      <Modal
+        visible={showJoinModal}
+        transparent
+        animationType="fade"
+        onRequestClose={cancelJoinSession}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContainer}>
+            <View style={styles.modalHeader}>
+              <Ionicons name="videocam" size={48} color="#A78BFA" />
+              <Text style={styles.modalTitle}>Join Session</Text>
+            </View>
+            
+            {selectedSession && (
+              <View style={styles.modalContent}>
+                <Text style={styles.sessionTitle}>{selectedSession.title}</Text>
+                <Text style={styles.sessionDescription}>{selectedSession.description}</Text>
+                
+                <View style={styles.sessionDetails}>
+                  <View style={styles.detailRow}>
+                    <Ionicons name="person" size={16} color="#666" />
+                    <Text style={styles.detailText}>Coach: {selectedSession.coachFullname}</Text>
+                  </View>
+                  <View style={styles.detailRow}>
+                    <Ionicons name="time" size={16} color="#666" />
+                    <Text style={styles.detailText}>Duration: {selectedSession.duration} minutes</Text>
+                  </View>
+                  <View style={styles.detailRow}>
+                    <Ionicons name="calendar" size={16} color="#666" />
+                    <Text style={styles.detailText}>Date: {new Date(selectedSession.startDate).toLocaleDateString()}</Text>
+                  </View>
+                  <View style={styles.detailRow}>
+                    <Ionicons name="time-outline" size={16} color="#666" />
+                    <Text style={styles.detailText}>Time: {new Date(selectedSession.startDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</Text>
+                  </View>
+                </View>
+                
+                <Text style={styles.confirmationText}>
+                  Are you ready to join this session? The Zoom meeting will open in your browser.
+                </Text>
+              </View>
+            )}
+            
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.cancelButton]}
+                onPress={cancelJoinSession}
+              >
+                <Text style={styles.cancelButtonText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.joinButton]}
+                onPress={confirmJoinSession}
+              >
+                <Text style={styles.joinButtonText}>Join Session</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -392,17 +610,20 @@ const styles = StyleSheet.create({
     color: '#1a1a1a',
   },
   filterRow: {
+    flexDirection: 'row',
+    gap: 8,
     marginBottom: 16,
   },
   toggleButton: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#f0f0f0',
-    paddingHorizontal: 16,
+    paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 20,
-    alignSelf: 'flex-start',
     gap: 6,
+    flex: 1,
+    justifyContent: 'center',
   },
   toggleButtonActive: {
     backgroundColor: '#A78BFA',
@@ -490,6 +711,95 @@ const styles = StyleSheet.create({
   retryButtonText: {
     color: '#fff',
     fontSize: 14,
+    fontWeight: '600',
+  },
+  // Modal styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  modalContainer: {
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 24,
+    maxWidth: 400,
+    width: '100%',
+  },
+  modalHeader: {
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#1a1a1a',
+    marginTop: 12,
+  },
+  modalContent: {
+    marginBottom: 24,
+  },
+  sessionTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#1a1a1a',
+    marginBottom: 8,
+  },
+  sessionDescription: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 16,
+    lineHeight: 20,
+  },
+  sessionDetails: {
+    backgroundColor: '#f8f9fa',
+    borderRadius: 8,
+    padding: 16,
+    marginBottom: 16,
+  },
+  detailRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+    gap: 8,
+  },
+  detailText: {
+    fontSize: 14,
+    color: '#666',
+    flex: 1,
+  },
+  confirmationText: {
+    fontSize: 14,
+    color: '#666',
+    textAlign: 'center',
+    lineHeight: 20,
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  modalButton: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  cancelButton: {
+    backgroundColor: '#f0f0f0',
+  },
+  cancelButtonText: {
+    color: '#666',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  joinButton: {
+    backgroundColor: '#A78BFA',
+  },
+  joinButtonText: {
+    color: '#fff',
+    fontSize: 16,
     fontWeight: '600',
   },
 }); 
