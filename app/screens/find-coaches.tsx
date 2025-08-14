@@ -18,6 +18,8 @@ import { CoachClientService, Coach, Client } from '../services/coachClientServic
 import { getAuthHeaders } from '../services/api';
 import { API_BASE_URL } from '@/constants/api';
 import { useAuth } from '../contexts/AuthContext';
+import { ErrorModal } from '../components/ErrorModal';
+import { handleConnectionRequestError, ErrorInfo } from '../utils/errorHandler';
 
 export default function FindCoachesScreen() {
   const { user } = useAuth();
@@ -31,6 +33,10 @@ export default function FindCoachesScreen() {
   const [totalCount, setTotalCount] = useState(0);
   const [offset, setOffset] = useState(0);
   const [hasMore, setHasMore] = useState(true);
+  
+  // Error handling state
+  const [errorInfo, setErrorInfo] = useState<ErrorInfo | null>(null);
+  const [showErrorModal, setShowErrorModal] = useState(false);
 
   // Role-based configuration
   const isCoach = user?.userType === 'Coach';
@@ -181,13 +187,25 @@ export default function FindCoachesScreen() {
               Alert.alert('Success', 'Connection request sent successfully!');
             } catch (error) {
               console.error('Error sending connection request:', error);
-              const errorMessage = error instanceof Error ? error.message : 'Failed to send request';
-              Alert.alert('Error', errorMessage);
+              const errorInfo = handleConnectionRequestError(error);
+              setErrorInfo(errorInfo);
+              setShowErrorModal(true);
             }
           },
         },
       ]
     );
+  };
+
+  const handleErrorModalClose = () => {
+    setShowErrorModal(false);
+    setErrorInfo(null);
+  };
+
+  const handleErrorRetry = () => {
+    setShowErrorModal(false);
+    setErrorInfo(null);
+    // You can add retry logic here if needed
   };
 
   const renderStars = (rating: number) => {
@@ -464,6 +482,19 @@ export default function FindCoachesScreen() {
               </View>
             ) : null
           }
+        />
+      )}
+
+      {/* Error Modal */}
+      {errorInfo && (
+        <ErrorModal
+          visible={showErrorModal}
+          onClose={handleErrorModalClose}
+          onRetry={handleErrorRetry}
+          title={errorInfo.title}
+          message={errorInfo.message}
+          type={errorInfo.type}
+          showRetry={errorInfo.showRetry}
         />
       )}
     </View>

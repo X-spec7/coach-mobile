@@ -211,7 +211,7 @@ export const RelationshipService = {
     try {
       const headers = await getAuthHeaders();
       // Use the existing relationships endpoint without filters to get all relationships
-      const response = await fetch(`${API_BASE_URL}/users/my-relationships/`, {
+      const response = await fetch(`${API_BASE_URL}/users/relationships/`, {
         headers,
       });
 

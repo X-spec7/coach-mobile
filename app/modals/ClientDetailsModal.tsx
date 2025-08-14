@@ -20,6 +20,8 @@ import { getAuthHeaders } from "../services/api";
 import { useAuth } from "../contexts/AuthContext";
 import { RelationshipService } from "../services/relationshipService";
 import { ClientService } from "../services/clientService";
+import { ErrorModal } from "../components/ErrorModal";
+import { handleConnectionRequestError, ErrorInfo } from "../utils/errorHandler";
 
 interface ClientDetailsModalProps {
   visible: boolean;
@@ -55,6 +57,10 @@ const ClientDetailHeader: React.FC<{ client: Client }> = ({ client }) => {
   const [isLoadingRelationship, setIsLoadingRelationship] = useState(true);
   const [isRequestingRelationship, setIsRequestingRelationship] =
     useState(false);
+  
+  // Error handling state
+  const [errorInfo, setErrorInfo] = useState<ErrorInfo | null>(null);
+  const [showErrorModal, setShowErrorModal] = useState(false);
 
   useEffect(() => {
     if (authLoading) return; // Don't fetch if auth is still loading
@@ -151,13 +157,23 @@ const ClientDetailHeader: React.FC<{ client: Client }> = ({ client }) => {
       await fetchRelationship(); // Refresh relationship status
     } catch (error) {
       console.error("Error requesting relationship:", error);
-      Alert.alert(
-        "Error",
-        "Failed to send relationship request. Please try again."
-      );
+      const errorInfo = handleConnectionRequestError(error);
+      setErrorInfo(errorInfo);
+      setShowErrorModal(true);
     } finally {
       setIsRequestingRelationship(false);
     }
+  };
+
+  const handleErrorModalClose = () => {
+    setShowErrorModal(false);
+    setErrorInfo(null);
+  };
+
+  const handleErrorRetry = () => {
+    setShowErrorModal(false);
+    setErrorInfo(null);
+    // You can add retry logic here if needed
   };
 
   console.log("user:", user);
@@ -347,6 +363,19 @@ const ClientDetailHeader: React.FC<{ client: Client }> = ({ client }) => {
 
       {/* Relationship section */}
       {getRelationshipStatusDisplay()}
+
+      {/* Error Modal */}
+      {errorInfo && (
+        <ErrorModal
+          visible={showErrorModal}
+          onClose={handleErrorModalClose}
+          onRetry={handleErrorRetry}
+          title={errorInfo.title}
+          message={errorInfo.message}
+          type={errorInfo.type}
+          showRetry={errorInfo.showRetry}
+        />
+      )}
     </View>
   );
 };

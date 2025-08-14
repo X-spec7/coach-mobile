@@ -15,6 +15,8 @@ import { router } from 'expo-router';
 import { Colors } from '@/constants/Colors';
 import { CoachClientService, CoachClientRelationship } from '../services/coachClientService';
 import { useAuth } from '../contexts/AuthContext';
+import { ErrorModal } from '../components/ErrorModal';
+import { handleApiError, ErrorInfo } from '../utils/errorHandler';
 
 export default function ConnectionsScreen() {
   const { user } = useAuth();
@@ -22,6 +24,10 @@ export default function ConnectionsScreen() {
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [filter, setFilter] = useState<'all' | 'pending' | 'active'>('all');
+  
+  // Error handling state
+  const [errorInfo, setErrorInfo] = useState<ErrorInfo | null>(null);
+  const [showErrorModal, setShowErrorModal] = useState(false);
 
   useEffect(() => {
     fetchRelationships();
@@ -38,20 +44,10 @@ export default function ConnectionsScreen() {
       setRelationships(response.relationships);
     } catch (error) {
       console.error('Error fetching relationships:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Failed to load connections';
-      
-      if (errorMessage.includes('Authentication required')) {
-        console.log('User not authenticated, skipping fetch');
-        setRelationships([]);
-      } else if (errorMessage.includes('404') || errorMessage.includes('not found')) {
-        Alert.alert(
-          'Feature Not Available', 
-          'The coach-client connection feature is not yet available on this server.'
-        );
-        setRelationships([]);
-      } else {
-        Alert.alert('Error', errorMessage);
-      }
+      const errorInfo = handleApiError(error, 'fetch_relationships');
+      setErrorInfo(errorInfo);
+      setShowErrorModal(true);
+      setRelationships([]);
     } finally {
       setLoading(false);
     }

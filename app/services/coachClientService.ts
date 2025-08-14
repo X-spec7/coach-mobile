@@ -303,13 +303,57 @@ export const CoachClientService = {
   // Create coach-client relationship
   createRelationship: async (data: CreateRelationshipRequest): Promise<CreateRelationshipResponse> => {
     const headers = await getAuthHeaders();
-    const response = await authenticatedFetch(API_ENDPOINTS.USERS.COACH_CLIENT_RELATIONSHIP, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify(data),
-    });
+    
+    if (!headers.Authorization) {
+      throw new Error('Authentication required. Please sign in to create relationships.');
+    }
 
-    return response;
+    try {
+      const response = await fetch(API_ENDPOINTS.USERS.COACH_CLIENT_RELATIONSHIP, {
+        method: 'POST',
+        headers: {
+          ...headers,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+      });
+
+      console.log('[createRelationship] Response status:', response.status);
+
+      if (response.status === 401) {
+        throw new Error('Authentication required. Please sign in again.');
+      }
+
+      if (response.status === 403) {
+        throw new Error('You don\'t have permission to create relationships.');
+      }
+
+      if (response.status === 400) {
+        const errorData = await response.json();
+        const errorMessage = errorData.message || errorData.error || 'Invalid request data';
+        throw new Error(errorMessage);
+      }
+
+      if (response.status === 409) {
+        throw new Error('A connection request already exists between these users.');
+      }
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.log('[createRelationship] Error response:', errorText);
+        throw new Error(`Failed to create relationship: ${response.status} - ${errorText}`);
+      }
+
+      const result = await response.json();
+      console.log('[createRelationship] Success response:', result);
+      return result;
+    } catch (error) {
+      console.error('[createRelationship] Error:', error);
+      if (error instanceof TypeError && error.message === 'Network request failed') {
+        throw new Error('Unable to connect to server. Please check your internet connection.');
+      }
+      throw error;
+    }
   },
 
   // Get coach-client relationships (legacy method - consider using getMyRelationships instead)
