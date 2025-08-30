@@ -114,4 +114,15 @@ export const API_ENDPOINTS = {
     UPDATE: `${API_BASE_URL}/exercises/update/`,
     DELETE: (exerciseId: number) => `${API_BASE_URL}/exercises/${exerciseId}/`,
   },
+  CALORIE_TRACKING: {
+    GOALS: `${API_BASE_URL}/calorie-tracking/goals/`,
+    DAILY_LOGS: `${API_BASE_URL}/calorie-tracking/daily-logs/`,
+    FOOD_ENTRIES: `${API_BASE_URL}/calorie-tracking/food-entries/`,
+    FOOD_ENTRY_DETAILS: (entryId: string) => `${API_BASE_URL}/calorie-tracking/food-entries/${entryId}/`,
+    SEARCH_FOOD: `${API_BASE_URL}/calorie-tracking/search-food/`,
+    CUSTOM_FOODS: `${API_BASE_URL}/calorie-tracking/custom-foods/`,
+    CUSTOM_FOOD_DETAILS: (foodId: string) => `${API_BASE_URL}/calorie-tracking/custom-foods/${foodId}/`,
+    QUICK_ADD: `${API_BASE_URL}/calorie-tracking/quick-add/`,
+    STATS: `${API_BASE_URL}/calorie-tracking/stats/`,
+  },
 };

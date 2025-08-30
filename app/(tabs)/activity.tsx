@@ -156,6 +156,50 @@ export default function ActivityScreen() {
                 <Text style={styles.menuTitle}>Meal Tracking</Text>
                 <Text style={styles.menuSubtitle}>Log daily food consumption</Text>
               </TouchableOpacity>
+
+              <TouchableOpacity 
+                style={styles.menuItem}
+                onPress={() => router.push('/calorie-tracking')}
+              >
+                <View style={styles.menuIcon}>
+                  <Ionicons name="nutrition" size={24} color="#A78BFA" />
+                </View>
+                <Text style={styles.menuTitle}>Calorie Tracking</Text>
+                <Text style={styles.menuSubtitle}>Track daily calories & macros</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity 
+                style={styles.menuItem}
+                onPress={() => router.push('/calorie-goals')}
+              >
+                <View style={styles.menuIcon}>
+                  <Ionicons name="flag" size={24} color="#A78BFA" />
+                </View>
+                <Text style={styles.menuTitle}>Calorie Goals</Text>
+                <Text style={styles.menuSubtitle}>Set & manage nutrition goals</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity 
+                style={styles.menuItem}
+                onPress={() => router.push('/add-food')}
+              >
+                <View style={styles.menuIcon}>
+                  <Ionicons name="add-circle" size={24} color="#A78BFA" />
+                </View>
+                <Text style={styles.menuTitle}>Add Food</Text>
+                <Text style={styles.menuSubtitle}>Search, quick add & manage foods</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity 
+                style={styles.menuItem}
+                onPress={() => router.push('/calorie-stats')}
+              >
+                <View style={styles.menuIcon}>
+                  <Ionicons name="analytics" size={24} color="#A78BFA" />
+                </View>
+                <Text style={styles.menuTitle}>Calorie Stats</Text>
+                <Text style={styles.menuSubtitle}>View nutrition analytics</Text>
+              </TouchableOpacity>
             </>
           )}
         </View>

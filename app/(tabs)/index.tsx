@@ -528,6 +528,42 @@ export default function HomeScreen() {
                 )}
               </View>
             </View>
+
+            {/* Calorie Tracking Quick Access - Only for Clients */}
+            <View style={styles.section}>
+              <View style={styles.sectionHeader}>
+                <Ionicons name="nutrition" size={20} color="#A26FFD" />
+                <Text style={styles.sectionTitle}>Calorie Tracking</Text>
+                <TouchableOpacity onPress={() => router.push('/calorie-tracking')}>
+                  <Text style={styles.seeAllText}>See All</Text>
+                </TouchableOpacity>
+              </View>
+              <View style={styles.sectionCard}>
+                <View style={styles.quickActionsGrid}>
+                  <TouchableOpacity 
+                    style={styles.quickActionButton}
+                    onPress={() => router.push('/calorie-tracking')}
+                  >
+                    <Ionicons name="nutrition" size={24} color="#A26FFD" />
+                    <Text style={styles.quickActionText}>Daily Log</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity 
+                    style={styles.quickActionButton}
+                    onPress={() => router.push('/add-food')}
+                  >
+                    <Ionicons name="add-circle" size={24} color="#A26FFD" />
+                    <Text style={styles.quickActionText}>Add Food</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity 
+                    style={styles.quickActionButton}
+                    onPress={() => router.push('/calorie-goals')}
+                  >
+                                         <Ionicons name="flag" size={24} color="#A26FFD" />
+                    <Text style={styles.quickActionText}>Goals</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </View>
           </>
         )}
 
