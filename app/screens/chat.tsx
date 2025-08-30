@@ -112,23 +112,55 @@ export default function ChatScreen() {
   const setupMessageHandlers = () => {
     // Handle incoming messages
     const handleMessageReceived = (data: any) => {
-      if (data.message && (data.message.senderId === otherUserId || data.message.senderId === user?.id)) {
-        setMessages((prev) => [...prev, data.message]);
-        
-        // Auto-scroll to bottom for new messages
-        setTimeout(() => {
-          flatListRef.current?.scrollToEnd({ animated: true });
-        }, 100);
+      console.log('[ChatScreen] Message received:', {
+        message: data.message,
+        senderId: data.message?.senderId,
+        otherUserId,
+        currentUserId: user?.id,
+        isFromOther: data.message?.senderId === otherUserId,
+        isFromSelf: data.message?.senderId === user?.id
+      });
 
-        // Mark as read if it's an incoming message
+      if (data.message) {
         if (data.message.senderId === otherUserId) {
-          markMessagesAsRead();
-        }
+          // Incoming message from the other person
+          console.log('[ChatScreen] Adding incoming message from other person');
+          setMessages((prev) => [...prev, data.message]);
+          
+          // Auto-scroll to bottom for new messages
+          setTimeout(() => {
+            flatListRef.current?.scrollToEnd({ animated: true });
+          }, 100);
 
-        // Send acknowledgment that message was received
-        if (websocketService.isConnected) {
-          websocketService.sendMessage('checked_received_message', {
-            message_sender_id: data.message.senderId
+          // Mark as read since it's an incoming message
+          markMessagesAsRead();
+
+          // Send acknowledgment that message was received
+          if (websocketService.isConnected) {
+            websocketService.sendMessage('checked_received_message', {
+              message_sender_id: data.message.senderId
+            });
+          }
+        } else if (data.message.senderId === user?.id) {
+          // This is our own message coming back from the server
+          console.log('[ChatScreen] Processing own message from server');
+          // Replace the temporary message with the real one
+          setMessages((prev) => {
+            const tempMessageIndex = prev.findIndex(msg => 
+              msg.id.startsWith('temp-') && msg.content === data.message.content
+            );
+            
+            if (tempMessageIndex !== -1) {
+              console.log('[ChatScreen] Replacing temporary message with real message');
+              // Replace the temporary message with the real one
+              const updatedMessages = [...prev];
+              updatedMessages[tempMessageIndex] = data.message;
+              return updatedMessages;
+            }
+            
+            console.log('[ChatScreen] No temporary message found, adding real message');
+            // If no temporary message found, just add the real message
+            return [...prev, data.message];
           });
         }
       }
@@ -171,13 +203,29 @@ export default function ChatScreen() {
     if (!newMessage.trim() || sending) return;
 
     const messageText = newMessage.trim();
+    console.log('[ChatScreen] Sending message:', messageText);
     setNewMessage('');
     setSending(true);
 
     try {
       // Check if WebSocket is connected
       if (websocketService.isConnected) {
+        // Create a temporary message object for immediate display
+        const tempMessage: Message = {
+          id: `temp-${Date.now()}`, // Temporary ID
+          content: messageText,
+          isRead: false,
+          isSent: true,
+          sentDate: new Date().toISOString(),
+          senderId: user?.id,
+        };
+
+        console.log('[ChatScreen] Adding temporary message to state:', tempMessage);
+        // Add the message to local state immediately for instant feedback
+        setMessages((prev) => [...prev, tempMessage]);
+
         // Send via WebSocket using the web pattern
+        console.log('[ChatScreen] Sending message via WebSocket');
         websocketService.sendMessage('send_message', {
           recipient_id: otherUserId,
           message: messageText,
