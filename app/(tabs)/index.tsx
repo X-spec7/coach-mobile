@@ -564,6 +564,35 @@ export default function HomeScreen() {
                 </View>
               </View>
             </View>
+
+            {/* AI Planner Quick Access - Only for Clients */}
+            <View style={styles.section}>
+              <View style={styles.sectionHeader}>
+                <Ionicons name="sparkles" size={20} color="#A26FFD" />
+                <Text style={styles.sectionTitle}>AI Planner</Text>
+                <TouchableOpacity onPress={() => router.push('/ai-planner')}>
+                  <Text style={styles.seeAllText}>See All</Text>
+                </TouchableOpacity>
+              </View>
+              <View style={styles.sectionCard}>
+                <View style={styles.quickActionsGrid}>
+                  <TouchableOpacity 
+                    style={styles.quickActionButton}
+                    onPress={() => router.push('/ai-planner')}
+                  >
+                    <Ionicons name="sparkles" size={24} color="#A26FFD" />
+                    <Text style={styles.quickActionText}>Generate Plan</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity 
+                    style={styles.quickActionButton}
+                    onPress={() => router.push('/ai-generations')}
+                  >
+                    <Ionicons name="time-outline" size={24} color="#A26FFD" />
+                    <Text style={styles.quickActionText}>History</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </View>
           </>
         )}
 
@@ -665,6 +694,13 @@ export default function HomeScreen() {
                   >
                     <Ionicons name="restaurant" size={24} color="#A26FFD" />
                     <Text style={styles.quickActionText}>Create Meal Plan</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity 
+                    style={styles.quickActionButton}
+                    onPress={() => router.push('/ai-planner')}
+                  >
+                    <Ionicons name="sparkles" size={24} color="#A26FFD" />
+                    <Text style={styles.quickActionText}>AI Planner</Text>
                   </TouchableOpacity>
                 </View>
               </View>

@@ -200,6 +200,28 @@ export default function ActivityScreen() {
                 <Text style={styles.menuTitle}>Calorie Stats</Text>
                 <Text style={styles.menuSubtitle}>View nutrition analytics</Text>
               </TouchableOpacity>
+
+              <TouchableOpacity 
+                style={styles.menuItem}
+                onPress={() => router.push('/ai-planner')}
+              >
+                <View style={styles.menuIcon}>
+                  <Ionicons name="sparkles" size={24} color="#A78BFA" />
+                </View>
+                <Text style={styles.menuTitle}>AI Planner</Text>
+                <Text style={styles.menuSubtitle}>Generate meal & workout plans</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity 
+                style={styles.menuItem}
+                onPress={() => router.push('/ai-generations')}
+              >
+                <View style={styles.menuIcon}>
+                  <Ionicons name="time-outline" size={24} color="#A78BFA" />
+                </View>
+                <Text style={styles.menuTitle}>AI History</Text>
+                <Text style={styles.menuSubtitle}>View generated plans</Text>
+              </TouchableOpacity>
             </>
           )}
         </View>
