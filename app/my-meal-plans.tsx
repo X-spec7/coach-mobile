@@ -12,6 +12,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { MealService, MealPlan } from './services/mealService';
+import { getMealPlans, updateMealPlan, applyMealPlan } from './services/mealPlanManagementService';
 import { CreateMealPlanModal } from './modals/CreateMealPlanModal';
 import { MealPlanDetailsModal } from './modals/MealPlanDetailsModal';
 import { ApplyMealPlanModal } from './modals/ApplyMealPlanModal';
@@ -28,6 +29,7 @@ export default function MyMealPlansScreen() {
   const [showApplyModal, setShowApplyModal] = useState(false);
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<MealPlan | null>(null);
+  const [filter, setFilter] = useState<'all' | 'draft' | 'published' | 'ai_generated'>('all');
 
   useEffect(() => {
     fetchMealPlans();
@@ -68,6 +70,35 @@ export default function MyMealPlansScreen() {
     setSelectedPlan(plan);
     setShowDetailsModal(true);
   };
+
+  const handlePublishPlan = async (plan: MealPlan) => {
+    try {
+      await updateMealPlan(plan.id, { status: 'published' });
+      await fetchMealPlans();
+      Alert.alert('Success', 'Meal plan published successfully!');
+    } catch (error) {
+      console.error('Error publishing meal plan:', error);
+      Alert.alert('Error', 'Failed to publish meal plan');
+    }
+  };
+
+  const handleEditPlan = (plan: MealPlan) => {
+    // Navigate to edit page (we'll create this later)
+    router.push(`/edit-meal-plan/${plan.id}` as any);
+  };
+
+  const filteredPlans = mealPlans.filter(plan => {
+    switch (filter) {
+      case 'draft':
+        return plan.status === 'draft';
+      case 'published':
+        return plan.status === 'published';
+      case 'ai_generated':
+        return plan.is_ai_generated;
+      default:
+        return true;
+    }
+  });
 
   const handleDeletePlan = async (planId: string, planTitle: string) => {
     Alert.alert(
@@ -113,7 +144,15 @@ export default function MyMealPlansScreen() {
       <View style={styles.planContent}>
         <View style={styles.planInfo}>
           <View style={styles.planHeader}>
-            <Text style={styles.planTitle}>{plan.title}</Text>
+            <View style={styles.planTitleContainer}>
+              <Text style={styles.planTitle}>{plan.title}</Text>
+              {plan.is_ai_generated && (
+                <View style={styles.aiBadge}>
+                  <Ionicons name="sparkles" size={12} color="#FF6B6B" />
+                  <Text style={styles.aiBadgeText}>AI</Text>
+                </View>
+              )}
+            </View>
             <View style={[
               styles.statusBadge,
               { backgroundColor: plan.status === 'published' ? '#4CAF50' : '#FFA726' }
@@ -139,31 +178,31 @@ export default function MyMealPlansScreen() {
             <View style={styles.statItem}>
               <Ionicons name="calendar-outline" size={16} color="#666" />
               <Text style={styles.statText}>
-                {plan.daily_plans_count || 0} days
+                {plan.daily_plans?.length || 0} days
               </Text>
             </View>
             <View style={styles.statItem}>
               <Ionicons name="flame-outline" size={16} color="#666" />
               <Text style={styles.statText}>
-                {plan.total_calories} cal
+                {plan.total_calories || 0} cal
               </Text>
             </View>
             <View style={styles.statItem}>
               <Ionicons name="nutrition-outline" size={16} color="#666" />
               <Text style={styles.statText}>
-                P: {plan.total_protein}g
+                P: {Math.round(plan.total_protein || 0)}g
               </Text>
             </View>
             <View style={styles.statItem}>
               <Ionicons name="leaf-outline" size={16} color="#666" />
               <Text style={styles.statText}>
-                C: {plan.total_carbs}g
+                C: {Math.round(plan.total_carbs || 0)}g
               </Text>
             </View>
             <View style={styles.statItem}>
               <Ionicons name="water-outline" size={16} color="#666" />
               <Text style={styles.statText}>
-                F: {plan.total_fat}g
+                F: {Math.round(plan.total_fat || 0)}g
               </Text>
             </View>
             <View style={styles.statItem}>
@@ -173,6 +212,50 @@ export default function MyMealPlansScreen() {
               </Text>
             </View>
           </View>
+          
+          {/* Action buttons for AI-generated plans */}
+          {plan.is_ai_generated && (
+            <View style={styles.actionButtons}>
+              {plan.status === 'draft' && (
+                <TouchableOpacity
+                  style={[styles.actionButton, styles.editButton]}
+                  onPress={(e) => {
+                    e.stopPropagation();
+                    handleEditPlan(plan);
+                  }}
+                >
+                  <Ionicons name="create-outline" size={16} color="#2196F3" />
+                  <Text style={styles.actionButtonText}>Edit</Text>
+                </TouchableOpacity>
+              )}
+              
+              {plan.status === 'draft' && (
+                <TouchableOpacity
+                  style={[styles.actionButton, styles.publishButton]}
+                  onPress={(e) => {
+                    e.stopPropagation();
+                    handlePublishPlan(plan);
+                  }}
+                >
+                  <Ionicons name="checkmark-circle-outline" size={16} color="#4CAF50" />
+                  <Text style={styles.actionButtonText}>Publish</Text>
+                </TouchableOpacity>
+              )}
+              
+              {plan.status === 'published' && (
+                <TouchableOpacity
+                  style={[styles.actionButton, styles.applyButton]}
+                  onPress={(e) => {
+                    e.stopPropagation();
+                    handleChoosePlan(plan);
+                  }}
+                >
+                  <Ionicons name="calendar-outline" size={16} color="#FF9800" />
+                  <Text style={styles.actionButtonText}>Apply</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          )}
         </View>
       </View>
     </TouchableOpacity>
@@ -255,9 +338,45 @@ export default function MyMealPlansScreen() {
           </View>
         ) : mealPlans.length > 0 ? (
           <View style={styles.content}>
+            {/* Filter buttons */}
+            <View style={styles.filterContainer}>
+              <TouchableOpacity
+                style={[styles.filterButton, filter === 'all' && styles.filterButtonActive]}
+                onPress={() => setFilter('all')}
+              >
+                <Text style={[styles.filterButtonText, filter === 'all' && styles.filterButtonTextActive]}>
+                  All
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.filterButton, filter === 'draft' && styles.filterButtonActive]}
+                onPress={() => setFilter('draft')}
+              >
+                <Text style={[styles.filterButtonText, filter === 'draft' && styles.filterButtonTextActive]}>
+                  Drafts
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.filterButton, filter === 'published' && styles.filterButtonActive]}
+                onPress={() => setFilter('published')}
+              >
+                <Text style={[styles.filterButtonText, filter === 'published' && styles.filterButtonTextActive]}>
+                  Published
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.filterButton, filter === 'ai_generated' && styles.filterButtonActive]}
+                onPress={() => setFilter('ai_generated')}
+              >
+                <Text style={[styles.filterButtonText, filter === 'ai_generated' && styles.filterButtonTextActive]}>
+                  AI Generated
+                </Text>
+              </TouchableOpacity>
+            </View>
+            
             {renderMealPlansStats()}
             <View style={styles.plansContainer}>
-              {mealPlans.map(renderMealPlan)}
+              {filteredPlans.map(renderMealPlan)}
             </View>
           </View>
         ) : (
@@ -476,4 +595,74 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: '600',
   },
-}); 
+  // New styles for AI-generated plans and filters
+  planTitleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+    marginRight: 8,
+  },
+  aiBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFF5F5',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 8,
+    marginLeft: 8,
+  },
+  aiBadgeText: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: '#FF6B6B',
+    marginLeft: 2,
+  },
+  actionButtons: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 12,
+  },
+  actionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+    gap: 4,
+  },
+  editButton: {
+    backgroundColor: '#E3F2FD',
+  },
+  publishButton: {
+    backgroundColor: '#E8F5E8',
+  },
+  applyButton: {
+    backgroundColor: '#FFF3E0',
+  },
+  actionButtonText: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  filterContainer: {
+    flexDirection: 'row',
+    marginBottom: 16,
+    gap: 8,
+  },
+  filterButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: '#F5F5F5',
+  },
+  filterButtonActive: {
+    backgroundColor: '#A78BFA',
+  },
+  filterButtonText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#666',
+  },
+  filterButtonTextActive: {
+    color: '#fff',
+  },
+});

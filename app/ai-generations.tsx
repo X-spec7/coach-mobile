@@ -297,13 +297,17 @@ export default function AIGenerationsScreen() {
                     <View style={styles.detailItem}>
                       <Ionicons name="flash-outline" size={14} color={textColor + '60'} />
                       <ThemedText style={styles.detailText}>
-                        {generation.tokens_used} tokens
+                        {generation.tokens_used || 0} tokens
                       </ThemedText>
                     </View>
                     <View style={styles.detailItem}>
                       <Ionicons name="cash-outline" size={14} color={textColor + '60'} />
                       <ThemedText style={styles.detailText}>
-                        ${generation.cost.toFixed(4)}
+                        ${(() => {
+                          const cost = generation.cost || (generation as any).total_cost || (generation as any).price || 0;
+                          const numericCost = typeof cost === 'string' ? parseFloat(cost) : cost;
+                          return typeof numericCost === 'number' ? numericCost.toFixed(4) : '0.0000';
+                        })()}
                       </ThemedText>
                     </View>
                   </View>

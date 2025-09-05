@@ -5,7 +5,6 @@ import {
   ScrollView,
   TouchableOpacity,
   Alert,
-  TextInput,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -16,7 +15,6 @@ import { ThemedView } from '@/components/ThemedView';
 import LoadingSpinner from '@/components/LoadingSpinner';
 import {
   getGenerationDetails,
-  regeneratePlan,
   Generation,
 } from '../services/aiPlannerService';
 
@@ -24,9 +22,6 @@ export default function AIGenerationDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const [loading, setLoading] = useState(true);
   const [generation, setGeneration] = useState<Generation & { generated_plan: any } | null>(null);
-  const [regenerating, setRegenerating] = useState(false);
-  const [showModifications, setShowModifications] = useState(false);
-  const [modifications, setModifications] = useState('');
 
   const backgroundColor = useThemeColor({}, 'background');
   const textColor = useThemeColor({}, 'text');
@@ -52,26 +47,6 @@ export default function AIGenerationDetailScreen() {
     }
   };
 
-  const handleRegenerate = async () => {
-    if (!generation) return;
-
-    try {
-      setRegenerating(true);
-      await regeneratePlan({
-        generation_id: generation.id,
-        modifications: modifications ? { additional_notes: modifications } : undefined,
-      });
-      Alert.alert('Success', 'Plan regenerated successfully!');
-      await loadGenerationDetails();
-      setModifications('');
-      setShowModifications(false);
-    } catch (error) {
-      console.error('Error regenerating plan:', error);
-      Alert.alert('Error', 'Failed to regenerate plan');
-    } finally {
-      setRegenerating(false);
-    }
-  };
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -103,70 +78,118 @@ export default function AIGenerationDetailScreen() {
     });
   };
 
-  const renderMealPlan = (plan: any) => (
-    <View style={styles.planSection}>
-      <View style={styles.planHeader}>
-        <Ionicons name="restaurant" size={24} color={primaryColor} />
-        <ThemedText style={styles.planTitle}>{plan.title}</ThemedText>
-      </View>
-      <ThemedText style={styles.planDescription}>{plan.description}</ThemedText>
+  const [expandedDays, setExpandedDays] = useState<Set<number>>(new Set([0])); // First day expanded by default
+
+  const toggleDay = (dayIndex: number) => {
+    const newExpandedDays = new Set(expandedDays);
+    if (newExpandedDays.has(dayIndex)) {
+      newExpandedDays.delete(dayIndex);
+    } else {
+      newExpandedDays.add(dayIndex);
+    }
+    setExpandedDays(newExpandedDays);
+  };
+
+  const renderMealPlan = (plan: any) => {
+    if (!plan) {
+      return <ThemedText style={styles.errorText}>No meal plan data available</ThemedText>;
+    }
+    
+    // Sort daily plans by day number
+    const sortedDailyPlans = plan.daily_plans ? [...plan.daily_plans].sort((a: any, b: any) => {
+      const dayA = parseInt(a.day?.replace('day', '') || '0');
+      const dayB = parseInt(b.day?.replace('day', '') || '0');
+      return dayA - dayB;
+    }) : [];
+    
+    return (
+      <View style={styles.planSection}>
+        <View style={styles.planHeader}>
+          <Ionicons name="restaurant" size={24} color={primaryColor} />
+          <ThemedText style={styles.planTitle}>{plan.title || 'Meal Plan'}</ThemedText>
+        </View>
+        <ThemedText style={styles.planDescription}>{plan.description || ''}</ThemedText>
       
       <View style={styles.nutritionSummary}>
         <View style={styles.nutritionItem}>
-          <ThemedText style={styles.nutritionValue}>{plan.total_calories}</ThemedText>
+          <ThemedText style={styles.nutritionValue}>{plan.total_calories || 0}</ThemedText>
           <ThemedText style={styles.nutritionLabel}>Total Calories</ThemedText>
         </View>
         <View style={styles.nutritionItem}>
-          <ThemedText style={styles.nutritionValue}>{plan.total_protein}g</ThemedText>
+          <ThemedText style={styles.nutritionValue}>{Math.round(plan.total_protein || 0)}g</ThemedText>
           <ThemedText style={styles.nutritionLabel}>Protein</ThemedText>
         </View>
         <View style={styles.nutritionItem}>
-          <ThemedText style={styles.nutritionValue}>{plan.total_carbs}g</ThemedText>
+          <ThemedText style={styles.nutritionValue}>{Math.round(plan.total_carbs || 0)}g</ThemedText>
           <ThemedText style={styles.nutritionLabel}>Carbs</ThemedText>
         </View>
         <View style={styles.nutritionItem}>
-          <ThemedText style={styles.nutritionValue}>{plan.total_fat}g</ThemedText>
+          <ThemedText style={styles.nutritionValue}>{Math.round(plan.total_fat || 0)}g</ThemedText>
           <ThemedText style={styles.nutritionLabel}>Fat</ThemedText>
         </View>
       </View>
 
-      {plan.daily_plans && plan.daily_plans.length > 0 && (
+      {sortedDailyPlans.length > 0 && (
         <View style={styles.dailyPlansSection}>
           <ThemedText style={styles.sectionTitle}>Daily Plans</ThemedText>
-          {plan.daily_plans.map((dailyPlan: any, index: number) => (
-            <View key={dailyPlan.id || index} style={styles.dailyPlan}>
-              <ThemedText style={styles.dailyPlanTitle}>
-                {dailyPlan.day.replace('day', 'Day ')}
-              </ThemedText>
-              <ThemedText style={styles.dailyPlanCalories}>
-                {dailyPlan.total_calories} calories
-              </ThemedText>
+          {sortedDailyPlans.map((dailyPlan: any, index: number) => {
+            const dayNumber = parseInt(dailyPlan.day?.replace('day', '') || `${index + 1}`);
+            const isExpanded = expandedDays.has(index);
+            
+            return (
+              <View key={dailyPlan.id || index} style={styles.dailyPlanCard}>
+                <TouchableOpacity 
+                  style={styles.dailyPlanHeader}
+                  onPress={() => toggleDay(index)}
+                  activeOpacity={0.7}
+                >
+                  <View style={styles.dailyPlanHeaderContent}>
+                    <ThemedText style={styles.dailyPlanTitle}>
+                      Day {dayNumber}
+                    </ThemedText>
+                    <ThemedText style={styles.dailyPlanCalories}>
+                      {dailyPlan.total_calories || 0} calories
+                    </ThemedText>
+                  </View>
+                  <Ionicons 
+                    name={isExpanded ? "chevron-up" : "chevron-down"} 
+                    size={20} 
+                    color={textColor + '60'} 
+                  />
+                </TouchableOpacity>
+                
+                {isExpanded && (
+                  <View style={styles.dailyPlanContent}>
               
               {dailyPlan.meal_times && dailyPlan.meal_times.map((meal: any, mealIndex: number) => (
                 <View key={meal.id || mealIndex} style={styles.mealTime}>
-                  <ThemedText style={styles.mealTimeName}>{meal.name}</ThemedText>
+                  <ThemedText style={styles.mealTimeName}>{meal.name || 'Meal'}</ThemedText>
                   <ThemedText style={styles.mealTimeCalories}>
-                    {meal.total_calories} cal
+                    {meal.total_calories || 0} cal
                   </ThemedText>
                   
                   {meal.food_items && meal.food_items.map((food: any, foodIndex: number) => (
                     <View key={food.id || foodIndex} style={styles.foodItem}>
                       <ThemedText style={styles.foodName}>
-                        {food.amount}{food.unit} {food.food_item.name}
+                        {food.amount || 0}{food.unit || 'g'} {food.food_item_details?.name || 'Unknown Food'}
                       </ThemedText>
                       <ThemedText style={styles.foodCalories}>
-                        {food.calories} cal
+                        {Math.round(food.calories || 0)} cal
                       </ThemedText>
                     </View>
                   ))}
                 </View>
               ))}
-            </View>
-          ))}
+                  </View>
+                )}
+              </View>
+            );
+          })}
         </View>
       )}
-    </View>
-  );
+      </View>
+    );
+  };
 
   const renderWorkoutPlan = (plan: any) => (
     <View style={styles.planSection}>
@@ -245,6 +268,16 @@ export default function AIGenerationDetailScreen() {
     );
   }
 
+  // Add safety check for generation properties
+  const safeGeneration = {
+    ...generation,
+    cost: typeof generation.cost === 'string' ? parseFloat(generation.cost) : (generation.cost || 0),
+    tokens_used: generation.tokens_used || 0,
+    processing_time: generation.processing_time || 0,
+    status: generation.status || 'unknown',
+    generation_type: generation.generation_type || 'unknown',
+  };
+
   return (
     <SafeAreaView style={[styles.container, { backgroundColor }]}>
       {/* Header */}
@@ -258,13 +291,7 @@ export default function AIGenerationDetailScreen() {
         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
           <ThemedText style={styles.title}>Generation Details</ThemedText>
         </View>
-        <TouchableOpacity
-          style={styles.regenerateButton}
-          onPress={() => setShowModifications(!showModifications)}
-          disabled={generation.status !== 'completed'}
-        >
-          <Ionicons name="refresh" size={24} color={textColor} />
-        </TouchableOpacity>
+        <View style={styles.headerRight} />
       </View>
 
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
@@ -310,66 +337,24 @@ export default function AIGenerationDetailScreen() {
             <View style={styles.statItem}>
               <Ionicons name="flash-outline" size={16} color={textColor + '60'} />
               <ThemedText style={styles.statText}>
-                {generation.tokens_used} tokens
+                {safeGeneration.tokens_used} tokens
               </ThemedText>
             </View>
             <View style={styles.statItem}>
               <Ionicons name="cash-outline" size={16} color={textColor + '60'} />
               <ThemedText style={styles.statText}>
-                ${generation.cost.toFixed(4)}
+                ${safeGeneration.cost.toFixed(4)}
               </ThemedText>
             </View>
             <View style={styles.statItem}>
               <Ionicons name="speedometer-outline" size={16} color={textColor + '60'} />
               <ThemedText style={styles.statText}>
-                {generation.processing_time}s
+                {safeGeneration.processing_time}s
               </ThemedText>
             </View>
           </View>
         </ThemedView>
 
-        {/* Regeneration Section */}
-        {showModifications && generation.status === 'completed' && (
-          <ThemedView style={[styles.modificationsCard, { backgroundColor: cardBackground }]}>
-            <ThemedText style={styles.sectionTitle}>Modifications (Optional)</ThemedText>
-            <TextInput
-              style={[
-                styles.modificationsInput,
-                {
-                  backgroundColor: backgroundColor,
-                  color: textColor,
-                  borderColor: textColor + '20',
-                },
-              ]}
-              value={modifications}
-              onChangeText={setModifications}
-              placeholder="e.g., Increase protein content, make it more beginner-friendly..."
-              placeholderTextColor={textColor + '60'}
-              multiline
-              numberOfLines={3}
-              textAlignVertical="top"
-            />
-            <TouchableOpacity
-              style={[
-                styles.regenerateActionButton,
-                {
-                  backgroundColor: regenerating ? textColor + '40' : primaryColor,
-                },
-              ]}
-              onPress={handleRegenerate}
-              disabled={regenerating}
-            >
-              {regenerating ? (
-                <LoadingSpinner size="small" color="white" />
-              ) : (
-                <Ionicons name="refresh" size={20} color="white" />
-              )}
-              <ThemedText style={styles.regenerateActionText}>
-                {regenerating ? 'Regenerating...' : 'Regenerate Plan'}
-              </ThemedText>
-            </TouchableOpacity>
-          </ThemedView>
-        )}
 
         {/* Generated Plan */}
         {generation.generated_plan && (
@@ -387,26 +372,17 @@ export default function AIGenerationDetailScreen() {
               style={[styles.actionButton, { backgroundColor: primaryColor }]}
               onPress={() => {
                 if (generation.generation_type === 'meal_plan') {
-                  router.push(`/ai-meal-plan/${generation.generated_plan.id}` as any);
+                  // Navigate to meal plans page to edit the AI-generated plan
+                  router.push('/my-meal-plans' as any);
                 } else {
-                  router.push(`/ai-workout-plan/${generation.generated_plan.id}` as any);
+                  // For workout plans, navigate to workout plans page
+                  router.push('/my-workouts' as any);
                 }
               }}
             >
-              <Ionicons name="eye" size={20} color="white" />
-              <ThemedText style={styles.actionButtonText}>View Full Plan</ThemedText>
-            </TouchableOpacity>
-            
-            <TouchableOpacity
-              style={[styles.actionButton, { backgroundColor: textColor + '20' }]}
-              onPress={() => {
-                // TODO: Implement apply plan functionality
-                Alert.alert('Coming Soon', 'Apply plan functionality will be available soon!');
-              }}
-            >
-              <Ionicons name="checkmark-circle" size={20} color={textColor} />
-              <ThemedText style={[styles.actionButtonText, { color: textColor }]}>
-                Apply Plan
+              <Ionicons name="create-outline" size={20} color="white" />
+              <ThemedText style={styles.actionButtonText}>
+                {generation.generation_type === 'meal_plan' ? 'Edit Meal Plan' : 'Edit Workout Plan'}
               </ThemedText>
             </TouchableOpacity>
           </View>
@@ -442,12 +418,8 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     textAlign: 'center',
   },
-  regenerateButton: {
-    padding: 8,
-    justifyContent: 'center',
-    alignItems: 'center',
+  headerRight: {
     minWidth: 40,
-    minHeight: 40,
   },
   scrollView: {
     flex: 1,
@@ -716,4 +688,28 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: 'white',
   },
-}); 
+  dailyPlanCard: {
+    marginBottom: 12,
+    borderRadius: 12,
+    overflow: 'hidden',
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  dailyPlanHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 16,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+  },
+  dailyPlanHeaderContent: {
+    flex: 1,
+  },
+  dailyPlanContent: {
+    padding: 16,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+  },
+});

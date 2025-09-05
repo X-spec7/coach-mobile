@@ -53,7 +53,7 @@ export interface Generation {
   status: 'pending' | 'processing' | 'completed' | 'failed';
   generated_plan_id: string;
   tokens_used: number;
-  cost: number;
+  cost: number | string; // Backend returns cost as string
   processing_time: number;
   created_at: string;
 }

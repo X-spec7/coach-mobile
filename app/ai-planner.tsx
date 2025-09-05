@@ -21,9 +21,7 @@ import { UserProfileService, UserProfile } from './services/userProfileService';
 import {
   generateMealPlan,
   generateWorkoutPlan,
-  getGenerationHistory,
   getAITemplates,
-  Generation,
   Template,
   GenerateMealPlanRequest,
   GenerateWorkoutPlanRequest,
@@ -38,7 +36,6 @@ export default function AIPlannerScreen() {
   const [loading, setLoading] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [selectedPlanType, setSelectedPlanType] = useState<PlanType>('meal_plan');
-  const [generations, setGenerations] = useState<Generation[]>([]);
   const [templates, setTemplates] = useState<Template[]>([]);
   const [showTemplates, setShowTemplates] = useState(false);
   const [showAdvancedOptions, setShowAdvancedOptions] = useState(false);
@@ -151,12 +148,7 @@ export default function AIPlannerScreen() {
   const loadData = async () => {
     try {
       setLoading(true);
-      const [historyResponse, templatesResponse] = await Promise.all([
-        getGenerationHistory({ limit: 10 }),
-        getAITemplates(),
-      ]);
-
-      setGenerations(historyResponse.generations);
+      const templatesResponse = await getAITemplates();
       setTemplates(templatesResponse.templates);
     } catch (error) {
       console.error('Error loading AI planner data:', error);
@@ -179,7 +171,7 @@ export default function AIPlannerScreen() {
         };
         response = await generateMealPlan(request);
         Alert.alert('Success', 'Meal plan generated successfully!', [
-          { text: 'View Plan', onPress: () => router.push(`/ai-meal-plan/${response.meal_plan.id}` as any) },
+          { text: 'Edit Plan', onPress: () => router.push('/my-meal-plans' as any) },
           { text: 'OK' },
         ]);
       } else {
@@ -188,13 +180,11 @@ export default function AIPlannerScreen() {
         };
         response = await generateWorkoutPlan(request);
         Alert.alert('Success', 'Workout plan generated successfully!', [
-          { text: 'View Plan', onPress: () => router.push(`/ai-workout-plan/${response.workout_plan.id}` as any) },
+          { text: 'Edit Plan', onPress: () => router.push('/my-workouts' as any) },
           { text: 'OK' },
         ]);
       }
 
-      // Refresh generation history
-      await loadData();
     } catch (error) {
       console.error('Error generating plan:', error);
       Alert.alert('Error', 'Failed to generate plan. Please try again.');
@@ -435,7 +425,7 @@ export default function AIPlannerScreen() {
                       setMealPlanOptions(prev => ({ ...prev, calorie_target: 0 }));
                     } else {
                       const value = parseInt(text) || 0;
-                      setMealPlanOptions(prev => ({ ...prev, calorie_target: value }));
+                    setMealPlanOptions(prev => ({ ...prev, calorie_target: value }));
                     }
                   }}
                   keyboardType="numeric"
@@ -664,9 +654,9 @@ export default function AIPlannerScreen() {
                     <ThemedText style={styles.optionLabel}>Gender</ThemedText>
                     <View style={styles.optionButtons}>
                       {['male', 'female', 'not_specified'].map(gender => (
-                        <TouchableOpacity
+        <TouchableOpacity
                           key={gender}
-                          style={[
+          style={[
                             styles.optionButton,
                             {
                               backgroundColor: mealPlanOptions.gender === gender ? primaryColor : backgroundColor,
@@ -681,8 +671,8 @@ export default function AIPlannerScreen() {
                             ]}
                           >
                             {gender === 'not_specified' ? 'Not Specified' : gender.charAt(0).toUpperCase() + gender.slice(1)}
-                          </ThemedText>
-                        </TouchableOpacity>
+          </ThemedText>
+        </TouchableOpacity>
                       ))}
                     </View>
                   </View>
@@ -731,10 +721,10 @@ export default function AIPlannerScreen() {
                             ]}
                           >
                             {unit.toUpperCase()}
-                          </ThemedText>
-                        </TouchableOpacity>
+                </ThemedText>
+              </TouchableOpacity>
                       ))}
-                    </View>
+            </View>
                   </View>
                 </View>
 
@@ -823,7 +813,7 @@ export default function AIPlannerScreen() {
                     <ThemedText style={styles.optionLabel}>Activity Level</ThemedText>
                     <View style={styles.optionButtons}>
                       {['sedentary', 'lightly_active', 'moderately_active', 'very_active', 'extremely_active'].map(level => (
-                        <TouchableOpacity
+                                  <TouchableOpacity
                           key={level}
                           style={[
                             styles.optionButton,
@@ -994,7 +984,7 @@ export default function AIPlannerScreen() {
                             ]}
                           >
                             {gender === 'not_specified' ? 'Not Specified' : gender.charAt(0).toUpperCase() + gender.slice(1)}
-                          </ThemedText>
+                      </ThemedText>
                         </TouchableOpacity>
                       ))}
                     </View>
@@ -1075,8 +1065,8 @@ export default function AIPlannerScreen() {
                       keyboardType="numeric"
                       placeholder="70"
                       placeholderTextColor={textColor + '60'}
-                    />
-                  </View>
+                      />
+                    </View>
                   
                   <View style={styles.advancedOptionItem}>
                     <ThemedText style={styles.optionLabel}>Target Weight ({workoutPlanOptions.weight_unit})</ThemedText>
@@ -1153,7 +1143,7 @@ export default function AIPlannerScreen() {
                             ]}
                           >
                             {level.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                          </ThemedText>
+                    </ThemedText>
                         </TouchableOpacity>
                       ))}
                     </View>
@@ -1182,10 +1172,10 @@ export default function AIPlannerScreen() {
                             ]}
                           >
                             {experience.charAt(0).toUpperCase() + experience.slice(1)}
-                          </ThemedText>
+                    </ThemedText>
                         </TouchableOpacity>
                       ))}
-                    </View>
+                  </View>
                   </View>
                 </View>
 
@@ -1217,9 +1207,9 @@ export default function AIPlannerScreen() {
                           >
                             {constraint.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
                           </ThemedText>
-                        </TouchableOpacity>
-                      ))}
-                    </View>
+                </TouchableOpacity>
+              ))}
+            </View>
                   </View>
                 </View>
 
@@ -1300,68 +1290,25 @@ export default function AIPlannerScreen() {
           style={[
             styles.generateButton,
             {
-              backgroundColor: generating ? textColor + '40' : primaryColor,
+              backgroundColor: generating ? primaryColor + '80' : primaryColor,
+              opacity: generating ? 0.8 : 1,
             },
           ]}
           onPress={handleGeneratePlan}
           disabled={generating}
         >
           {generating ? (
-            <LoadingSpinner size="small" color="white" />
+            <View style={styles.loadingContainer}>
+              <LoadingSpinner size="small" color="white" />
+            </View>
           ) : (
             <Ionicons name="sparkles" size={24} color="white" />
           )}
-          <ThemedText style={styles.generateButtonText}>
-            {generating ? 'Generating...' : 'Generate Plan'}
+          <ThemedText style={[styles.generateButtonText, { opacity: generating ? 0.9 : 1 }]}>
+            {generating ? 'Generating Plan...' : 'Generate Plan'}
           </ThemedText>
         </TouchableOpacity>
 
-        {/* Recent Generations */}
-        {generations.length > 0 && (
-          <ThemedView style={[styles.historyCard, { backgroundColor: cardBackground }]}>
-            <View style={styles.historyHeader}>
-              <ThemedText style={styles.sectionTitle}>Recent Generations</ThemedText>
-              <TouchableOpacity onPress={() => router.push('/ai-generations')}>
-                <ThemedText style={[styles.viewAllText, { color: primaryColor }]}>
-                  View All
-                </ThemedText>
-              </TouchableOpacity>
-            </View>
-            <View style={styles.generationsList}>
-              {generations.slice(0, 3).map(generation => (
-                                  <TouchableOpacity
-                    key={generation.id}
-                    style={styles.generationItem}
-                    onPress={() => router.push(`/ai-generation/${generation.id}` as any)}
-                  >
-                  <View style={styles.generationInfo}>
-                    <View style={styles.generationHeader}>
-                      <Ionicons
-                        name={generation.generation_type === 'meal_plan' ? 'restaurant' : 'fitness'}
-                        size={16}
-                        color={textColor}
-                      />
-                      <ThemedText style={styles.generationType}>
-                        {generation.generation_type.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                      </ThemedText>
-                      <Ionicons
-                        name={getStatusIcon(generation.status)}
-                        size={16}
-                        color={getStatusColor(generation.status)}
-                      />
-                    </View>
-                                         <ThemedText style={styles.generationPrompt} numberOfLines={2}>
-                       {generation.generation_type === 'meal_plan' ? 'Meal Plan' : 'Workout Plan'} - {generation.status}
-                     </ThemedText>
-                    <ThemedText style={styles.generationDate}>
-                      {new Date(generation.created_at).toLocaleDateString()}
-                    </ThemedText>
-                  </View>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </ThemedView>
-        )}
       </ScrollView>
     </SafeAreaView>
   );
@@ -1604,54 +1551,10 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
   },
-  historyCard: {
-    margin: 20,
-    padding: 20,
-    borderRadius: 16,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-  },
-  historyHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+  loadingContainer: {
+    width: 24,
+    height: 24,
+    justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 16,
-  },
-  viewAllText: {
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  generationsList: {
-    gap: 12,
-  },
-  generationItem: {
-    padding: 12,
-    borderRadius: 8,
-    backgroundColor: 'rgba(0,0,0,0.05)',
-  },
-  generationInfo: {
-    gap: 8,
-  },
-  generationHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  generationType: {
-    fontSize: 14,
-    fontWeight: '600',
-    flex: 1,
-  },
-  generationPrompt: {
-    fontSize: 12,
-    opacity: 0.8,
-    lineHeight: 16,
-  },
-  generationDate: {
-    fontSize: 10,
-    opacity: 0.6,
   },
 }); 
