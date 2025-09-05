@@ -10,18 +10,23 @@ import {
   ActivityIndicator,
   Modal,
   Pressable,
+  TextInput,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useAuth } from './contexts/AuthContext';
 import { UserProfileService, UserProfile } from './services/userProfileService';
-
-interface PrivacySettings {
-  profileVisibility: boolean;
-  dataCollection: boolean;
-  analytics: boolean;
-  marketing: boolean;
-}
+import { 
+  getPrivacySettings, 
+  updatePrivacySettings, 
+  changePassword, 
+  requestAccountDeletion,
+  cancelAccountDeletion,
+  getSecurityInfo,
+  PrivacySettings,
+  ChangePasswordRequest,
+  AccountDeletionRequest
+} from './services/privacySecurityService';
 
 export default function PrivacySettingsScreen() {
   const { user } = useAuth();
@@ -32,24 +37,43 @@ export default function PrivacySettingsScreen() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
 
   const [settings, setSettings] = useState<PrivacySettings>({
-    profileVisibility: true,
-    dataCollection: false,
+    profile_visibility: true,
+    data_collection: false,
     analytics: true,
-    marketing: false,
+    marketing_communications: false,
+  });
+  const [securityInfo, setSecurityInfo] = useState<any>(null);
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [showDeletionModal, setShowDeletionModal] = useState(false);
+  const [passwordData, setPasswordData] = useState<ChangePasswordRequest>({
+    current_password: '',
+    new_password: '',
+    confirm_password: '',
+  });
+  const [deletionData, setDeletionData] = useState<AccountDeletionRequest>({
+    password: '',
+    reason: '',
   });
 
   useEffect(() => {
-    fetchProfile();
+    loadData();
   }, []);
 
-  const fetchProfile = async () => {
+  const loadData = async () => {
     try {
       setLoading(true);
       setError(null);
-      const response = await UserProfileService.getUserProfile();
-      setProfile(response.user);
+      const [profileResponse, privacyResponse, securityResponse] = await Promise.all([
+        UserProfileService.getUserProfile(),
+        getPrivacySettings(),
+        getSecurityInfo(),
+      ]);
+      
+      setProfile(profileResponse.user);
+      setSettings(privacyResponse.privacy_settings);
+      setSecurityInfo(securityResponse.security_info);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load profile');
+      setError(err instanceof Error ? err.message : 'Failed to load data');
     } finally {
       setLoading(false);
     }
@@ -60,8 +84,7 @@ export default function PrivacySettingsScreen() {
       setSaving(true);
       setError(null);
 
-      // For now, we'll just show a success message
-      // In a real app, you'd save these settings to the backend
+      await updatePrivacySettings(settings);
       Alert.alert('Success', 'Privacy settings updated successfully!');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to update settings');
@@ -78,22 +101,67 @@ export default function PrivacySettingsScreen() {
     }));
   };
 
+  const handleChangePassword = async () => {
+    if (!passwordData.current_password || !passwordData.new_password || !passwordData.confirm_password) {
+      Alert.alert('Error', 'Please fill in all password fields');
+      return;
+    }
+
+    if (passwordData.new_password !== passwordData.confirm_password) {
+      Alert.alert('Error', 'New passwords do not match');
+      return;
+    }
+
+    try {
+      setSaving(true);
+      await changePassword(passwordData);
+      Alert.alert('Success', 'Password changed successfully!');
+      setShowPasswordModal(false);
+      setPasswordData({
+        current_password: '',
+        new_password: '',
+        confirm_password: '',
+      });
+    } catch (err) {
+      Alert.alert('Error', err instanceof Error ? err.message : 'Failed to change password');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleRequestDeletion = async () => {
+    if (!deletionData.password) {
+      Alert.alert('Error', 'Please enter your password to confirm account deletion');
+      return;
+    }
+
+    try {
+      setSaving(true);
+      const response = await requestAccountDeletion(deletionData);
+      Alert.alert(
+        'Deletion Requested', 
+        `Account deletion requested successfully. Your account will be deleted on ${new Date(response.deletion_scheduled_at).toLocaleDateString()}. Check your email for confirmation.`
+      );
+      setShowDeletionModal(false);
+      setDeletionData({ password: '', reason: '' });
+    } catch (err) {
+      Alert.alert('Error', err instanceof Error ? err.message : 'Failed to request account deletion');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const handleDeleteAccount = () => {
-    Alert.alert(
-      'Delete Account',
-      'Are you sure you want to delete your account? This action cannot be undone.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Delete', 
-          style: 'destructive',
-          onPress: () => {
-            // TODO: Implement account deletion
-            Alert.alert('Coming Soon', 'Account deletion will be available soon.');
-          }
-        }
-      ]
-    );
+    if (securityInfo?.deletion_requested_at) {
+      Alert.alert(
+        'Account Deletion Already Requested',
+        'You have already requested account deletion. Check your email for confirmation or contact support.',
+        [{ text: 'OK' }]
+      );
+      return;
+    }
+
+    setShowDeletionModal(true);
   };
 
   const renderSettingItem = (
@@ -154,7 +222,7 @@ export default function PrivacySettingsScreen() {
       <View style={styles.errorContainer}>
         <Ionicons name="alert-circle" size={48} color="#FF6B6B" />
         <Text style={styles.errorText}>{error}</Text>
-        <TouchableOpacity onPress={fetchProfile} style={styles.retryButton}>
+        <TouchableOpacity onPress={loadData} style={styles.retryButton}>
           <Text style={styles.retryButtonText}>Retry</Text>
         </TouchableOpacity>
       </View>
@@ -190,7 +258,7 @@ export default function PrivacySettingsScreen() {
             'eye',
             'Profile Visibility',
             'Allow others to see your profile',
-            'profileVisibility'
+            'profile_visibility'
           )}
         </View>
 
@@ -201,7 +269,7 @@ export default function PrivacySettingsScreen() {
             'analytics',
             'Data Collection',
             'Allow us to collect usage data',
-            'dataCollection'
+            'data_collection'
           )}
           {renderSettingItem(
             'bar-chart',
@@ -213,7 +281,7 @@ export default function PrivacySettingsScreen() {
             'mail',
             'Marketing Communications',
             'Receive promotional content',
-            'marketing'
+            'marketing_communications'
           )}
         </View>
 
@@ -224,10 +292,7 @@ export default function PrivacySettingsScreen() {
             'key',
             'Change Password',
             'Update your account password',
-            () => {
-              // TODO: Navigate to change password
-              Alert.alert('Coming Soon', 'Password change will be available soon.');
-            }
+            () => setShowPasswordModal(true)
           )}
         </View>
 
@@ -252,39 +317,105 @@ export default function PrivacySettingsScreen() {
         </View>
       </ScrollView>
 
-      {/* Delete Account Modal */}
+      {/* Change Password Modal */}
       <Modal
-        visible={showDeleteModal}
+        visible={showPasswordModal}
         transparent
         animationType="fade"
-        onRequestClose={() => setShowDeleteModal(false)}
+        onRequestClose={() => setShowPasswordModal(false)}
       >
         <Pressable
           style={styles.modalOverlay}
-          onPress={() => setShowDeleteModal(false)}
+          onPress={() => setShowPasswordModal(false)}
+        >
+          <View style={styles.passwordModal}>
+            <Text style={styles.modalTitle}>Change Password</Text>
+            <TextInput
+              style={styles.modalInput}
+              placeholder="Current Password"
+              secureTextEntry
+              value={passwordData.current_password}
+              onChangeText={(text: string) => setPasswordData(prev => ({ ...prev, current_password: text }))}
+            />
+            <TextInput
+              style={styles.modalInput}
+              placeholder="New Password"
+              secureTextEntry
+              value={passwordData.new_password}
+              onChangeText={(text: string) => setPasswordData(prev => ({ ...prev, new_password: text }))}
+            />
+            <TextInput
+              style={styles.modalInput}
+              placeholder="Confirm New Password"
+              secureTextEntry
+              value={passwordData.confirm_password}
+              onChangeText={(text: string) => setPasswordData(prev => ({ ...prev, confirm_password: text }))}
+            />
+            <View style={styles.modalActions}>
+              <TouchableOpacity
+                style={styles.modalButton}
+                onPress={() => setShowPasswordModal(false)}
+              >
+                <Text style={styles.modalButtonText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.modalButtonPrimary]}
+                onPress={handleChangePassword}
+                disabled={saving}
+              >
+                <Text style={[styles.modalButtonText, styles.modalButtonTextPrimary]}>
+                  {saving ? 'Changing...' : 'Change Password'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Pressable>
+      </Modal>
+
+      {/* Account Deletion Modal */}
+      <Modal
+        visible={showDeletionModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowDeletionModal(false)}
+      >
+        <Pressable
+          style={styles.modalOverlay}
+          onPress={() => setShowDeletionModal(false)}
         >
           <View style={styles.deleteModal}>
             <Ionicons name="warning" size={48} color="#FF6B6B" />
             <Text style={styles.deleteModalTitle}>Delete Account</Text>
             <Text style={styles.deleteModalText}>
-              Are you sure you want to delete your account? This action cannot be undone and all your data will be permanently removed.
+              This action cannot be undone. Your account will be deleted after 30 days. Enter your password to confirm.
             </Text>
+            <TextInput
+              style={styles.modalInput}
+              placeholder="Enter your password"
+              secureTextEntry
+              value={deletionData.password}
+              onChangeText={(text: string) => setDeletionData(prev => ({ ...prev, password: text }))}
+            />
+            <TextInput
+              style={styles.modalInput}
+              placeholder="Reason for deletion (optional)"
+              value={deletionData.reason}
+              onChangeText={(text: string) => setDeletionData(prev => ({ ...prev, reason: text }))}
+            />
             <View style={styles.deleteModalActions}>
               <TouchableOpacity
                 style={styles.deleteModalButton}
-                onPress={() => setShowDeleteModal(false)}
+                onPress={() => setShowDeletionModal(false)}
               >
                 <Text style={styles.deleteModalButtonText}>Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.deleteModalButton, styles.deleteModalButtonDanger]}
-                onPress={() => {
-                  setShowDeleteModal(false);
-                  handleDeleteAccount();
-                }}
+                onPress={handleRequestDeletion}
+                disabled={saving}
               >
                 <Text style={[styles.deleteModalButtonText, styles.deleteModalButtonTextDanger]}>
-                  Delete
+                  {saving ? 'Requesting...' : 'Delete Account'}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -488,6 +619,55 @@ const styles = StyleSheet.create({
     color: '#666',
   },
   deleteModalButtonTextDanger: {
+    color: '#fff',
+  },
+  // Password Modal Styles
+  passwordModal: {
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 24,
+    width: '85%',
+    maxWidth: 350,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#1a1a1a',
+    marginBottom: 20,
+    textAlign: 'center',
+  },
+  modalInput: {
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    fontSize: 16,
+    marginBottom: 16,
+  },
+  modalActions: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 8,
+  },
+  modalButton: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+    alignItems: 'center',
+  },
+  modalButtonPrimary: {
+    borderColor: '#A78BFA',
+    backgroundColor: '#A78BFA',
+  },
+  modalButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#666',
+  },
+  modalButtonTextPrimary: {
     color: '#fff',
   },
 }); 
