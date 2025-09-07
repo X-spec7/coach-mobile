@@ -252,18 +252,27 @@ export const MealPlanDetailsModal = ({
           text: action.charAt(0).toUpperCase() + action.slice(1),
           onPress: async () => {
             try {
-              await MealService.updateMealPlan(mealPlan.id, { 
-                is_public: newPublicStatus 
-              });
+              console.log('[MealPlanDetailsModal] Toggling visibility for plan:', mealPlan.id);
+              console.log('[MealPlanDetailsModal] Current is_public:', mealPlan.is_public);
+              
+              // Use the dedicated toggle endpoint
+              const response = await MealService.toggleMealPlanVisibility(mealPlan.id);
+              console.log('[MealPlanDetailsModal] Toggle response:', response);
+              
+              // Update the local state immediately
+              setMealPlan(response.meal_plan);
+              
+              // Refresh the details to ensure we have the latest data
               await fetchMealPlanDetails();
+              
+              // Notify parent component to refresh its data
               onUpdate?.();
               
-              setTimeout(() => {
-                Alert.alert(
-                  'Success', 
-                  `Meal plan is now ${newPublicStatus ? 'public' : 'private'}.`
-                );
-              }, 100);
+              // Show success message
+              Alert.alert(
+                'Success', 
+                `Meal plan is now ${response.meal_plan.is_public ? 'public' : 'private'}.`
+              );
             } catch (error) {
               console.error('Error updating meal plan visibility:', error);
               const errorMessage = error instanceof Error ? error.message : 'Failed to update meal plan visibility';

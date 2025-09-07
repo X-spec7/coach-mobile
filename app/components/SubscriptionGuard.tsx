@@ -88,10 +88,6 @@ export const SubscriptionGuard: React.FC<SubscriptionGuardProps> = ({
                 <Ionicons name="fitness" size={20} color="#A26FFD" />
                 <Text style={styles.featureText}>AI-generated workout plans</Text>
               </View>
-              <View style={styles.featureItem}>
-                <Ionicons name="analytics" size={20} color="#A26FFD" />
-                <Text style={styles.featureText}>Advanced progress tracking</Text>
-              </View>
             </View>
 
             <View style={styles.modalActions}>

@@ -77,6 +77,7 @@ export const API_ENDPOINTS = {
   WORKOUTS: {
     WORKOUT_PLANS: `${API_BASE_URL}/workouts/workout-plans/`,
     WORKOUT_PLAN_DETAILS: (planId: number) => `${API_BASE_URL}/workouts/workout-plans/${planId}/`,
+    TOGGLE_WORKOUT_PLAN_VISIBILITY: (planId: number) => `${API_BASE_URL}/api/workouts/workout-plans/${planId}/toggle-visibility/`,
     ADD_DAY: (planId: number) => `${API_BASE_URL}/workouts/workout-plans/${planId}/days/`,
     REMOVE_DAY: (planId: number, dayId: number) => `${API_BASE_URL}/workouts/workout-plans/${planId}/days/${dayId}/`,
     ADD_EXERCISE: (planId: number, dayId: number) => `${API_BASE_URL}/workouts/workout-plans/${planId}/days/${dayId}/exercises/`,

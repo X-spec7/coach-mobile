@@ -20,6 +20,7 @@ const MEAL_ENDPOINTS = {
   DEACTIVATE_APPLIED_MEAL_PLAN: (id: string) => `${API_BASE_URL}/mealplan/applied-meal-plans/${id}/deactivate/`,
   ASSIGN_MEAL_PLAN: `${API_BASE_URL}/mealplan/assign-meal-plan/`,
   FOOD_ITEMS: `${API_BASE_URL}/mealplan/food-items/`,
+  TOGGLE_MEAL_PLAN_VISIBILITY: (planId: string) => `${API_BASE_URL}/mealplan/${planId}/toggle-visibility/`,
 };
 
 // Weekday type
@@ -372,6 +373,27 @@ export const MealService = {
     if (!response.ok) {
       const errorText = await response.text();
       throw new Error(`Failed to update meal plan: ${response.status} - ${errorText}`);
+    }
+
+    return response.json();
+  },
+
+  // Toggle meal plan visibility
+  toggleMealPlanVisibility: async (planId: string): Promise<MealPlanResponse> => {
+    const headers = await getAuthHeaders();
+    const response = await fetch(MEAL_ENDPOINTS.TOGGLE_MEAL_PLAN_VISIBILITY(planId), {
+      method: 'PATCH',
+      headers,
+    });
+
+    if (response.status === 401) {
+      await handle401Error('Your session has expired. Please sign in again.');
+      throw new Error('Authentication required');
+    }
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Failed to toggle meal plan visibility: ${response.status} - ${errorText}`);
     }
 
     return response.json();

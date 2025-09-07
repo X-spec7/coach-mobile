@@ -313,10 +313,6 @@ export default function SubscriptionScreen() {
               <Text style={styles.featureText}>AI-generated workout plans for any fitness level</Text>
             </View>
             <View style={styles.featureItem}>
-              <Ionicons name="analytics" size={20} color="#A26FFD" />
-              <Text style={styles.featureText}>Advanced progress tracking and analytics</Text>
-            </View>
-            <View style={styles.featureItem}>
               <Ionicons name="headset" size={20} color="#A26FFD" />
               <Text style={styles.featureText}>Priority customer support</Text>
             </View>

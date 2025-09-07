@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -8,7 +8,9 @@ import {
   Alert,
   RefreshControl,
   Dimensions,
+  StatusBar,
 } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
@@ -24,6 +26,7 @@ import {
   MealType,
   FoodEntry,
 } from './services/calorieTrackingService';
+import { MealTrackingService, ScheduledMeal, ScheduledMealDetails } from './services/mealTrackingService';
 
 const { width } = Dimensions.get('window');
 
@@ -33,6 +36,14 @@ export default function CalorieTrackingScreen() {
   const [goals, setGoals] = useState<CalorieGoal | null>(null);
   const [todayLog, setTodayLog] = useState<DailyLog | null>(null);
   const [selectedDate, setSelectedDate] = useState(new Date());
+  const [scheduledMeals, setScheduledMeals] = useState<ScheduledMeal[]>([]);
+  const [scheduledMealDetails, setScheduledMealDetails] = useState<ScheduledMealDetails[]>([]);
+  const [scheduledNutrition, setScheduledNutrition] = useState({
+    calories: 0,
+    protein: 0,
+    carbs: 0,
+    fat: 0,
+  });
 
   const backgroundColor = useThemeColor({}, 'background');
   const textColor = useThemeColor({}, 'text');
@@ -43,19 +54,53 @@ export default function CalorieTrackingScreen() {
     loadData();
   }, []);
 
+  // Refresh data when screen comes into focus (e.g., returning from goals page)
+  useFocusEffect(
+    useCallback(() => {
+      console.log('Calorie tracking screen focused - refreshing data...');
+      loadData();
+    }, [])
+  );
+
   const loadData = async () => {
     try {
       setLoading(true);
-      const [goalsResponse, logsResponse] = await Promise.all([
-        getCalorieGoals(),
-        getDailyLogs({ date: formatDate(selectedDate) }),
-      ]);
+      console.log('Starting to load calorie tracking data...');
+      
+      // Add timeout to prevent hanging
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Request timeout')), 10000)
+      );
+      
+      const dataPromise = (async () => {
+        console.log('Fetching calorie goals...');
+        const goalsResponse = await getCalorieGoals();
+        console.log('Goals response:', goalsResponse);
+        
+        console.log('Fetching daily logs...');
+        const logsResponse = await getDailyLogs({ date: formatDate(selectedDate) });
+        console.log('Logs response:', logsResponse);
+
+        // Fetch scheduled meals in parallel
+        console.log('Fetching scheduled meals...');
+        await fetchScheduledMeals(formatDate(selectedDate));
+
+        return { goalsResponse, logsResponse };
+      })();
+
+      const { goalsResponse, logsResponse } = await Promise.race([dataPromise, timeoutPromise]) as any;
 
       setGoals(goalsResponse.goal);
       setTodayLog(logsResponse.logs[0] || null);
+      console.log('Data loaded successfully');
+      
+      // If no goals are set, show a message
+      if (!goalsResponse.goal) {
+        console.log('No calorie goals found - user may need to set them up');
+      }
     } catch (error) {
       console.error('Error loading calorie tracking data:', error);
-      Alert.alert('Error', 'Failed to load calorie tracking data');
+      Alert.alert('Error', `Failed to load calorie tracking data: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setLoading(false);
     }
@@ -72,16 +117,133 @@ export default function CalorieTrackingScreen() {
   };
 
   const formatTime = (timeString: string): string => {
-    return new Date(timeString).toLocaleTimeString([], {
-      hour: '2-digit',
-      minute: '2-digit',
-    });
+    try {
+      // Handle different time formats
+      if (timeString.includes('T')) {
+        // Full datetime string
+        return new Date(timeString).toLocaleTimeString([], {
+          hour: '2-digit',
+          minute: '2-digit',
+        });
+      } else if (timeString.includes(':')) {
+        // Time only string (HH:MM:SS or HH:MM)
+        const timeParts = timeString.split(':');
+        const hours = parseInt(timeParts[0], 10);
+        const minutes = parseInt(timeParts[1], 10);
+        const date = new Date();
+        date.setHours(hours, minutes, 0, 0);
+        return date.toLocaleTimeString([], {
+          hour: '2-digit',
+          minute: '2-digit',
+        });
+      } else {
+        // Fallback - return the original string
+        return timeString;
+      }
+    } catch (error) {
+      console.error('Error formatting time:', timeString, error);
+      return timeString; // Return original string if parsing fails
+    }
+  };
+
+  const fetchScheduledMeals = async (date: string) => {
+    try {
+      console.log('Fetching scheduled meals for date:', date);
+      const response = await MealTrackingService.getScheduledMeals({
+        date_from: date,
+        date_to: date,
+      });
+      
+      console.log('Scheduled meals response:', response);
+      setScheduledMeals(response.scheduled_meals);
+      
+      // Fetch details for each scheduled meal to get nutrition info
+      const mealDetailsPromises = response.scheduled_meals.map(meal => 
+        MealTrackingService.getScheduledMealDetails(meal.id)
+      );
+      
+      const mealDetails = await Promise.all(mealDetailsPromises);
+      console.log('Scheduled meal details:', mealDetails);
+      
+      setScheduledMealDetails(mealDetails.map(detail => detail.scheduled_meal));
+      
+      // Calculate total nutrition from scheduled meals
+      const totalNutrition = mealDetails.reduce((total, detail) => {
+        const meal = detail.scheduled_meal;
+        return {
+          calories: total.calories + meal.consumed_calories,
+          protein: total.protein + meal.consumed_nutrition.protein,
+          carbs: total.carbs + meal.consumed_nutrition.carbs,
+          fat: total.fat + meal.consumed_nutrition.fat,
+        };
+      }, { calories: 0, protein: 0, carbs: 0, fat: 0 });
+      
+      console.log('Total scheduled nutrition:', totalNutrition);
+      setScheduledNutrition(totalNutrition);
+      
+    } catch (error) {
+      console.error('Error fetching scheduled meals:', error);
+      // Don't show error alert for scheduled meals as they're optional
+      setScheduledMeals([]);
+      setScheduledMealDetails([]);
+      setScheduledNutrition({ calories: 0, protein: 0, carbs: 0, fat: 0 });
+    }
   };
 
   const getProgressColor = (percentage: number): string => {
     if (percentage >= 90) return '#4CAF50';
     if (percentage >= 75) return '#FF9800';
     return '#F44336';
+  };
+
+  // Calculate total calories including both manual logs and scheduled meals
+  const getTotalCalories = (): number => {
+    const manualCalories = todayLog?.total_calories || 0;
+    const scheduledCalories = scheduledNutrition.calories;
+    return manualCalories + scheduledCalories;
+  };
+
+  // Calculate total protein including both manual logs and scheduled meals
+  const getTotalProtein = (): number => {
+    const manualProtein = todayLog?.total_protein || 0;
+    const scheduledProtein = scheduledNutrition.protein;
+    return manualProtein + scheduledProtein;
+  };
+
+  // Calculate total carbs including both manual logs and scheduled meals
+  const getTotalCarbs = (): number => {
+    const manualCarbs = todayLog?.total_carbs || 0;
+    const scheduledCarbs = scheduledNutrition.carbs;
+    return manualCarbs + scheduledCarbs;
+  };
+
+  // Calculate total fat including both manual logs and scheduled meals
+  const getTotalFat = (): number => {
+    const manualFat = todayLog?.total_fat || 0;
+    const scheduledFat = scheduledNutrition.fat;
+    return manualFat + scheduledFat;
+  };
+
+  const handleMealPress = (meal: ScheduledMeal) => {
+    // Navigate to meal detail/tracking page
+    router.push({
+      pathname: '/meal-detail',
+      params: { mealId: meal.id }
+    });
+  };
+
+  const handleMarkCompleted = async (meal: ScheduledMeal) => {
+    try {
+      // For now, just navigate to meal detail page where user can mark as completed
+      // In the future, we could add a direct API call to mark as completed
+      router.push({
+        pathname: '/meal-detail',
+        params: { mealId: meal.id }
+      });
+    } catch (error) {
+      console.error('Error handling meal completion:', error);
+      Alert.alert('Error', 'Failed to update meal status');
+    }
   };
 
   const getMealTypeIcon = (mealType: MealType): string => {
@@ -116,14 +278,16 @@ export default function CalorieTrackingScreen() {
 
   if (loading) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor }]}>
+      <SafeAreaView style={[styles.container, { backgroundColor }]} edges={['top', 'left', 'right']}>
+        <StatusBar barStyle="dark-content" backgroundColor={backgroundColor} translucent={false} />
         <LoadingSpinner />
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor }]}>
+    <SafeAreaView style={[styles.container, { backgroundColor }]} edges={['top', 'left', 'right']}>
+      <StatusBar barStyle="dark-content" backgroundColor={backgroundColor} translucent={false} />
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity
@@ -169,7 +333,7 @@ export default function CalorieTrackingScreen() {
               <View style={styles.calorieProgress}>
                 <View style={styles.calorieInfo}>
                   <ThemedText style={styles.calorieNumber}>
-                    {todayLog?.total_calories || 0}
+                    {getTotalCalories()}
                   </ThemedText>
                   <ThemedText style={styles.calorieLabel}>calories</ThemedText>
                   <ThemedText style={styles.calorieGoal}>
@@ -182,13 +346,13 @@ export default function CalorieTrackingScreen() {
                       styles.progressCircle,
                       {
                         borderColor: getProgressColor(
-                          ((todayLog?.total_calories || 0) / goals.daily_calories) * 100
+                          (getTotalCalories() / goals.daily_calories) * 100
                         ),
                       },
                     ]}
                   >
                     <ThemedText style={styles.progressPercentage}>
-                      {Math.round(((todayLog?.total_calories || 0) / goals.daily_calories) * 100)}%
+                      {Math.round((getTotalCalories() / goals.daily_calories) * 100)}%
                     </ThemedText>
                   </View>
                 </View>
@@ -199,7 +363,7 @@ export default function CalorieTrackingScreen() {
                 <View style={styles.macroItem}>
                   <ThemedText style={styles.macroLabel}>Protein</ThemedText>
                   <ThemedText style={styles.macroValue}>
-                    {todayLog?.total_protein || 0}g
+                    {Math.round(getTotalProtein())}g
                   </ThemedText>
                   <ThemedText style={styles.macroGoal}>
                     / {goals.daily_protein}g
@@ -208,7 +372,7 @@ export default function CalorieTrackingScreen() {
                 <View style={styles.macroItem}>
                   <ThemedText style={styles.macroLabel}>Carbs</ThemedText>
                   <ThemedText style={styles.macroValue}>
-                    {todayLog?.total_carbs || 0}g
+                    {Math.round(getTotalCarbs())}g
                   </ThemedText>
                   <ThemedText style={styles.macroGoal}>
                     / {goals.daily_carbs}g
@@ -217,7 +381,7 @@ export default function CalorieTrackingScreen() {
                 <View style={styles.macroItem}>
                   <ThemedText style={styles.macroLabel}>Fat</ThemedText>
                   <ThemedText style={styles.macroValue}>
-                    {todayLog?.total_fat || 0}g
+                    {Math.round(getTotalFat())}g
                   </ThemedText>
                   <ThemedText style={styles.macroGoal}>
                     / {goals.daily_fat}g
@@ -270,10 +434,79 @@ export default function CalorieTrackingScreen() {
           </TouchableOpacity>
         </View>
 
+        {/* Scheduled Meals */}
+        {scheduledMeals.length > 0 && (
+          <ThemedView style={[styles.scheduledMealsCard, { backgroundColor: cardBackground }]}>
+            <View style={styles.scheduledMealsHeader}>
+              <View style={styles.scheduledMealsTitleContainer}>
+                <ThemedText style={styles.scheduledMealsTitle}>Scheduled Meals</ThemedText>
+                <TouchableOpacity 
+                  onPress={() => router.push('/scheduled-meals')}
+                  style={styles.viewAllButton}
+                >
+                  <ThemedText style={styles.viewAllText}>View All</ThemedText>
+                  <Ionicons name="chevron-forward" size={16} color={primaryColor} />
+                </TouchableOpacity>
+              </View>
+              <ThemedText style={styles.scheduledMealsSubtitle}>
+                {scheduledNutrition.calories} calories from meal plan
+              </ThemedText>
+            </View>
+            <View style={styles.scheduledMealsList}>
+              {scheduledMeals.map((meal) => (
+                <TouchableOpacity 
+                  key={meal.id} 
+                  style={[
+                    styles.scheduledMealItem,
+                    meal.is_completed && styles.scheduledMealCompleted
+                  ]}
+                  onPress={() => handleMealPress(meal)}
+                >
+                  <View style={styles.scheduledMealInfo}>
+                    <View style={styles.scheduledMealNameContainer}>
+                      <ThemedText style={styles.scheduledMealName}>
+                        {meal.meal_time_name}
+                      </ThemedText>
+                      {meal.is_completed && (
+                        <Ionicons name="checkmark-circle" size={20} color="#4CAF50" />
+                      )}
+                    </View>
+                    <ThemedText style={styles.scheduledMealTime}>
+                      {formatTime(meal.meal_time_time)}
+                    </ThemedText>
+                    <ThemedText style={styles.scheduledMealStatus}>
+                      {meal.consumed_foods_count}/{meal.total_foods_count} foods consumed
+                    </ThemedText>
+                  </View>
+                  <View style={styles.scheduledMealProgress}>
+                    <ThemedText style={[
+                      styles.scheduledMealPercentage,
+                      meal.is_completed && styles.scheduledMealPercentageCompleted
+                    ]}>
+                      {meal.completion_percentage}%
+                    </ThemedText>
+                    <View style={styles.scheduledMealProgressBar}>
+                      <View 
+                        style={[
+                          styles.scheduledMealProgressFill,
+                          { 
+                            width: `${meal.completion_percentage}%`,
+                            backgroundColor: meal.is_completed ? '#4CAF50' : '#A26FFD'
+                          }
+                        ]} 
+                      />
+                    </View>
+                  </View>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </ThemedView>
+        )}
+
         {/* Today's Food Entries */}
         <ThemedView style={[styles.foodEntriesCard, { backgroundColor: cardBackground }]}>
           <View style={styles.foodEntriesHeader}>
-            <ThemedText style={styles.foodEntriesTitle}>Today's Food</ThemedText>
+            <ThemedText style={styles.foodEntriesTitle}>Manual Food Log</ThemedText>
             <TouchableOpacity onPress={() => router.push('/add-food')}>
               <Ionicons name="add" size={24} color={primaryColor} />
             </TouchableOpacity>
@@ -394,9 +627,9 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 20,
-    paddingVertical: 16,
-    paddingTop: 20,
-    minHeight: 56, // Ensure consistent header height
+    paddingVertical: 20, // Increased vertical padding
+    paddingTop: 15, // Increased top padding to give more space for title
+    minHeight: 70, // Further increased height to accommodate title
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(0,0,0,0.1)',
   },
@@ -411,6 +644,8 @@ const styles = StyleSheet.create({
     fontSize: 28,
     fontWeight: 'bold',
     textAlign: 'center',
+    lineHeight: 34, // Added line height to prevent text clipping
+    paddingVertical: 4, // Added vertical padding to the text itself
   },
   settingsButton: {
     padding: 8,
@@ -455,6 +690,8 @@ const styles = StyleSheet.create({
   calorieNumber: {
     fontSize: 36,
     fontWeight: 'bold',
+    lineHeight: 42, // Added line height to prevent text clipping
+    paddingVertical: 2, // Added vertical padding to prevent cutoff
   },
   calorieLabel: {
     fontSize: 16,
@@ -546,6 +783,106 @@ const styles = StyleSheet.create({
     fontSize: 10,
     opacity: 0.7,
     textAlign: 'center',
+  },
+  scheduledMealsCard: {
+    margin: 20,
+    padding: 20,
+    borderRadius: 16,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  scheduledMealsHeader: {
+    marginBottom: 16,
+  },
+  scheduledMealsTitleContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  scheduledMealsTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+  },
+  viewAllButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+  },
+  viewAllText: {
+    fontSize: 14,
+    marginRight: 4,
+  },
+  scheduledMealsSubtitle: {
+    fontSize: 14,
+    opacity: 0.7,
+  },
+  scheduledMealsList: {
+    gap: 12,
+  },
+  scheduledMealItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 8,
+    borderRadius: 8,
+    backgroundColor: 'rgba(162, 111, 253, 0.05)',
+    marginBottom: 8,
+  },
+  scheduledMealCompleted: {
+    backgroundColor: 'rgba(76, 175, 80, 0.1)',
+  },
+  scheduledMealInfo: {
+    flex: 1,
+  },
+  scheduledMealNameContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 4,
+  },
+  scheduledMealName: {
+    fontSize: 16,
+    fontWeight: '600',
+    flex: 1,
+  },
+  scheduledMealTime: {
+    fontSize: 14,
+    opacity: 0.7,
+    marginBottom: 2,
+  },
+  scheduledMealStatus: {
+    fontSize: 12,
+    opacity: 0.6,
+  },
+  scheduledMealProgress: {
+    alignItems: 'flex-end',
+    minWidth: 80,
+  },
+  scheduledMealPercentage: {
+    fontSize: 14,
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  scheduledMealPercentageCompleted: {
+    color: '#4CAF50',
+  },
+  scheduledMealProgressBar: {
+    width: 60,
+    height: 4,
+    backgroundColor: 'rgba(0,0,0,0.1)',
+    borderRadius: 2,
+    overflow: 'hidden',
+  },
+  scheduledMealProgressFill: {
+    height: '100%',
+    backgroundColor: '#A26FFD',
+    borderRadius: 2,
   },
   foodEntriesCard: {
     margin: 20,
@@ -665,10 +1002,6 @@ const styles = StyleSheet.create({
   statsTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-  },
-  viewAllText: {
-    fontSize: 14,
-    fontWeight: '600',
   },
   statsGrid: {
     flexDirection: 'row',

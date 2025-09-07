@@ -358,24 +358,24 @@ export const WorkoutPlanDetailsModal: React.FC<WorkoutPlanDetailsModalProps> = (
           text: action.charAt(0).toUpperCase() + action.slice(1),
           onPress: async () => {
             try {
-              console.log('[handleTogglePublic] Calling API with is_public:', newPublicStatus);
-              // Call the actual backend API to update is_public status
-              const response = await WorkoutService.updateWorkoutPlan(workoutPlan.id, { 
-                is_public: newPublicStatus 
-              });
-              console.log('[handleTogglePublic] API response:', response);
+              console.log('[handleTogglePublic] Calling toggle API for plan:', workoutPlan.id);
+              
+              // Use the dedicated toggle endpoint
+              const response = await WorkoutService.toggleWorkoutPlanVisibility(workoutPlan.id);
+              console.log('[handleTogglePublic] Toggle response:', response);
+              
+              // Update the local state immediately
+              setWorkoutPlan(response.workout_plan);
               
               // Refresh the workout plan to get updated data
               await fetchWorkoutPlan();
               onUpdate();
               
-              // Show success message after UI has been updated
-              setTimeout(() => {
-                Alert.alert(
-                  'Success', 
-                  `Workout plan is now ${newPublicStatus ? 'public' : 'private'}.`
-                );
-              }, 100);
+              // Show success message
+              Alert.alert(
+                'Success', 
+                `Workout plan is now ${response.workout_plan.is_public ? 'public' : 'private'}.`
+              );
             } catch (error) {
               console.error('Error updating workout plan visibility:', error);
               

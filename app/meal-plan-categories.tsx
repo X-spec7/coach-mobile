@@ -52,18 +52,27 @@ const MEAL_PLAN_GOALS = [
     description: 'Well-balanced plans for overall wellness',
     image: 'https://images.unsplash.com/photo-1490645935967-10de6ba17061?w=500',
   },
+  { 
+    id: 'others', 
+    title: 'Others',
+    description: 'Meal plans with unique or specialized goals',
+    image: 'https://images.unsplash.com/photo-1490645935967-10de6ba17061?w=500',
+  },
 ];
 
 export default function MealPlanCategoriesScreen() {
   const { category } = useLocalSearchParams<{ category?: string }>();
-  const [selectedGoal, setSelectedGoal] = useState<MealPlanGoal | null>(category as MealPlanGoal || null);
+  const [selectedGoal, setSelectedGoal] = useState<MealPlanGoal | 'others' | null>(category as MealPlanGoal | 'others' || null);
   const [mealPlans, setMealPlans] = useState<PublicMealPlan[]>([]);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [categoryCounts, setCategoryCounts] = useState<Record<string, number>>({});
 
   useEffect(() => {
     if (selectedGoal) {
       fetchMealPlansByGoal();
+    } else {
+      fetchCategoryCounts();
     }
   }, [selectedGoal]);
 
@@ -75,12 +84,25 @@ export default function MealPlanCategoriesScreen() {
     }
 
     try {
-      const response = await MealService.getPublicMealPlans({
-        goal: selectedGoal!,
-        limit: 20,
-        offset: 0,
-      });
-      setMealPlans(response.meal_plans);
+      if (selectedGoal === 'others') {
+        // For "others", fetch all plans and filter out predefined categories
+        const allPlansResponse = await MealService.getPublicMealPlans({
+          limit: 1000,
+          offset: 0,
+        });
+        const predefinedGoals = ['weight_loss', 'weight_gain', 'muscle_gain', 'maintenance', 'athletic_performance', 'general_health'];
+        const otherPlans = allPlansResponse.meal_plans.filter(plan => 
+          !predefinedGoals.includes(plan.goal)
+        );
+        setMealPlans(otherPlans);
+      } else {
+        const response = await MealService.getPublicMealPlans({
+          goal: selectedGoal!,
+          limit: 20,
+          offset: 0,
+        });
+        setMealPlans(response.meal_plans);
+      }
     } catch (error) {
       console.error('Error fetching meal plans by goal:', error);
       const errorMessage = error instanceof Error ? error.message : 'Failed to load meal plans';
@@ -97,13 +119,43 @@ export default function MealPlanCategoriesScreen() {
     }
   };
 
+  const fetchCategoryCounts = async () => {
+    try {
+      const counts: Record<string, number> = {};
+      
+      // Fetch counts for each category
+      for (const goal of MEAL_PLAN_GOALS) {
+        if (goal.id === 'others') {
+          // For "others", fetch all plans and count those not in predefined categories
+          const allPlansResponse = await MealService.getPublicMealPlans({ limit: 1000 });
+          const predefinedGoals = ['weight_loss', 'weight_gain', 'muscle_gain', 'maintenance', 'athletic_performance', 'general_health'];
+          const otherPlans = allPlansResponse.meal_plans.filter(plan => 
+            !predefinedGoals.includes(plan.goal)
+          );
+          counts[goal.id] = otherPlans.length;
+        } else {
+          const response = await MealService.getPublicMealPlans({ 
+            goal: goal.id as MealPlanGoal,
+            limit: 1 // We only need the count
+          });
+          counts[goal.id] = response.total;
+        }
+      }
+      
+      setCategoryCounts(counts);
+    } catch (error) {
+      console.error('Error fetching category counts:', error);
+      // Don't show error alert for category counts as they're not critical
+    }
+  };
+
   const handleRefresh = () => {
     if (selectedGoal) {
       fetchMealPlansByGoal(true);
     }
   };
 
-  const handleGoalSelect = (goalId: MealPlanGoal) => {
+  const handleGoalSelect = (goalId: MealPlanGoal | 'others') => {
     setSelectedGoal(goalId);
   };
 
@@ -123,29 +175,38 @@ export default function MealPlanCategoriesScreen() {
     );
   };
 
-  const renderGoalCard = (goalItem: typeof MEAL_PLAN_GOALS[0]) => (
-    <TouchableOpacity 
-      key={goalItem.id} 
-      style={[
-        styles.goalCard,
-        selectedGoal === goalItem.id && styles.selectedGoalCard
-      ]}
-      onPress={() => handleGoalSelect(goalItem.id as MealPlanGoal)}
-    >
-      <Image source={{ uri: goalItem.image }} style={styles.goalImage} />
-      <View style={styles.goalOverlay}>
-        <View style={styles.goalContent}>
-          <Text style={styles.goalTitle}>{goalItem.title}</Text>
-          <Text style={styles.goalDescription}>{goalItem.description}</Text>
-          {selectedGoal === goalItem.id && (
-            <View style={styles.selectedIndicator}>
-              <Ionicons name="checkmark-circle" size={24} color="#4CAF50" />
+  const renderGoalCard = (goalItem: typeof MEAL_PLAN_GOALS[0]) => {
+    const count = categoryCounts[goalItem.id] || 0;
+    
+    return (
+      <TouchableOpacity 
+        key={goalItem.id} 
+        style={[
+          styles.goalCard,
+          selectedGoal === goalItem.id && styles.selectedGoalCard
+        ]}
+        onPress={() => handleGoalSelect(goalItem.id as MealPlanGoal | 'others')}
+      >
+        <Image source={{ uri: goalItem.image }} style={styles.goalImage} />
+        <View style={styles.goalOverlay}>
+          <View style={styles.goalContent}>
+            <View style={styles.goalHeader}>
+              <Text style={styles.goalTitle}>{goalItem.title}</Text>
+              <View style={styles.goalCount}>
+                <Text style={styles.goalCountText}>{count}</Text>
+              </View>
             </View>
-          )}
+            <Text style={styles.goalDescription}>{goalItem.description}</Text>
+            {selectedGoal === goalItem.id && (
+              <View style={styles.selectedIndicator}>
+                <Ionicons name="checkmark-circle" size={24} color="#4CAF50" />
+              </View>
+            )}
+          </View>
         </View>
-      </View>
-    </TouchableOpacity>
-  );
+      </TouchableOpacity>
+    );
+  };
 
   const renderMealPlanCard = (mealPlan: PublicMealPlan) => (
     <TouchableOpacity
@@ -347,11 +408,30 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'flex-end',
   },
+  goalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
   goalTitle: {
     fontSize: 18,
     fontWeight: 'bold',
     color: '#fff',
-    marginBottom: 4,
+    flex: 1,
+  },
+  goalCount: {
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    minWidth: 32,
+    alignItems: 'center',
+  },
+  goalCountText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: 'bold',
   },
   goalDescription: {
     fontSize: 12,

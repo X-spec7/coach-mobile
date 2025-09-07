@@ -432,6 +432,27 @@ export const WorkoutService = {
     return response.json();
   },
 
+  // Toggle workout plan visibility
+  toggleWorkoutPlanVisibility: async (planId: string): Promise<WorkoutPlanResponse> => {
+    const headers = await getAuthHeaders();
+    const response = await fetch(API_ENDPOINTS.WORKOUTS.TOGGLE_WORKOUT_PLAN_VISIBILITY(parseInt(planId)), {
+      method: 'PATCH',
+      headers,
+    });
+
+    if (response.status === 401) {
+      await handle401Error('Your session has expired. Please sign in again.');
+      throw new Error('Authentication required');
+    }
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Failed to toggle workout plan visibility: ${response.status} - ${errorText}`);
+    }
+
+    return response.json();
+  },
+
   // Delete workout plan
   deleteWorkoutPlan: async (planId: string): Promise<{ message: string }> => {
     const headers = await getAuthHeadersForDelete();

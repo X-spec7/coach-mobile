@@ -35,6 +35,24 @@ const mealPlanCategories = [
     description: 'Balanced plans to maintain current weight',
     image: 'https://images.unsplash.com/photo-1490645935967-10de6ba17061?w=500',
   },
+  {
+    id: 'athletic_performance',
+    title: 'Athletic Performance',
+    description: 'Optimized nutrition for sports and performance',
+    image: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=500',
+  },
+  {
+    id: 'general_health',
+    title: 'General Health',
+    description: 'Well-balanced plans for overall wellness',
+    image: 'https://images.unsplash.com/photo-1490645935967-10de6ba17061?w=500',
+  },
+  {
+    id: 'others',
+    title: 'Others',
+    description: 'Meal plans with unique or specialized goals',
+    image: 'https://images.unsplash.com/photo-1490645935967-10de6ba17061?w=500',
+  },
 ];
 
 export default function MealPlanScreen() {
@@ -49,9 +67,11 @@ export default function MealPlanScreen() {
   const [showApplyModal, setShowApplyModal] = useState(false);
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<MealPlan | null>(null);
+  const [categoryCounts, setCategoryCounts] = useState<Record<string, number>>({});
 
   useEffect(() => {
     fetchMealPlans();
+    fetchCategoryCounts();
   }, []);
 
   const fetchMealPlans = async (isRefresh = false) => {
@@ -79,6 +99,36 @@ export default function MealPlanScreen() {
     } finally {
       setLoading(false);
       setRefreshing(false);
+    }
+  };
+
+  const fetchCategoryCounts = async () => {
+    try {
+      const counts: Record<string, number> = {};
+      
+      // Fetch counts for each category
+      for (const category of mealPlanCategories) {
+        if (category.id === 'others') {
+          // For "others", we'll fetch all plans and count those not in predefined categories
+          const allPlansResponse = await MealService.getPublicMealPlans({ limit: 1000 });
+          const predefinedGoals = ['weight_loss', 'weight_gain', 'muscle_gain', 'maintenance', 'athletic_performance', 'general_health'];
+          const otherPlans = allPlansResponse.meal_plans.filter(plan => 
+            !predefinedGoals.includes(plan.goal)
+          );
+          counts[category.id] = otherPlans.length;
+        } else {
+          const response = await MealService.getPublicMealPlans({ 
+            goal: category.id as MealPlanGoal,
+            limit: 1 // We only need the count
+          });
+          counts[category.id] = response.total;
+        }
+      }
+      
+      setCategoryCounts(counts);
+    } catch (error) {
+      console.error('Error fetching category counts:', error);
+      // Don't show error alert for category counts as they're not critical
     }
   };
 
@@ -194,25 +244,34 @@ export default function MealPlanScreen() {
     </TouchableOpacity>
   );
 
-  const renderCategoryCard = (category: typeof mealPlanCategories[0]) => (
-    <TouchableOpacity 
-      key={category.id} 
-      style={styles.categoryCard}
-      onPress={() => router.push(`/meal-plan-categories?category=${category.id}`)}
-    >
-      <Image source={{ uri: category.image }} style={styles.categoryImage} />
-      <View style={styles.categoryOverlay}>
-        <View style={styles.categoryContent}>
-          <Text style={styles.categoryTitle}>{category.title}</Text>
-          <Text style={styles.categoryDescription}>{category.description}</Text>
-          <View style={styles.categoryAction}>
-            <Text style={styles.categoryActionText}>Explore</Text>
-            <Ionicons name="arrow-forward" size={16} color="#fff" />
+  const renderCategoryCard = (category: typeof mealPlanCategories[0]) => {
+    const count = categoryCounts[category.id] || 0;
+    
+    return (
+      <TouchableOpacity 
+        key={category.id} 
+        style={styles.categoryCard}
+        onPress={() => router.push(`/meal-plan-categories?category=${category.id}`)}
+      >
+        <Image source={{ uri: category.image }} style={styles.categoryImage} />
+        <View style={styles.categoryOverlay}>
+          <View style={styles.categoryContent}>
+            <View style={styles.categoryHeader}>
+              <Text style={styles.categoryTitle}>{category.title}</Text>
+              <View style={styles.categoryCount}>
+                <Text style={styles.categoryCountText}>{count}</Text>
+              </View>
+            </View>
+            <Text style={styles.categoryDescription}>{category.description}</Text>
+            <View style={styles.categoryAction}>
+              <Text style={styles.categoryActionText}>Explore</Text>
+              <Ionicons name="arrow-forward" size={16} color="#fff" />
+            </View>
           </View>
         </View>
-      </View>
-    </TouchableOpacity>
-  );
+      </TouchableOpacity>
+    );
+  };
 
   const renderEmptyMealPlans = () => (
     <View style={styles.emptyState}>
@@ -559,11 +618,30 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'flex-end',
   },
+  categoryHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
   categoryTitle: {
     fontSize: 18,
     fontWeight: 'bold',
     color: '#fff',
-    marginBottom: 4,
+    flex: 1,
+  },
+  categoryCount: {
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    minWidth: 32,
+    alignItems: 'center',
+  },
+  categoryCountText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: 'bold',
   },
   categoryDescription: {
     fontSize: 12,
