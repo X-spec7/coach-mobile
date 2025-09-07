@@ -18,8 +18,9 @@ const menuItems = [
   { id: 1, title: "Personal Information", icon: "person", route: "/personal-information" },
   // { id: 2, title: "Notifications", icon: "notifications", route: "/notifications-settings" }, // Commented out - can be enabled later
   { id: 3, title: "Privacy & Security", icon: "shield", route: "/privacy-settings" },
-  { id: 4, title: "Goals", icon: "target", route: "/goals" },
-  { id: 5, title: "Help & Support", icon: "help-circle", route: "/help-support" },
+  { id: 4, title: "Subscription", icon: "card", route: "/subscription" },
+  // { id: 5, title: "Goals", icon: "target", route: "/goals" }, // Commented out - can be enabled later
+  { id: 6, title: "Help & Support", icon: "help-circle", route: "/help-support" },
 ];
 
 export default function ProfileScreen() {

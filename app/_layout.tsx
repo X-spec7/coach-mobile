@@ -4,6 +4,7 @@ import { View, StyleSheet } from "react-native";
 import Logo from "./components/Logo";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { ChatProvider } from "./contexts/ChatContext";
+import { SubscriptionProvider } from "./contexts/SubscriptionContext";
 
 function RootLayoutNav() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -58,7 +59,9 @@ export default function RootLayout() {
   return (
     <AuthProvider>
       <ChatProvider>
-        <RootLayoutNav />
+        <SubscriptionProvider>
+          <RootLayoutNav />
+        </SubscriptionProvider>
       </ChatProvider>
     </AuthProvider>
   );

@@ -18,6 +18,7 @@ import { ThemedView } from '@/components/ThemedView';
 import LoadingSpinner from '@/components/LoadingSpinner';
 import { useAuth } from './contexts/AuthContext';
 import { UserProfileService, UserProfile } from './services/userProfileService';
+import { SubscriptionGuard } from './components/SubscriptionGuard';
 import {
   generateMealPlan,
   generateWorkoutPlan,
@@ -226,7 +227,8 @@ export default function AIPlannerScreen() {
   }
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor }]}>
+    <SubscriptionGuard>
+      <SafeAreaView style={[styles.container, { backgroundColor }]}>
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity
@@ -1311,6 +1313,7 @@ export default function AIPlannerScreen() {
 
       </ScrollView>
     </SafeAreaView>
+    </SubscriptionGuard>
   );
 }
 

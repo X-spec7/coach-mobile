@@ -12,17 +12,17 @@ import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useAuth } from './contexts/AuthContext';
 import { UserProfileService } from './services/userProfileService';
-
-interface Goal {
-  id: string;
-  title: string;
-  icon: string;
-  isActive: boolean;
-  targetValue?: number;
-  currentValue?: number;
-  unit?: string;
-  createdAt: string;
-}
+import { 
+  getUserGoals, 
+  getAvailableGoals, 
+  addGoal, 
+  updateGoal, 
+  removeGoal, 
+  toggleGoal,
+  Goal, 
+  UserGoal, 
+  AddGoalRequest 
+} from './services/goalService';
 
 const GOAL_OPTIONS = [
   { id: 'weight_loss', title: 'Lose Weight', icon: 'scale' },
@@ -37,7 +37,8 @@ const GOAL_OPTIONS = [
 
 export default function GoalsScreen() {
   const { user } = useAuth();
-  const [goals, setGoals] = useState<Goal[]>([]);
+  const [goals, setGoals] = useState<Array<Goal & { user_goal?: UserGoal }>>([]);
+  const [availableGoals, setAvailableGoals] = useState<Goal[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -51,61 +52,66 @@ export default function GoalsScreen() {
       setLoading(true);
       setError(null);
       
-      // For now, we'll use mock data since the goals API isn't implemented yet
-      // TODO: Replace with actual API call when backend is ready
-      const mockGoals: Goal[] = [
-        {
-          id: '1',
-          title: 'Lose Weight',
-          icon: 'scale',
-          isActive: true,
-          targetValue: 70,
-          currentValue: 75,
-          unit: 'kg',
-          createdAt: '2025-01-01T00:00:00Z',
-        },
-        {
-          id: '2',
-          title: 'Build Muscle',
-          icon: 'fitness',
-          isActive: true,
-          targetValue: 80,
-          currentValue: 75,
-          unit: 'kg',
-          createdAt: '2025-01-01T00:00:00Z',
-        },
-      ];
+      const [userGoalsResponse, availableGoalsResponse] = await Promise.all([
+        getUserGoals(),
+        getAvailableGoals(),
+      ]);
       
-      setGoals(mockGoals);
+      console.log('User goals response:', userGoalsResponse);
+      console.log('Available goals response:', availableGoalsResponse);
+      
+      // The API returns goals with user_goal nested, so we need to handle this properly
+      const goalsWithUserGoals = userGoalsResponse.goals.map(goal => ({
+        ...goal,
+        user_goal: goal.user_goal || undefined
+      }));
+      
+      console.log('Processed goals with user_goals:', goalsWithUserGoals);
+      
+      setGoals(goalsWithUserGoals);
+      setAvailableGoals(availableGoalsResponse.available_goals);
     } catch (err) {
+      console.error('Error fetching goals:', err);
       setError(err instanceof Error ? err.message : 'Failed to load goals');
     } finally {
       setLoading(false);
     }
   };
 
-  const toggleGoal = (goalId: string) => {
-    setGoals(prev => 
-      prev.map(goal => 
-        goal.id === goalId 
-          ? { ...goal, isActive: !goal.isActive }
-          : goal
-      )
-    );
+  const handleToggleGoal = async (userGoalId: number, isActive: boolean) => {
+    try {
+      setSaving(true);
+      await toggleGoal(userGoalId, !isActive);
+      
+      // Refresh the goals list to get the updated data from the server
+      await fetchGoals();
+    } catch (err) {
+      Alert.alert('Error', err instanceof Error ? err.message : 'Failed to toggle goal');
+    } finally {
+      setSaving(false);
+    }
   };
 
-  const addGoal = (goalOption: typeof GOAL_OPTIONS[0]) => {
-    const newGoal: Goal = {
-      id: Date.now().toString(),
-      title: goalOption.title,
-      icon: goalOption.icon,
-      isActive: true,
-      createdAt: new Date().toISOString(),
-    };
-    setGoals(prev => [...prev, newGoal]);
+  const handleAddGoal = async (goalId: string) => {
+    try {
+      setSaving(true);
+      console.log('Adding goal with ID:', goalId);
+      const response = await addGoal({ goal_id: goalId });
+      console.log('Add goal response:', response);
+      
+      // Refresh the goals list to get the updated data from the server
+      await fetchGoals();
+      
+      Alert.alert('Success', 'Goal added successfully!');
+    } catch (err) {
+      console.error('Error adding goal:', err);
+      Alert.alert('Error', err instanceof Error ? err.message : 'Failed to add goal');
+    } finally {
+      setSaving(false);
+    }
   };
 
-  const removeGoal = (goalId: string) => {
+  const handleRemoveGoal = (userGoalId: number) => {
     Alert.alert(
       'Remove Goal',
       'Are you sure you want to remove this goal?',
@@ -114,8 +120,20 @@ export default function GoalsScreen() {
         { 
           text: 'Remove', 
           style: 'destructive',
-          onPress: () => {
-            setGoals(prev => prev.filter(goal => goal.id !== goalId));
+          onPress: async () => {
+            try {
+              setSaving(true);
+              await removeGoal(userGoalId);
+              
+              // Refresh the goals list to get the updated data from the server
+              await fetchGoals();
+              
+              Alert.alert('Success', 'Goal removed successfully!');
+            } catch (err) {
+              Alert.alert('Error', err instanceof Error ? err.message : 'Failed to remove goal');
+            } finally {
+              setSaving(false);
+            }
           }
         }
       ]
@@ -127,10 +145,9 @@ export default function GoalsScreen() {
       setSaving(true);
       setError(null);
       
-      // TODO: Implement API call to save goals
-      // await UserProfileService.updateGoals(goals);
-      
-      Alert.alert('Success', 'Goals updated successfully!');
+      // Goals are automatically saved when individual actions are performed
+      // This function can be used for any bulk operations if needed
+      Alert.alert('Success', 'Goals are automatically saved!');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to update goals');
       Alert.alert('Error', err instanceof Error ? err.message : 'Failed to update goals');
@@ -139,7 +156,7 @@ export default function GoalsScreen() {
     }
   };
 
-  const renderGoalCard = (goal: Goal) => (
+  const renderGoalCard = (goal: Goal & { user_goal?: UserGoal }) => (
     <View key={goal.id} style={styles.goalCard}>
       <View style={styles.goalHeader}>
         <View style={styles.goalIcon}>
@@ -147,26 +164,33 @@ export default function GoalsScreen() {
         </View>
         <View style={styles.goalInfo}>
           <Text style={styles.goalTitle}>{goal.title}</Text>
-          {goal.targetValue && goal.currentValue && (
+          {goal.user_goal?.target_value && goal.user_goal?.current_value && (
             <Text style={styles.goalProgress}>
-              {goal.currentValue} / {goal.targetValue} {goal.unit}
+              {goal.user_goal.current_value} / {goal.user_goal.target_value} {goal.user_goal.unit}
+            </Text>
+          )}
+          {goal.user_goal?.progress_percentage !== undefined && (
+            <Text style={styles.progressPercentage}>
+              {goal.user_goal.progress_percentage.toFixed(1)}% complete
             </Text>
           )}
         </View>
         <View style={styles.goalActions}>
           <TouchableOpacity
-            style={[styles.toggleButton, goal.isActive && styles.toggleButtonActive]}
-            onPress={() => toggleGoal(goal.id)}
+            style={[styles.toggleButton, goal.user_goal?.is_active && styles.toggleButtonActive]}
+            onPress={() => goal.user_goal && handleToggleGoal(goal.user_goal.id, goal.user_goal.is_active)}
+            disabled={saving}
           >
             <Ionicons 
-              name={goal.isActive ? "checkmark-circle" : "ellipse-outline"} 
+              name={goal.user_goal?.is_active ? "checkmark-circle" : "ellipse-outline"} 
               size={24} 
-              color={goal.isActive ? "#A26FFD" : "#ccc"} 
+              color={goal.user_goal?.is_active ? "#A26FFD" : "#ccc"} 
             />
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.removeButton}
-            onPress={() => removeGoal(goal.id)}
+            onPress={() => goal.user_goal && handleRemoveGoal(goal.user_goal.id)}
+            disabled={saving}
           >
             <Ionicons name="trash-outline" size={20} color="#FF6B6B" />
           </TouchableOpacity>
@@ -175,23 +199,23 @@ export default function GoalsScreen() {
     </View>
   );
 
-  const renderGoalOption = (goalOption: typeof GOAL_OPTIONS[0]) => {
-    const isSelected = goals.some(goal => goal.title === goalOption.title);
+  const renderGoalOption = (goal: Goal) => {
+    const isSelected = goals.some(userGoal => userGoal.id === goal.id && userGoal.user_goal);
     
     return (
       <TouchableOpacity
-        key={goalOption.id}
+        key={goal.id}
         style={[styles.goalOption, isSelected && styles.goalOptionSelected]}
-        onPress={() => !isSelected && addGoal(goalOption)}
-        disabled={isSelected}
+        onPress={() => !isSelected && handleAddGoal(goal.id)}
+        disabled={isSelected || saving}
       >
         <Ionicons 
-          name={goalOption.icon as any} 
+          name={goal.icon as any} 
           size={24} 
           color={isSelected ? "#fff" : "#A26FFD"} 
         />
         <Text style={[styles.goalOptionText, isSelected && styles.goalOptionTextSelected]}>
-          {goalOption.title}
+          {goal.title}
         </Text>
         {isSelected && (
           <Ionicons name="checkmark" size={20} color="#fff" />
@@ -246,24 +270,30 @@ export default function GoalsScreen() {
         {/* Current Goals */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Current Goals</Text>
-          {goals.length === 0 ? (
-            <View style={styles.emptyState}>
-              <Ionicons name="flag" size={48} color="#ccc" />
-              <Text style={styles.emptyStateText}>No goals set yet</Text>
-              <Text style={styles.emptyStateSubtext}>Add some goals to track your progress</Text>
-            </View>
-          ) : (
-            <View style={styles.goalsList}>
-              {goals.map(renderGoalCard)}
-            </View>
-          )}
+          {(() => {
+            const userGoals = goals.filter(goal => goal.user_goal);
+            console.log('Goals with user_goal:', userGoals);
+            console.log('Total goals:', goals.length);
+            
+            return userGoals.length === 0 ? (
+              <View style={styles.emptyState}>
+                <Ionicons name="flag" size={48} color="#ccc" />
+                <Text style={styles.emptyStateText}>No goals set yet</Text>
+                <Text style={styles.emptyStateSubtext}>Add some goals to track your progress</Text>
+              </View>
+            ) : (
+              <View style={styles.goalsList}>
+                {userGoals.map(renderGoalCard)}
+              </View>
+            );
+          })()}
         </View>
 
         {/* Add New Goals */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Add New Goals</Text>
           <View style={styles.goalOptionsGrid}>
-            {GOAL_OPTIONS.map(renderGoalOption)}
+            {availableGoals.map(renderGoalOption)}
           </View>
         </View>
       </ScrollView>
@@ -403,6 +433,12 @@ const styles = StyleSheet.create({
   goalProgress: {
     fontSize: 14,
     color: '#666',
+  },
+  progressPercentage: {
+    fontSize: 12,
+    color: '#A26FFD',
+    fontWeight: '600',
+    marginTop: 2,
   },
   goalActions: {
     flexDirection: 'row',
