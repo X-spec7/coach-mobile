@@ -54,8 +54,10 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   }, []);
 
   const updateContacts = useCallback((newContacts: Contact[]): void => {
-    setContacts(newContacts);
-  }, []);
+    // Filter out the current user from contacts list
+    const filteredContacts = newContacts.filter(contact => contact.id !== user?.id);
+    setContacts(filteredContacts);
+  }, [user?.id]);
 
   const updateContactLastMessage = useCallback((contactId: string, message: any): void => {
     setContacts(prevContacts => 
@@ -84,8 +86,10 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     try {
       console.log('[ChatContext] Loading contacts...');
       const response = await ChatService.getContacts();
-      setContacts(response.contacts);
-      console.log('[ChatContext] Contacts loaded:', response.contacts.length);
+      // Filter out the current user from contacts list
+      const filteredContacts = response.contacts.filter(contact => contact.id !== user.id);
+      setContacts(filteredContacts);
+      console.log('[ChatContext] Contacts loaded:', filteredContacts.length, '(filtered from', response.contacts.length, ')');
     } catch (error) {
       console.error('[ChatContext] Failed to load contacts:', error);
       // Don't show user-facing errors for contact loading

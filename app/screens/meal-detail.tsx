@@ -578,12 +578,16 @@ export default function MealDetailScreen() {
             <Text style={styles.mealName}>{mealDetails.meal_time_name}</Text>
             <Text style={styles.mealTime}>{formatTime(mealDetails.meal_time_time)}</Text>
             <Text style={styles.mealDate}>
-              {new Date(mealDetails.scheduled_date).toLocaleDateString('en-US', {
-                weekday: 'long',
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric'
-              })}
+              {(() => {
+                const [year, month, day] = mealDetails.scheduled_date.split('-').map(Number);
+                const date = new Date(year, month - 1, day);
+                return date.toLocaleDateString('en-US', {
+                  weekday: 'long',
+                  year: 'numeric',
+                  month: 'long',
+                  day: 'numeric'
+                });
+              })()}
             </Text>
             
                          <View style={styles.completionStatus}>

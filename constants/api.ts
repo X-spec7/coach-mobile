@@ -76,13 +76,13 @@ export const API_ENDPOINTS = {
   },
   WORKOUTS: {
     WORKOUT_PLANS: `${API_BASE_URL}/workouts/workout-plans/`,
-    WORKOUT_PLAN_DETAILS: (planId: number) => `${API_BASE_URL}/workouts/workout-plans/${planId}/`,
-    TOGGLE_WORKOUT_PLAN_VISIBILITY: (planId: number) => `${API_BASE_URL}/api/workouts/workout-plans/${planId}/toggle-visibility/`,
-    ADD_DAY: (planId: number) => `${API_BASE_URL}/workouts/workout-plans/${planId}/days/`,
-    REMOVE_DAY: (planId: number, dayId: number) => `${API_BASE_URL}/workouts/workout-plans/${planId}/days/${dayId}/`,
-    ADD_EXERCISE: (planId: number, dayId: number) => `${API_BASE_URL}/workouts/workout-plans/${planId}/days/${dayId}/exercises/`,
-    UPDATE_EXERCISE: (planId: number, dayId: number, exerciseId: number) => `${API_BASE_URL}/workouts/workout-plans/${planId}/days/${dayId}/exercises/${exerciseId}/`,
-    REMOVE_EXERCISE: (planId: number, dayId: number, exerciseId: number) => `${API_BASE_URL}/workouts/workout-plans/${planId}/days/${dayId}/exercises/${exerciseId}/`,
+    WORKOUT_PLAN_DETAILS: (planId: string) => `${API_BASE_URL}/workouts/workout-plans/${planId}/`,
+    TOGGLE_WORKOUT_PLAN_VISIBILITY: (planId: string) => `${API_BASE_URL}/workouts/workout-plans/${planId}/toggle-visibility/`,
+    ADD_DAY: (planId: string) => `${API_BASE_URL}/workouts/workout-plans/${planId}/days/`,
+    REMOVE_DAY: (planId: string, dayId: number) => `${API_BASE_URL}/workouts/workout-plans/${planId}/days/${dayId}/`,
+    ADD_EXERCISE: (planId: string, dayId: number) => `${API_BASE_URL}/workouts/workout-plans/${planId}/days/${dayId}/exercises/`,
+    UPDATE_EXERCISE: (planId: string, dayId: number, exerciseId: number) => `${API_BASE_URL}/workouts/workout-plans/${planId}/days/${dayId}/exercises/${exerciseId}/`,
+    REMOVE_EXERCISE: (planId: string, dayId: number, exerciseId: number) => `${API_BASE_URL}/workouts/workout-plans/${planId}/days/${dayId}/exercises/${exerciseId}/`,
     
     // Public workout plans
     PUBLIC_WORKOUT_PLANS: `${API_BASE_URL}/workouts/public-workout-plans/`,

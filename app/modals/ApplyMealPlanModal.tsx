@@ -106,7 +106,7 @@ export const ApplyMealPlanModal: React.FC<ApplyMealPlanModalProps> = ({
         meal_plan_id: mealPlan.id,
         selected_days: selectedDays,
         weeks_count: weeks,
-        start_date: startDate.toISOString().split('T')[0], // YYYY-MM-DD format
+        start_date: startDate.toISOString().split('T')[0], // YYYY-MM-DD format (UTC)
       });
 
       onSuccess();

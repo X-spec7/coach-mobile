@@ -100,11 +100,17 @@ export const ApplyWorkoutPlanModal: React.FC<ApplyWorkoutPlanModalProps> = ({
 
     setApplying(true);
     try {
+      const utcStartDate = startDate.toISOString().split('T')[0];
+      
+      console.log('[ApplyWorkoutPlan] Selected days:', selectedDays);
+      console.log('[ApplyWorkoutPlan] Start date (UTC):', utcStartDate);
+      console.log('[ApplyWorkoutPlan] Start date object:', startDate);
+      
       await WorkoutService.applyWorkoutPlan({
         workout_plan_id: workoutPlan.id,
         selected_days: selectedDays,
         weeks_count: weeks,
-        start_date: startDate.toISOString().split('T')[0], // YYYY-MM-DD format
+        start_date: utcStartDate, // YYYY-MM-DD format (UTC)
       });
 
       onSuccess();

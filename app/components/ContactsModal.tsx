@@ -94,7 +94,9 @@ export const ContactsModal: React.FC<ContactsModalProps> = ({
           // Fetch contacts
           const contactsResponse = await ContactService.getContacts();
           console.log("contactsResponse:", contactsResponse);
-          setContacts(contactsResponse?.contacts || []);
+          // Filter out the current user from contacts list
+          const filteredContacts = (contactsResponse?.contacts || []).filter(contact => contact.id.toString() !== user.id);
+          setContacts(filteredContacts);
           //Use getRelationships without filters to get all relationships for the current user
           let relationshipsData = await RelationshipService.myRelationships();
           setRelationships(relationshipsData);

@@ -435,7 +435,7 @@ export const WorkoutService = {
   // Toggle workout plan visibility
   toggleWorkoutPlanVisibility: async (planId: string): Promise<WorkoutPlanResponse> => {
     const headers = await getAuthHeaders();
-    const response = await fetch(API_ENDPOINTS.WORKOUTS.TOGGLE_WORKOUT_PLAN_VISIBILITY(parseInt(planId)), {
+    const response = await fetch(API_ENDPOINTS.WORKOUTS.TOGGLE_WORKOUT_PLAN_VISIBILITY(planId), {
       method: 'PATCH',
       headers,
     });

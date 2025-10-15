@@ -54,7 +54,7 @@ export default function CalorieTrackingScreen() {
     loadData();
   }, []);
 
-  // Refresh data when screen comes into focus (e.g., returning from goals page)
+  // Refresh data when screen comes into focus (e.g., after marking a meal as completed)
   useFocusEffect(
     useCallback(() => {
       console.log('Calorie tracking screen focused - refreshing data...');
@@ -168,17 +168,34 @@ export default function CalorieTrackingScreen() {
       setScheduledMealDetails(mealDetails.map(detail => detail.scheduled_meal));
       
       // Calculate total nutrition from scheduled meals
+      // For completed meals, use planned nutrition; for incomplete meals, use consumed nutrition
       const totalNutrition = mealDetails.reduce((total, detail) => {
         const meal = detail.scheduled_meal;
+        
+        // If meal is completed, use planned nutrition; otherwise use consumed nutrition
+        const nutritionToUse = meal.is_completed ? meal.planned_nutrition : meal.consumed_nutrition;
+        const caloriesToUse = meal.is_completed ? 
+          (meal.planned_nutrition.calories || 0) : 
+          meal.consumed_calories;
+        
         return {
-          calories: total.calories + meal.consumed_calories,
-          protein: total.protein + meal.consumed_nutrition.protein,
-          carbs: total.carbs + meal.consumed_nutrition.carbs,
-          fat: total.fat + meal.consumed_nutrition.fat,
+          calories: total.calories + caloriesToUse,
+          protein: total.protein + nutritionToUse.protein,
+          carbs: total.carbs + nutritionToUse.carbs,
+          fat: total.fat + nutritionToUse.fat,
         };
       }, { calories: 0, protein: 0, carbs: 0, fat: 0 });
       
       console.log('Total scheduled nutrition:', totalNutrition);
+      console.log('Scheduled meals completion status:', mealDetails.map(detail => ({
+        meal: detail.scheduled_meal.meal_time_name,
+        is_completed: detail.scheduled_meal.is_completed,
+        consumed_calories: detail.scheduled_meal.consumed_calories,
+        planned_calories: detail.scheduled_meal.planned_nutrition.calories,
+        used_calories: detail.scheduled_meal.is_completed ? 
+          (detail.scheduled_meal.planned_nutrition.calories || 0) : 
+          detail.scheduled_meal.consumed_calories
+      })));
       setScheduledNutrition(totalNutrition);
       
     } catch (error) {
